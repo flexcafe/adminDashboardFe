@@ -15,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   register: (userData: RegisterUserDTO) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => void;
@@ -59,12 +59,12 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
   }, [authService]);
 
   // Login function
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
     setIsLoading(true);
     setError(null); // Clear any previous errors
 
     try {
-      const loggedInUser = await authService.login(email, password);
+      const loggedInUser = await authService.login(identifier, password);
       setUser(loggedInUser);
       setError(null); // Clear error on success
     } catch (err) {

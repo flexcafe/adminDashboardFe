@@ -43,16 +43,20 @@ export class ApiAuthRepository {
    * Login user with email and password
    */
   async login(
-    email: string,
+    identifier: string,
     password: string
   ): Promise<{ user: User; token: string }> {
     try {
+      const loginPayload: Record<string, string> = { password };
+      if (identifier.includes("@")) {
+        loginPayload.email = identifier;
+      } else {
+        loginPayload.phone = identifier;
+      }
+
       const response = await this.httpClient.post<ApiResponse<LoginResponse>>(
         API_ENDPOINTS.AUTH.LOGIN,
-        {
-          email,
-          password,
-        }
+        loginPayload
       );
 
       if (response.code === 200 && response.data) {
@@ -72,7 +76,7 @@ export class ApiAuthRepository {
         // Get user data by making a request to get current user
         const userResponse = await this.httpClient.get<
           ApiResponse<RegisterResponse>
-        >(API_ENDPOINTS.USERS.BASE);
+        >(API_ENDPOINTS.AUTH.ME);
 
         if (userResponse.code === 200 && userResponse.data) {
           const user = this.mapApiResponseToUser(userResponse.data);
@@ -151,6 +155,19 @@ export class ApiAuthRepository {
    */
   async getCurrentUser(): Promise<User | null> {
     try {
+      const token = tokenCookies.getToken();
+      if (token) {
+        const response = await this.httpClient.get<ApiResponse<RegisterResponse>>(
+          API_ENDPOINTS.AUTH.ME
+        );
+
+        if (response.code === 200 && response.data) {
+          const user = this.mapApiResponseToUser(response.data);
+          tokenCookies.setUser(JSON.stringify(user));
+          return user;
+        }
+      }
+
       const userJson = tokenCookies.getUser();
       if (!userJson) {
         return null;
@@ -170,12 +187,14 @@ export class ApiAuthRepository {
    * Map API response to User entity
    */
   private mapApiResponseToUser(apiUser: RegisterResponse): User {
+    const normalizedRole = String(apiUser.role || "STAFF").toUpperCase();
+
     return new User({
-      id: apiUser.id,
-      name: apiUser.name,
-      email: apiUser.email,
+      id: String(apiUser.id),
+      name: apiUser.name || "",
+      email: apiUser.email || "",
       phone: apiUser.phone,
-      role: apiUser.role as "ADMIN" | "STAFF",
+      role: normalizedRole === "ADMIN" ? "ADMIN" : "STAFF",
       profileImageUrl: this.convertToFullUrl(apiUser.profileImageUrl),
       createdDate: new Date(apiUser.createdDate),
       updatedDate: new Date(apiUser.updatedDate),

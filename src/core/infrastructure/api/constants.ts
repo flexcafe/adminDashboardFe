@@ -20,8 +20,9 @@ export const API_ENDPOINTS = {
 
   // Authentication endpoints
   AUTH: {
-    LOGIN: "/auth/login",
-    REGISTER: "/auth/register",
+    LOGIN: "/api/v1/client/auth/login",
+    REGISTER: "/api/v1/client/auth/register",
+    ME: "/api/v1/client/auth/me",
   },
 
   // CSRF protection endpoint

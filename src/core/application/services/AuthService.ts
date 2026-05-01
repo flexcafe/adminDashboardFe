@@ -18,17 +18,13 @@ export class AuthService implements IAuthService {
   /**
    * Login a user with email and password
    */
-  async login(email: string, password: string): Promise<User> {
-    if (!email || !password) {
-      throw new Error("Email and password are required");
-    }
-
-    if (!email.includes("@")) {
-      throw new Error("Please enter a valid email address");
+  async login(identifier: string, password: string): Promise<User> {
+    if (!identifier || !password) {
+      throw new Error("Phone/email and password are required");
     }
 
     try {
-      const result = await this.authRepository.login(email, password);
+      const result = await this.authRepository.login(identifier, password);
       return result.user;
     } catch (error) {
       console.error("Login failed:", error);

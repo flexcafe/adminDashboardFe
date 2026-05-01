@@ -7,7 +7,7 @@ export interface IAuthService {
   /**
    * Login a user with email and password
    */
-  login(email: string, password: string): Promise<User>;
+  login(identifier: string, password: string): Promise<User>;
 
   /**
    * Register a new user (admin only)
