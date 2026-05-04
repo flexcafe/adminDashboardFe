@@ -6,7 +6,7 @@ import { LoginPage } from "../../pages/LoginPage";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 
 function isAdminRole(role?: string): boolean {
-  return String(role || "").toUpperCase() === "ADMIN";
+  return String(role || "").toUpperCase().includes("ADMIN");
 }
 
 function RequireAuth() {

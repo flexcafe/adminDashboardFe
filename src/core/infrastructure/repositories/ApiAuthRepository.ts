@@ -139,14 +139,14 @@ export class ApiAuthRepository {
    * Map API response to User entity
    */
   private mapApiResponseToUser(apiUser: RegisterResponse): User {
-    const normalizedRole = String(apiUser.role || "STAFF").toUpperCase();
+    const normalizedRole = this.normalizeRole(apiUser.role);
 
     return new User({
       id: String(apiUser.id),
       name: apiUser.name || "",
       email: apiUser.email || "",
       phone: apiUser.phone,
-      role: normalizedRole === "ADMIN" ? "ADMIN" : "STAFF",
+      role: normalizedRole,
       profileImageUrl: this.convertToFullUrl(apiUser.profileImageUrl),
       createdDate: new Date(apiUser.createdDate),
       updatedDate: new Date(apiUser.updatedDate),
@@ -218,7 +218,7 @@ export class ApiAuthRepository {
 
   private buildUserFromToken(token: string, identifier: string): User {
     const payload = this.parseJwtPayload(token);
-    const role = String(payload?.role || payload?.userRole || "ADMIN").toUpperCase();
+    const role = this.normalizeRole(payload?.role || payload?.userRole);
     const email =
       typeof payload?.email === "string"
         ? payload.email
@@ -242,7 +242,7 @@ export class ApiAuthRepository {
       name: String(payload?.name || payload?.username || "Admin"),
       email,
       phone,
-      role: role === "ADMIN" ? "ADMIN" : "STAFF",
+      role,
       profileImageUrl: this.convertToFullUrl(profileImageUrl),
       createdDate: now,
       updatedDate: now,
@@ -264,5 +264,10 @@ export class ApiAuthRepository {
     } catch {
       return null;
     }
+  }
+
+  private normalizeRole(rawRole: unknown): "ADMIN" | "STAFF" {
+    const value = String(rawRole || "").toUpperCase();
+    return value.includes("ADMIN") ? "ADMIN" : "STAFF";
   }
 }

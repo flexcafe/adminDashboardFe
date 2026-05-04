@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 
 function isAdminRole(role?: string): boolean {
-  return String(role || "").toUpperCase() === "ADMIN";
+  return String(role || "").toUpperCase().includes("ADMIN");
 }
 
 export function LoginPage() {
