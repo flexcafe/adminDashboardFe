@@ -1,8 +1,6 @@
 import { User } from "../../domain/entities/User";
 import { IAuthService } from "../../domain/services/IAuthService";
 import { ApiAuthRepository } from "../../infrastructure/repositories/ApiAuthRepository";
-import { calculatePasswordStrength } from "@/lib/utils/password";
-import i18n from "@/lib/i18n";
 
 /**
  * Auth Service implementation
@@ -29,53 +27,6 @@ export class AuthService implements IAuthService {
     } catch (error) {
       console.error("Login failed:", error);
       throw new Error("Invalid email or password");
-    }
-  }
-
-  /**
-   * Register a new user (admin only)
-   */
-  async register(userData: {
-    name: string;
-    email: string;
-    phone: string;
-    role: "ADMIN" | "STAFF";
-    password: string;
-  }): Promise<User> {
-    // Validate required fields
-    if (
-      !userData.name ||
-      !userData.email ||
-      !userData.phone ||
-      !userData.password
-    ) {
-      throw new Error("All fields are required");
-    }
-
-    if (!userData.email.includes("@")) {
-      throw new Error("Please enter a valid email address");
-    }
-
-    if (userData.password.length < 6) {
-      throw new Error("Password must be at least 6 characters long");
-    }
-
-    // Check password strength (must be at least 80%)
-    const passwordStrength = calculatePasswordStrength(
-      userData.password,
-      i18n.t
-    );
-    if (passwordStrength < 80) {
-      throw new Error(
-        "Password must be at least 80% strong. Please include uppercase, lowercase, numbers, and special characters."
-      );
-    }
-
-    try {
-      return await this.authRepository.register(userData);
-    } catch (error) {
-      console.error("Registration failed:", error);
-      throw new Error("Registration failed. Please try again.");
     }
   }
 

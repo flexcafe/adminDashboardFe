@@ -9,6 +9,8 @@ import { tokenCookies } from "@/lib/cookies";
  */
 interface LoginResponse {
   token: string;
+  user?: RegisterResponse;
+  admin?: RegisterResponse;
 }
 
 interface RegisterResponse {
@@ -73,19 +75,15 @@ export class ApiAuthRepository {
           // Don't fail login if CSRF token fetch fails
         }
 
-        // Get user data by making a request to get current user
-        const userResponse = await this.httpClient.get<
-          ApiResponse<RegisterResponse>
-        >(API_ENDPOINTS.AUTH.ME);
+        // Resolve user directly from login response or JWT payload.
+        const responseUser = response.data.user || response.data.admin;
+        const user = responseUser
+          ? this.mapApiResponseToUser(responseUser)
+          : this.buildUserFromToken(token, identifier);
 
-        if (userResponse.code === 200 && userResponse.data) {
-          const user = this.mapApiResponseToUser(userResponse.data);
-
-          // Store user in secure cookie
-          tokenCookies.setUser(JSON.stringify(user));
-
-          return { user, token };
-        }
+        // Store user in secure cookie
+        tokenCookies.setUser(JSON.stringify(user));
+        return { user, token };
       }
 
       throw new Error("Login failed");
@@ -100,38 +98,6 @@ export class ApiAuthRepository {
         throw new Error(error.message);
       }
       throw new Error("Invalid credentials");
-    }
-  }
-
-  /**
-   * Register a new user (admin only)
-   */
-  async register(userData: {
-    name: string;
-    email: string;
-    phone: string;
-    role: "ADMIN" | "STAFF";
-    password: string;
-  }): Promise<User> {
-    try {
-      const response = await this.httpClient.post<
-        ApiResponse<RegisterResponse>
-      >(API_ENDPOINTS.AUTH.REGISTER, {
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone,
-        role: userData.role,
-        password: userData.password,
-      });
-
-      if (response.code === 200 && response.data) {
-        return this.mapApiResponseToUser(response.data);
-      }
-
-      throw new Error("Registration failed");
-    } catch (error) {
-      console.error("Error during registration:", error);
-      throw new Error("Registration failed");
     }
   }
 
@@ -155,19 +121,6 @@ export class ApiAuthRepository {
    */
   async getCurrentUser(): Promise<User | null> {
     try {
-      const token = tokenCookies.getToken();
-      if (token) {
-        const response = await this.httpClient.get<ApiResponse<RegisterResponse>>(
-          API_ENDPOINTS.AUTH.ME
-        );
-
-        if (response.code === 200 && response.data) {
-          const user = this.mapApiResponseToUser(response.data);
-          tokenCookies.setUser(JSON.stringify(user));
-          return user;
-        }
-      }
-
       const userJson = tokenCookies.getUser();
       if (!userJson) {
         return null;
@@ -212,5 +165,55 @@ export class ApiAuthRepository {
       return url;
     }
     return `${API_CONFIG.BASE_URL}${url}`;
+  }
+
+  private buildUserFromToken(token: string, identifier: string): User {
+    const payload = this.parseJwtPayload(token);
+    const role = String(payload?.role || payload?.userRole || "ADMIN").toUpperCase();
+    const email =
+      typeof payload?.email === "string"
+        ? payload.email
+        : identifier.includes("@")
+          ? identifier
+          : "";
+    const phone =
+      typeof payload?.phone === "string"
+        ? payload.phone
+        : !identifier.includes("@")
+          ? identifier
+          : "";
+    const now = new Date();
+    const profileImageUrl =
+      typeof payload?.profileImageUrl === "string"
+        ? payload.profileImageUrl
+        : undefined;
+
+    return new User({
+      id: String(payload?.id || payload?.sub || ""),
+      name: String(payload?.name || payload?.username || "Admin"),
+      email,
+      phone,
+      role: role === "ADMIN" ? "ADMIN" : "STAFF",
+      profileImageUrl: this.convertToFullUrl(profileImageUrl),
+      createdDate: now,
+      updatedDate: now,
+    });
+  }
+
+  private parseJwtPayload(token: string): Record<string, unknown> | null {
+    try {
+      const parts = token.split(".");
+      if (parts.length < 2) return null;
+
+      const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized.padEnd(
+        normalized.length + ((4 - (normalized.length % 4)) % 4),
+        "="
+      );
+      const payloadJson = atob(padded);
+      return JSON.parse(payloadJson) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
   }
 }

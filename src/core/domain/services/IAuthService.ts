@@ -10,17 +10,6 @@ export interface IAuthService {
   login(identifier: string, password: string): Promise<User>;
 
   /**
-   * Register a new user (admin only)
-   */
-  register(userData: {
-    name: string;
-    email: string;
-    phone: string;
-    role: "ADMIN" | "STAFF";
-    password: string;
-  }): Promise<User>;
-
-  /**
    * Logout the current user
    */
   logout(): Promise<void>;

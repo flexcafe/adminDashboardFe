@@ -8,7 +8,6 @@ import {
 import { User } from "../../domain/entities/User";
 import { IAuthService } from "../../domain/services/IAuthService";
 import container from "../../infrastructure/di/container";
-import { RegisterUserDTO } from "../../application/dtos/UserDTO";
 import { tokenCookies } from "@/lib/cookies";
 
 interface AuthContextType {
@@ -16,7 +15,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (identifier: string, password: string) => Promise<void>;
-  register: (userData: RegisterUserDTO) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => void;
   error: string | null;
@@ -79,28 +77,6 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
     }
   };
 
-  // Register function (admin-only user creation)
-  const register = async (userData: RegisterUserDTO) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const newUser = await authService.register(userData);
-      // Don't automatically log in the newly created user
-      // The current admin user should remain logged in
-      return newUser;
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred during registration");
-      }
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Logout function
   const logout = async () => {
     setIsLoading(true);
@@ -127,7 +103,6 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
     isAuthenticated: !!user,
     isLoading,
     login,
-    register,
     logout,
     updateUser,
     error,
