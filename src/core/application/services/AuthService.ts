@@ -24,9 +24,12 @@ export class AuthService implements IAuthService {
     try {
       const result = await this.authRepository.login(identifier, password);
       return result.user;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Login failed:", error);
-      throw new Error("Invalid email or password");
+      if (error instanceof Error && error.message) {
+        throw error;
+      }
+      throw new Error("Login failed. Please try again.");
     }
   }
 

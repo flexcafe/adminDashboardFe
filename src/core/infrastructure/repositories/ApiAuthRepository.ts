@@ -8,7 +8,8 @@ import { tokenCookies } from "@/lib/cookies";
  * API response types for auth endpoints
  */
 interface LoginResponse {
-  token: string;
+  token?: string;
+  accessToken?: string;
   user?: RegisterResponse;
   admin?: RegisterResponse;
 }
@@ -61,32 +62,30 @@ export class ApiAuthRepository {
         loginPayload
       );
 
-      if (response.code === 200 && response.data) {
-        const token = response.data.token;
-
-        // Store token in secure cookie
-        tokenCookies.setToken(token);
-
-        // Get CSRF token after successful login
-        try {
-          await this.httpClient.refreshCsrfToken();
-        } catch {
-          // console.warn("Failed to get CSRF token after login:", csrfError); // Removed for security
-          // Don't fail login if CSRF token fetch fails
-        }
-
-        // Resolve user directly from login response or JWT payload.
-        const responseUser = response.data.user || response.data.admin;
-        const user = responseUser
-          ? this.mapApiResponseToUser(responseUser)
-          : this.buildUserFromToken(token, identifier);
-
-        // Store user in secure cookie
-        tokenCookies.setUser(JSON.stringify(user));
-        return { user, token };
+      const token = this.extractToken(response);
+      if (!token) {
+        throw new Error("Login response did not include a token");
       }
 
-      throw new Error("Login failed");
+      // Store token in secure cookie
+      tokenCookies.setToken(token);
+
+      // Get CSRF token after successful login
+      try {
+        await this.httpClient.refreshCsrfToken();
+      } catch {
+        // Don't fail login if CSRF token fetch fails
+      }
+
+      // Resolve user directly from login response or JWT payload.
+      const responseUser = this.extractUser(response);
+      const user = responseUser
+        ? this.mapApiResponseToUser(responseUser)
+        : this.buildUserFromToken(token, identifier);
+
+      // Store user in secure cookie
+      tokenCookies.setUser(JSON.stringify(user));
+      return { user, token };
     } catch (error: unknown) {
       console.error("Error during login:", error);
 
@@ -165,6 +164,50 @@ export class ApiAuthRepository {
       return url;
     }
     return `${API_CONFIG.BASE_URL}${url}`;
+  }
+
+  private extractToken(response: unknown): string | null {
+    if (!response || typeof response !== "object") return null;
+    const root = response as Record<string, unknown>;
+    const data =
+      root.data && typeof root.data === "object"
+        ? (root.data as Record<string, unknown>)
+        : null;
+
+    const candidates = [
+      root.token,
+      root.accessToken,
+      data?.token,
+      data?.accessToken,
+      data?.jwt,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  private extractUser(response: unknown): RegisterResponse | null {
+    if (!response || typeof response !== "object") return null;
+    const root = response as Record<string, unknown>;
+    const data =
+      root.data && typeof root.data === "object"
+        ? (root.data as Record<string, unknown>)
+        : null;
+
+    const candidate =
+      data?.user ??
+      data?.admin ??
+      root.user ??
+      root.admin;
+
+    if (candidate && typeof candidate === "object") {
+      return candidate as RegisterResponse;
+    }
+    return null;
   }
 
   private buildUserFromToken(token: string, identifier: string): User {
