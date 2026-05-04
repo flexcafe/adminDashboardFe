@@ -173,6 +173,10 @@ export class ApiAuthRepository {
       root.data && typeof root.data === "object"
         ? (root.data as Record<string, unknown>)
         : null;
+    const nestedTokens =
+      data?.tokens && typeof data.tokens === "object"
+        ? (data.tokens as Record<string, unknown>)
+        : null;
 
     const candidates = [
       root.token,
@@ -180,6 +184,8 @@ export class ApiAuthRepository {
       data?.token,
       data?.accessToken,
       data?.jwt,
+      nestedTokens?.accessToken,
+      nestedTokens?.token,
     ];
 
     for (const candidate of candidates) {
