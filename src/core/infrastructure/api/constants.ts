@@ -21,6 +21,10 @@ export const API_ENDPOINTS = {
   // Authentication endpoints
   AUTH: {
     LOGIN: "/api/v1/admin/dashboard/auth/login",
+    KBZPAY_SEND_INSTRUCTION: (userId: string) =>
+      `/api/v1/admin/dashboard/auth/kbzpay/${userId}/send-instruction`,
+    KBZPAY_VERIFY: (userId: string) =>
+      `/api/v1/admin/dashboard/auth/kbzpay/${userId}/verify`,
   },
 
   // CSRF protection endpoint
