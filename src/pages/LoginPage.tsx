@@ -2,10 +2,6 @@ import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 
-function isAdminRole(role?: string): boolean {
-  return String(role || "").toUpperCase().includes("ADMIN");
-}
-
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,7 +13,7 @@ export function LoginPage() {
   const from = (location.state as { from?: { pathname?: string } })?.from
     ?.pathname;
 
-  if (isAuthenticated && user && isAdminRole(user.role)) {
+  if (isAuthenticated && user) {
     return <Navigate to={from || "/dashboard"} replace />;
   }
 

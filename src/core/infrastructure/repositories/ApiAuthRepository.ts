@@ -77,11 +77,13 @@ export class ApiAuthRepository {
         // Don't fail login if CSRF token fetch fails
       }
 
-      // Resolve user directly from login response or JWT payload.
+      // Resolve user from response and normalize with JWT payload.
+      // Some backend responses omit role; JWT still carries authoritative role.
       const responseUser = this.extractUser(response);
+      const tokenUser = this.buildUserFromToken(token, identifier);
       const user = responseUser
-        ? this.mapApiResponseToUser(responseUser)
-        : this.buildUserFromToken(token, identifier);
+        ? this.mergeUsers(this.mapApiResponseToUser(responseUser), tokenUser)
+        : tokenUser;
 
       // Store user in secure cookie
       tokenCookies.setUser(JSON.stringify(user));
@@ -269,5 +271,25 @@ export class ApiAuthRepository {
   private normalizeRole(rawRole: unknown): "ADMIN" | "STAFF" {
     const value = String(rawRole || "").toUpperCase();
     return value.includes("ADMIN") ? "ADMIN" : "STAFF";
+  }
+
+  private mergeUsers(apiUser: User, tokenUser: User): User {
+    return new User({
+      id: apiUser.id || tokenUser.id,
+      name: apiUser.name || tokenUser.name,
+      email: apiUser.email || tokenUser.email,
+      phone: apiUser.phone || tokenUser.phone,
+      role: this.resolveRole(apiUser.role, tokenUser.role),
+      profileImageUrl: apiUser.profileImageUrl || tokenUser.profileImageUrl,
+      createdDate: apiUser.createdDate || tokenUser.createdDate,
+      updatedDate: apiUser.updatedDate || tokenUser.updatedDate,
+    });
+  }
+
+  private resolveRole(
+    apiRole: "ADMIN" | "STAFF",
+    tokenRole: "ADMIN" | "STAFF"
+  ): "ADMIN" | "STAFF" {
+    return apiRole === "ADMIN" || tokenRole === "ADMIN" ? "ADMIN" : "STAFF";
   }
 }

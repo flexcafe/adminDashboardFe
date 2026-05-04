@@ -5,10 +5,6 @@ import { AppShell } from "../../widgets/layout/AppShell";
 import { LoginPage } from "../../pages/LoginPage";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 
-function isAdminRole(role?: string): boolean {
-  return String(role || "").toUpperCase().includes("ADMIN");
-}
-
 function RequireAuth() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
@@ -20,27 +16,15 @@ function RequireAuth() {
   return <Outlet />;
 }
 
-function RequireAdmin() {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) return null;
-  if (!user || !isAdminRole(user.role)) {
-    return <Navigate to="/login" replace />;
-  }
-  return <Outlet />;
-}
-
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
-          <Route element={<RequireAdmin />}>
-            <Route element={<AppShell />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-            </Route>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />
