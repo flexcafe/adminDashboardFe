@@ -9,6 +9,11 @@ type ApiResponse<T> = {
   data?: T;
 };
 
+type UserListPayload = {
+  users?: unknown[];
+  totalCounts?: number;
+};
+
 type StarConfig = {
   starCount: number;
   pointsAwarded: number;
@@ -84,6 +89,7 @@ export function PointsPage() {
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("--");
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
@@ -161,20 +167,30 @@ export function PointsPage() {
   }, [httpClient]);
 
   const loadResellers = useCallback(async () => {
-    const response = await httpClient.get<ApiResponse<unknown>>(API_ENDPOINTS.AUTH.KBZPAY_PENDING_VERIFICATIONS);
-    const items = toRecordArray(response?.data);
-    const uniqueIds = new Set(
-      items
-        .map((item) => toText(item.userId) || toText(item.id))
-        .filter((id) => id.length > 0)
-    );
-    setTotalResellers(uniqueIds.size);
+    const response = await httpClient.get<ApiResponse<UserListPayload>>(API_ENDPOINTS.USERS.GET_LIST, {
+      params: {
+        take: 1,
+        skip: 0,
+        role: "STAFF",
+      },
+    });
+    setTotalResellers(toNumber(response?.data?.totalCounts));
   }, [httpClient]);
 
   const loadAll = useCallback(async () => {
+    setPageError(null);
     try {
       setIsLoading(true);
-      await Promise.all([loadStarConfigs(), loadRankConfigs(), loadWithdrawals(), loadResellers()]);
+      const results = await Promise.allSettled([
+        loadStarConfigs(),
+        loadRankConfigs(),
+        loadWithdrawals(),
+        loadResellers(),
+      ]);
+      const failedLoads = results.filter((result) => result.status === "rejected");
+      if (failedLoads.length > 0) {
+        setPageError("Some rewards data could not be loaded. Please refresh and try again.");
+      }
       setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     } finally {
       setIsLoading(false);
@@ -188,9 +204,12 @@ export function PointsPage() {
   const saveStarConfigs = async () => {
     try {
       setSavingKey("star-all");
+      setPageError(null);
       await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, { configs: starConfigs });
       showToast("Saved!");
       await loadStarConfigs();
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Failed to save star point settings.");
     } finally {
       setSavingKey(null);
     }
@@ -199,8 +218,11 @@ export function PointsPage() {
   const saveSingleStarRow = async (index: number) => {
     try {
       setSavingKey(`star-${index}`);
+      setPageError(null);
       await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, { configs: starConfigs });
       showToast("Saved!");
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Failed to save this star point row.");
     } finally {
       setSavingKey(null);
     }
@@ -209,9 +231,12 @@ export function PointsPage() {
   const saveRankConfigs = async () => {
     try {
       setSavingKey("rank-all");
+      setPageError(null);
       await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, { configs: rankConfigs });
       showToast("Saved!");
       await loadRankConfigs();
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Failed to save rank settings.");
     } finally {
       setSavingKey(null);
     }
@@ -220,8 +245,11 @@ export function PointsPage() {
   const saveSingleRankRow = async (index: number) => {
     try {
       setSavingKey(`rank-${index}`);
+      setPageError(null);
       await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, { configs: rankConfigs });
       showToast("Saved!");
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Failed to save this rank row.");
     } finally {
       setSavingKey(null);
     }
@@ -230,6 +258,7 @@ export function PointsPage() {
   const runWithdrawalAction = async (action: "approve" | "reject", withdrawalId: string) => {
     try {
       setSavingKey(`${action}-${withdrawalId}`);
+      setPageError(null);
       if (action === "approve") {
         await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(withdrawalId), { adminNote: "" });
       } else {
@@ -237,6 +266,12 @@ export function PointsPage() {
       }
       showToast("Saved!");
       await loadWithdrawals();
+    } catch (error) {
+      setPageError(
+        error instanceof Error
+          ? error.message
+          : `Failed to ${action === "approve" ? "approve" : "reject"} withdrawal.`
+      );
     } finally {
       setSavingKey(null);
     }
@@ -265,6 +300,7 @@ export function PointsPage() {
     if (pendingIds.length === 0) return;
     setSavingKey("bulk-process");
     try {
+      setPageError(null);
       await Promise.all(
         pendingIds.map((id) =>
           httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(id), { adminNote: "Bulk approved" })
@@ -273,6 +309,8 @@ export function PointsPage() {
       setSelectedWithdrawalIds([]);
       showToast("Saved!");
       await loadWithdrawals();
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Failed to process selected withdrawals.");
     } finally {
       setSavingKey(null);
     }
@@ -305,6 +343,8 @@ export function PointsPage() {
           <div className="metricValue">{totalResellers}</div>
         </div>
       </div>
+
+      {pageError ? <p className="authError surfaceMessage">{pageError}</p> : null}
 
       <div className="card rewardsPanel">
         <div className="rewardsTabs">

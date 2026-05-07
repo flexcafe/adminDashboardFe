@@ -59,17 +59,14 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
-  const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
+  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
     const savedMode = window.localStorage.getItem("theme-mode");
     if (savedMode === "dark" || savedMode === "light") {
-      setThemeMode(savedMode);
-      return;
+      return savedMode;
     }
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setThemeMode(prefersDark ? "dark" : "light");
-  }, []);
+    return prefersDark ? "dark" : "light";
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", themeMode);
