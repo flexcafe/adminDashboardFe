@@ -33,7 +33,7 @@ export function LoginPage() {
 
   return (
     <section className="authPage">
-      <div className="authCard">
+      <div className="authCard authCardSimple">
         <h1 className="authTitle">Admin Login</h1>
         <p className="authSubtitle">
           Sign in with your phone/email and password.
@@ -76,7 +76,7 @@ export function LoginPage() {
             {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-      </div>
+        </div>
     </section>
   );
 }

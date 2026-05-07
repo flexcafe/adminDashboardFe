@@ -21,10 +21,27 @@ export const API_ENDPOINTS = {
   // Authentication endpoints
   AUTH: {
     LOGIN: "/api/v1/admin/dashboard/auth/login",
+    KBZPAY_PENDING_VERIFICATIONS:
+      "/api/v1/admin/dashboard/auth/kbzpay/pending-verifications",
     KBZPAY_SEND_INSTRUCTION: (userId: string) =>
       `/api/v1/admin/dashboard/auth/kbzpay/${userId}/send-instruction`,
     KBZPAY_VERIFY: (userId: string) =>
       `/api/v1/admin/dashboard/auth/kbzpay/${userId}/verify`,
+  },
+
+  DASHBOARD_POINTS: {
+    STAR_CONFIG: "/api/v1/admin/dashboard/points/star-config",
+    RANK_CONFIG: "/api/v1/admin/dashboard/points/rank-config",
+  },
+
+  DASHBOARD_WITHDRAWALS: {
+    BASE: "/api/v1/admin/dashboard/withdrawals",
+    APPROVE: (withdrawalId: string) =>
+      `/api/v1/admin/dashboard/withdrawals/${withdrawalId}/approve`,
+    REJECT: (withdrawalId: string) =>
+      `/api/v1/admin/dashboard/withdrawals/${withdrawalId}/reject`,
+    MARK_PAID: (withdrawalId: string) =>
+      `/api/v1/admin/dashboard/withdrawals/${withdrawalId}/mark-paid`,
   },
 
   // CSRF protection endpoint

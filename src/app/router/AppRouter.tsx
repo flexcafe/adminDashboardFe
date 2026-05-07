@@ -12,6 +12,11 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   }))
 );
+const PointsPage = lazy(() =>
+  import("../../pages/PointsPage").then((module) => ({
+    default: module.PointsPage,
+  }))
+);
 const NotFoundPage = lazy(() =>
   import("../../pages/NotFoundPage").then((module) => ({
     default: module.NotFoundPage,
@@ -55,6 +60,7 @@ export function AppRouter() {
             <Route element={<AppShell />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/points" element={<PointsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />
@@ -63,4 +69,3 @@ export function AppRouter() {
     </BrowserRouter>
   );
 }
-
