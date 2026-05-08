@@ -22,13 +22,15 @@ type StarConfig = {
 type RankConfig = {
   tier: string;
   minPoints: number;
-  maxPoints: number;
+  maxPoints: number | null;
   label: string;
   badgeUrl: string;
   sortOrder: number;
 };
 
 type WithdrawalStatus = "PENDING" | "APPROVED" | "REJECTED" | "TRANSFERRED";
+type WithdrawalFilter = WithdrawalStatus | "ALL";
+type WithdrawalAction = "approve" | "reject" | "mark-paid";
 
 type WithdrawalItem = {
   id: string;
@@ -38,7 +40,24 @@ type WithdrawalItem = {
   estimatedAmount: number;
   status: WithdrawalStatus;
   createdAt: string;
+  adminNote: string;
+  kbzTransferRef: string;
 };
+
+type WithdrawalDraft = {
+  adminNote: string;
+  kbzTransferRef: string;
+};
+
+const DEFAULT_RANK_CONFIGS: RankConfig[] = [
+  { tier: "NEWBIE", minPoints: 0, maxPoints: 499, label: "Newbie", badgeUrl: "", sortOrder: 1 },
+  { tier: "BRONZE", minPoints: 500, maxPoints: 999, label: "Bronze", badgeUrl: "", sortOrder: 2 },
+  { tier: "SILVER", minPoints: 1000, maxPoints: 1999, label: "Silver", badgeUrl: "", sortOrder: 3 },
+  { tier: "GOLD", minPoints: 2000, maxPoints: 4999, label: "Gold", badgeUrl: "", sortOrder: 4 },
+  { tier: "VIP", minPoints: 5000, maxPoints: null, label: "VIP", badgeUrl: "", sortOrder: 5 },
+];
+
+const WITHDRAWAL_FILTERS: WithdrawalFilter[] = ["ALL", "PENDING", "APPROVED", "REJECTED", "TRANSFERRED"];
 
 const toText = (value: unknown): string => {
   if (typeof value === "string") return value;
@@ -55,13 +74,23 @@ const toNumber = (value: unknown): number => {
   return 0;
 };
 
+const toNullableNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = toNumber(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {
     return value.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
   }
   if (value && typeof value === "object") {
-    const obj = value as { items?: unknown; configs?: unknown };
-    const inner = Array.isArray(obj.items) ? obj.items : obj.configs;
+    const obj = value as { items?: unknown; configs?: unknown; withdrawals?: unknown };
+    const inner = Array.isArray(obj.items)
+      ? obj.items
+      : Array.isArray(obj.configs)
+        ? obj.configs
+        : obj.withdrawals;
     if (Array.isArray(inner)) {
       return inner.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
     }
@@ -71,10 +100,22 @@ const toRecordArray = (value: unknown): Record<string, unknown>[] => {
 
 const formatMMK = (value: number) => `${value.toLocaleString()} MMK`;
 
+const formatDate = (value: string) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return date.toLocaleDateString();
+};
+
 const statusClass = (status: WithdrawalStatus) => {
   if (status === "PENDING") return "pending";
   if (status === "REJECTED") return "rejected";
   return "completed";
+};
+
+const normalizeRankConfigs = (items: RankConfig[]) => {
+  if (items.length === 0) return DEFAULT_RANK_CONFIGS;
+  return items.sort((a, b) => a.sortOrder - b.sortOrder);
 };
 
 export function PointsPage() {
@@ -83,7 +124,9 @@ export function PointsPage() {
   const [starConfigs, setStarConfigs] = useState<StarConfig[]>([]);
   const [rankConfigs, setRankConfigs] = useState<RankConfig[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalItem[]>([]);
+  const [withdrawalDrafts, setWithdrawalDrafts] = useState<Record<string, WithdrawalDraft>>({});
   const [selectedWithdrawalIds, setSelectedWithdrawalIds] = useState<string[]>([]);
+  const [withdrawalFilter, setWithdrawalFilter] = useState<WithdrawalFilter>("ALL");
   const [totalResellers, setTotalResellers] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -94,6 +137,17 @@ export function PointsPage() {
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(null), 1800);
+  }, []);
+
+  const updateWithdrawalDraft = useCallback((withdrawalId: string, patch: Partial<WithdrawalDraft>) => {
+    setWithdrawalDrafts((prev) => ({
+      ...prev,
+      [withdrawalId]: {
+        adminNote: prev[withdrawalId]?.adminNote ?? "",
+        kbzTransferRef: prev[withdrawalId]?.kbzTransferRef ?? "",
+        ...patch,
+      },
+    }));
   }, []);
 
   const loadStarConfigs = useCallback(async () => {
@@ -123,27 +177,19 @@ export function PointsPage() {
       .map((item) => ({
         tier: toText(item.tier) || "UNKNOWN",
         minPoints: toNumber(item.minPoints),
-        maxPoints: toNumber(item.maxPoints),
-        label: toText(item.label),
+        maxPoints: toNullableNumber(item.maxPoints),
+        label: toText(item.label) || toText(item.tier),
         badgeUrl: toText(item.badgeUrl),
         sortOrder: toNumber(item.sortOrder),
       }))
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+      .filter((item) => item.tier.trim().length > 0);
 
-    if (normalized.length === 0) {
-      setRankConfigs([
-        { tier: "BRONZE", minPoints: 0, maxPoints: 499, label: "Bronze", badgeUrl: "", sortOrder: 1 },
-        { tier: "SILVER", minPoints: 500, maxPoints: 999, label: "Silver", badgeUrl: "", sortOrder: 2 },
-        { tier: "GOLD", minPoints: 1000, maxPoints: 1999, label: "Gold", badgeUrl: "", sortOrder: 3 },
-        { tier: "PLATINUM", minPoints: 2000, maxPoints: 999999999, label: "Platinum", badgeUrl: "", sortOrder: 4 },
-      ]);
-      return;
-    }
-    setRankConfigs(normalized);
+    setRankConfigs(normalizeRankConfigs(normalized));
   }, [httpClient]);
 
   const loadWithdrawals = useCallback(async () => {
-    const response = await httpClient.get<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.BASE);
+    const params = withdrawalFilter === "ALL" ? undefined : { status: withdrawalFilter };
+    const response = await httpClient.get<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.BASE, { params });
     const normalized = toRecordArray(response?.data)
       .map((item) => {
         const id = toText(item.id) || toText(item.withdrawalId);
@@ -152,19 +198,34 @@ export function PointsPage() {
         const status = ["PENDING", "APPROVED", "REJECTED", "TRANSFERRED"].includes(rawStatus)
           ? (rawStatus as WithdrawalStatus)
           : "PENDING";
+
         return {
           id,
-          userName: toText(item.userName) || toText(item.name) || "Unknown",
-          userPhoneOrEmail: toText(item.phone) || toText(item.email) || "",
+          userName: toText(item.userName) || toText(item.nickname) || toText(item.name) || "Unknown",
+          userPhoneOrEmail: toText(item.phone) || toText(item.email) || toText(item.kbzPayPhone) || "-",
           requestedPoints: toNumber(item.requestedPoints || item.points),
           estimatedAmount: toNumber(item.estimatedAmount || item.amount),
           status,
           createdAt: toText(item.createdAt),
+          adminNote: toText(item.adminNote),
+          kbzTransferRef: toText(item.kbzTransferRef || item.transferReference),
         };
       })
       .filter((item): item is WithdrawalItem => !!item);
+
     setWithdrawals(normalized);
-  }, [httpClient]);
+    setSelectedWithdrawalIds((prev) => prev.filter((id) => normalized.some((item) => item.id === id)));
+    setWithdrawalDrafts((prev) => {
+      const next: Record<string, WithdrawalDraft> = {};
+      normalized.forEach((item) => {
+        next[item.id] = {
+          adminNote: prev[item.id]?.adminNote ?? item.adminNote,
+          kbzTransferRef: prev[item.id]?.kbzTransferRef ?? item.kbzTransferRef,
+        };
+      });
+      return next;
+    });
+  }, [httpClient, withdrawalFilter]);
 
   const loadResellers = useCallback(async () => {
     const response = await httpClient.get<ApiResponse<UserListPayload>>(API_ENDPOINTS.USERS.GET_LIST, {
@@ -221,6 +282,7 @@ export function PointsPage() {
       setPageError(null);
       await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, { configs: starConfigs });
       showToast("Saved!");
+      await loadStarConfigs();
     } catch (error) {
       setPageError(error instanceof Error ? error.message : "Failed to save this star point row.");
     } finally {
@@ -248,6 +310,7 @@ export function PointsPage() {
       setPageError(null);
       await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, { configs: rankConfigs });
       showToast("Saved!");
+      await loadRankConfigs();
     } catch (error) {
       setPageError(error instanceof Error ? error.message : "Failed to save this rank row.");
     } finally {
@@ -255,22 +318,39 @@ export function PointsPage() {
     }
   };
 
-  const runWithdrawalAction = async (action: "approve" | "reject", withdrawalId: string) => {
+  const runWithdrawalAction = async (action: WithdrawalAction, withdrawalId: string) => {
+    const draft = withdrawalDrafts[withdrawalId] ?? { adminNote: "", kbzTransferRef: "" };
+
     try {
       setSavingKey(`${action}-${withdrawalId}`);
       setPageError(null);
+
       if (action === "approve") {
-        await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(withdrawalId), { adminNote: "" });
+        await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(withdrawalId), {
+          adminNote: draft.adminNote.trim(),
+        });
+      } else if (action === "reject") {
+        await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.REJECT(withdrawalId), {
+          adminNote: draft.adminNote.trim(),
+        });
       } else {
-        await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.REJECT(withdrawalId), { adminNote: "" });
+        const kbzTransferRef = draft.kbzTransferRef.trim();
+        if (!kbzTransferRef) {
+          setPageError("KBZPay transfer reference is required before marking a withdrawal as paid.");
+          return;
+        }
+        await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.MARK_PAID(withdrawalId), {
+          kbzTransferRef,
+        });
       }
+
       showToast("Saved!");
       await loadWithdrawals();
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : `Failed to ${action === "approve" ? "approve" : "reject"} withdrawal.`
+          : `Failed to ${action === "mark-paid" ? "mark withdrawal as paid" : `${action} withdrawal`}.`
       );
     } finally {
       setSavingKey(null);
@@ -295,22 +375,28 @@ export function PointsPage() {
     [rankConfigs]
   );
 
-  const processSelected = async () => {
-    const pendingIds = selectedWithdrawalIds.filter((id) => withdrawals.some((w) => w.id === id && w.status === "PENDING"));
-    if (pendingIds.length === 0) return;
-    setSavingKey("bulk-process");
+  const selectedPendingIds = useMemo(
+    () => selectedWithdrawalIds.filter((id) => withdrawals.some((item) => item.id === id && item.status === "PENDING")),
+    [selectedWithdrawalIds, withdrawals]
+  );
+
+  const processSelectedApprovals = async () => {
+    if (selectedPendingIds.length === 0) return;
+    setSavingKey("bulk-approve");
     try {
       setPageError(null);
       await Promise.all(
-        pendingIds.map((id) =>
-          httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(id), { adminNote: "Bulk approved" })
+        selectedPendingIds.map((id) =>
+          httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(id), {
+            adminNote: (withdrawalDrafts[id]?.adminNote ?? "").trim(),
+          })
         )
       );
       setSelectedWithdrawalIds([]);
       showToast("Saved!");
       await loadWithdrawals();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : "Failed to process selected withdrawals.");
+      setPageError(error instanceof Error ? error.message : "Failed to approve selected withdrawals.");
     } finally {
       setSavingKey(null);
     }
@@ -321,7 +407,9 @@ export function PointsPage() {
       <div className="pageHeader rewardsHeader">
         <div>
           <h1 className="pageTitle">Rewards Control Center</h1>
-          <p className="pageDescription">Manage points rules, rank thresholds, and withdrawal approvals in one clean workspace.</p>
+          <p className="pageDescription">
+            Manage review point rules, rank thresholds, and the documented withdrawal flow in one workspace.
+          </p>
         </div>
       </div>
 
@@ -353,14 +441,14 @@ export function PointsPage() {
             className={activeTab === "config" ? "rewardsTab active" : "rewardsTab"}
             onClick={() => setActiveTab("config")}
           >
-            ⚙ Points & Rank Configuration
+            Points and Rank Configuration
           </button>
           <button
             type="button"
             className={activeTab === "withdrawals" ? "rewardsTab active" : "rewardsTab"}
             onClick={() => setActiveTab("withdrawals")}
           >
-            💸 Withdrawal Requests
+            Withdrawal Requests
           </button>
         </div>
 
@@ -376,14 +464,14 @@ export function PointsPage() {
           <div className="rewardsContentStack">
             <section className="rewardsSectionCard">
               <div className="rewardsSectionHead">
-                <h2 className="sectionTitle">⭐ Star Points Configuration</h2>
-                <p className="sectionDescription">Set points awarded by star count.</p>
+                <h2 className="sectionTitle">Star Points Configuration</h2>
+                <p className="sectionDescription">Configure `starCount` 1 to 5 with the `pointsAwarded` values used for future reviews.</p>
               </div>
               <div className="rewardsTableWrap">
                 <table className="rewardsTable">
                   <thead>
                     <tr>
-                      <th>Star Count (1-5)</th>
+                      <th>Star Count</th>
                       <th>Points Awarded</th>
                       <th>Action</th>
                     </tr>
@@ -400,8 +488,10 @@ export function PointsPage() {
                             value={row.pointsAwarded}
                             onChange={(e) =>
                               setStarConfigs((prev) =>
-                                prev.map((x, i) =>
-                                  i === index ? { ...x, pointsAwarded: Math.max(0, Number(e.target.value) || 0) } : x
+                                prev.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? { ...item, pointsAwarded: Math.max(0, Number(e.target.value) || 0) }
+                                    : item
                                 )
                               )
                             }
@@ -431,15 +521,18 @@ export function PointsPage() {
 
             <section className="rewardsSectionCard">
               <div className="rewardsSectionHead">
-                <h2 className="sectionTitle">🏅 Rank Configuration</h2>
-                <p className="sectionDescription">Set minimum points required for each rank.</p>
+                <h2 className="sectionTitle">Rank Configuration</h2>
+                <p className="sectionDescription">
+                  Match the API thresholds for `NEWBIE`, `BRONZE`, `SILVER`, `GOLD`, and `VIP`. Highest tier can keep `maxPoints` empty.
+                </p>
               </div>
               <div className="rewardsTableWrap">
                 <table className="rewardsTable">
                   <thead>
                     <tr>
-                      <th>Rank Name</th>
-                      <th>Minimum Points Required</th>
+                      <th>Tier</th>
+                      <th>Min Points</th>
+                      <th>Max Points</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -455,7 +548,32 @@ export function PointsPage() {
                             value={row.minPoints}
                             onChange={(e) =>
                               setRankConfigs((prev) =>
-                                prev.map((x, i) => (i === index ? { ...x, minPoints: Math.max(0, Number(e.target.value) || 0) } : x))
+                                prev.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? { ...item, minPoints: Math.max(0, Number(e.target.value) || 0) }
+                                    : item
+                                )
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="authInput"
+                            type="number"
+                            min={0}
+                            value={row.maxPoints ?? ""}
+                            placeholder={row.tier === "VIP" ? "No limit" : "Max points"}
+                            onChange={(e) =>
+                              setRankConfigs((prev) =>
+                                prev.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? {
+                                        ...item,
+                                        maxPoints: e.target.value === "" ? null : Math.max(0, Number(e.target.value) || 0),
+                                      }
+                                    : item
+                                )
                               )
                             }
                           />
@@ -486,6 +604,25 @@ export function PointsPage() {
 
         {!isLoading && activeTab === "withdrawals" ? (
           <section className="rewardsSectionCard">
+            <div className="rewardsSectionHead">
+              <div>
+                <h2 className="sectionTitle">Withdrawal Management</h2>
+                <p className="sectionDescription">
+                  Follow the documented flow: review `PENDING`, approve or reject with `adminNote`, then mark `APPROVED` requests as paid with `kbzTransferRef`.
+                </p>
+              </div>
+              <select
+                className="authInput"
+                value={withdrawalFilter}
+                onChange={(e) => setWithdrawalFilter(e.target.value as WithdrawalFilter)}
+              >
+                {WITHDRAWAL_FILTERS.map((status) => (
+                  <option key={status} value={status}>
+                    {status === "ALL" ? "All statuses" : status}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="rewardsTableWrap">
               <table className="rewardsTable">
                 <thead>
@@ -494,70 +631,110 @@ export function PointsPage() {
                       <input
                         type="checkbox"
                         checked={withdrawals.length > 0 && selectedWithdrawalIds.length === withdrawals.length}
-                        onChange={(e) =>
-                          setSelectedWithdrawalIds(e.target.checked ? withdrawals.map((item) => item.id) : [])
-                        }
+                        onChange={(e) => setSelectedWithdrawalIds(e.target.checked ? withdrawals.map((item) => item.id) : [])}
                       />
                     </th>
-                    <th>Reseller Name</th>
-                    <th>Amount (MMK)</th>
-                    <th>Request Date</th>
+                    <th>Reseller</th>
+                    <th>Contact</th>
+                    <th>Amount</th>
                     <th>Status</th>
+                    <th>Admin Note</th>
+                    <th>Transfer Ref</th>
+                    <th>Date</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {withdrawals.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedWithdrawalIds.includes(item.id)}
-                          onChange={(e) =>
-                            setSelectedWithdrawalIds((prev) =>
-                              e.target.checked ? [...prev, item.id] : prev.filter((x) => x !== item.id)
-                            )
-                          }
-                        />
-                      </td>
-                      <td>{item.userName}</td>
-                      <td>{formatMMK(item.estimatedAmount || item.requestedPoints)}</td>
-                      <td>{item.createdAt ? item.createdAt.slice(0, 10) : "-"}</td>
-                      <td>
-                        <span className={`rewardsBadge ${statusClass(item.status)}`}>{item.status}</span>
-                      </td>
-                      <td>
-                        {item.status === "PENDING" ? (
-                          <div className="rewardsInlineActions">
-                            <button
-                              type="button"
-                              className="rewardsBtn success"
-                              disabled={!!savingKey}
-                              onClick={() => runWithdrawalAction("approve", item.id)}
-                            >
-                              {savingKey === `approve-${item.id}` ? "..." : "Approve"}
-                            </button>
-                            <button
-                              type="button"
-                              className="rewardsBtn danger"
-                              disabled={!!savingKey}
-                              onClick={() => runWithdrawalAction("reject", item.id)}
-                            >
-                              {savingKey === `reject-${item.id}` ? "..." : "Reject"}
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="muted">No action</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {withdrawals.map((item) => {
+                    const draft = withdrawalDrafts[item.id] ?? { adminNote: item.adminNote, kbzTransferRef: item.kbzTransferRef };
+
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedWithdrawalIds.includes(item.id)}
+                            onChange={(e) =>
+                              setSelectedWithdrawalIds((prev) =>
+                                e.target.checked ? [...prev, item.id] : prev.filter((selectedId) => selectedId !== item.id)
+                              )
+                            }
+                          />
+                        </td>
+                        <td>{item.userName}</td>
+                        <td>{item.userPhoneOrEmail}</td>
+                        <td>{formatMMK(item.estimatedAmount || item.requestedPoints)}</td>
+                        <td>
+                          <span className={`rewardsBadge ${statusClass(item.status)}`}>{item.status}</span>
+                        </td>
+                        <td>
+                          <input
+                            className="authInput"
+                            type="text"
+                            placeholder="Optional admin note"
+                            value={draft.adminNote}
+                            onChange={(e) => updateWithdrawalDraft(item.id, { adminNote: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="authInput"
+                            type="text"
+                            placeholder={item.status === "APPROVED" ? "Required for mark paid" : "Transfer reference"}
+                            value={draft.kbzTransferRef}
+                            onChange={(e) => updateWithdrawalDraft(item.id, { kbzTransferRef: e.target.value })}
+                          />
+                        </td>
+                        <td>{formatDate(item.createdAt)}</td>
+                        <td>
+                          {item.status === "PENDING" ? (
+                            <div className="rewardsInlineActions">
+                              <button
+                                type="button"
+                                className="rewardsBtn success"
+                                disabled={!!savingKey}
+                                onClick={() => runWithdrawalAction("approve", item.id)}
+                              >
+                                {savingKey === `approve-${item.id}` ? "..." : "Approve"}
+                              </button>
+                              <button
+                                type="button"
+                                className="rewardsBtn danger"
+                                disabled={!!savingKey}
+                                onClick={() => runWithdrawalAction("reject", item.id)}
+                              >
+                                {savingKey === `reject-${item.id}` ? "..." : "Reject"}
+                              </button>
+                            </div>
+                          ) : item.status === "APPROVED" ? (
+                            <div className="rewardsInlineActions">
+                              <button
+                                type="button"
+                                className="rewardsBtn primary"
+                                disabled={!!savingKey}
+                                onClick={() => runWithdrawalAction("mark-paid", item.id)}
+                              >
+                                {savingKey === `mark-paid-${item.id}` ? "..." : "Mark Paid"}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="muted">No action</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
             <div className="rewardsActions">
-              <button className="rewardsBtn primary" type="button" disabled={!!savingKey} onClick={processSelected}>
-                {savingKey === "bulk-process" ? "Processing..." : "Process Selected"}
+              <button
+                className="rewardsBtn primary"
+                type="button"
+                disabled={!!savingKey || selectedPendingIds.length === 0}
+                onClick={processSelectedApprovals}
+              >
+                {savingKey === "bulk-approve" ? "Processing..." : "Approve Selected"}
               </button>
             </div>
           </section>
