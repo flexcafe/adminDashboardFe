@@ -21,12 +21,27 @@ export const API_ENDPOINTS = {
   // Authentication endpoints
   AUTH: {
     LOGIN: "/api/v1/admin/dashboard/auth/login",
-    KBZPAY_PENDING_VERIFICATIONS:
-      "/api/v1/admin/dashboard/auth/kbzpay/pending-verifications",
+    KBZPAY_VERIFICATION_REQUESTED:
+      "/api/v1/admin/dashboard/auth/kbzpay/verification-requested",
+    KBZPAY_MONEY_CHECK:
+      "/api/v1/admin/dashboard/auth/kbzpay/money-check",
+    KBZPAY_VERIFIED_USERS:
+      "/api/v1/admin/dashboard/auth/kbzpay/verified-users",
+    KBZPAY_REGISTERED_ACCOUNTS:
+      "/api/v1/admin/dashboard/auth/kbzpay/registered-accounts",
     KBZPAY_SEND_INSTRUCTION: (userId: string) =>
       `/api/v1/admin/dashboard/auth/kbzpay/${userId}/send-instruction`,
     KBZPAY_VERIFY: (userId: string) =>
       `/api/v1/admin/dashboard/auth/kbzpay/${userId}/verify`,
+  },
+
+  DASHBOARD_NOTIFICATIONS: {
+    LIST: "/api/v1/admin/dashboard/notifications",
+  },
+
+  PUSHER: {
+    CLIENT_AUTH: "/api/v1/client/pusher/auth",
+    ADMIN_AUTH: "/api/v1/admin/dashboard/pusher/auth",
   },
 
   DASHBOARD_POINTS: {

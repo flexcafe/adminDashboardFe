@@ -5,8 +5,12 @@ export const PUSHER_CONFIG = {
 
 export const PUSHER_CHANNELS = {
   DEBT_ALERTS: "debt-alerts",
+  ADMIN_DASHBOARD:
+    import.meta.env.VITE_PUSHER_ADMIN_CHANNEL || "private-admin-dashboard",
 } as const;
 
 export const PUSHER_EVENTS = {
   DEBT_ALERT: "debt-alert",
+  ADMIN_NOTIFICATION:
+    import.meta.env.VITE_PUSHER_ADMIN_EVENT || "admin-notification",
 } as const;

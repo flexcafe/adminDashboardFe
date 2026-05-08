@@ -3,6 +3,46 @@ import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 
+function CoinsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 16c0 1.66 2.24 3 5 3s5-1.34 5-3" />
+      <path d="M7 12c0 1.66 2.24 3 5 3s5-1.34 5-3" />
+      <ellipse cx="12" cy="8" rx="5" ry="3" />
+    </svg>
+  );
+}
+
+function AwardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="5" />
+      <path d="m8.21 13.89-1.6 6.11L12 17l5.39 3-1.6-6.12" />
+    </svg>
+  );
+}
+
+function WalletIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      <path d="M3 7h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3" />
+      <path d="M16 12h.01" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 type ApiResponse<T> = {
   message?: string;
   code?: number;
@@ -16,12 +56,12 @@ type UserListPayload = {
 
 type StarConfig = {
   starCount: number;
-  pointsAwarded: number;
+  pointsAwarded: number | null;
 };
 
 type RankConfig = {
   tier: string;
-  minPoints: number;
+  minPoints: number | null;
   maxPoints: number | null;
   label: string;
   badgeUrl: string;
@@ -72,6 +112,13 @@ const toNumber = (value: unknown): number => {
     if (Number.isFinite(parsed)) return parsed;
   }
   return 0;
+};
+
+const toOptionalNonNegativeNumber = (value: string): number | null => {
+  if (value.trim() === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, parsed);
 };
 
 const toNullableNumber = (value: unknown): number | null => {
@@ -155,7 +202,7 @@ export function PointsPage() {
     const normalized = toRecordArray(response?.data)
       .map((item) => ({
         starCount: toNumber(item.starCount),
-        pointsAwarded: toNumber(item.pointsAwarded),
+        pointsAwarded: toNullableNumber(item.pointsAwarded),
       }))
       .filter((item) => item.starCount > 0)
       .sort((a, b) => a.starCount - b.starCount);
@@ -165,7 +212,7 @@ export function PointsPage() {
       const starCount = index + 1;
       return {
         starCount,
-        pointsAwarded: pointsByStar.get(starCount) ?? starCount,
+        pointsAwarded: pointsByStar.get(starCount) ?? null,
       };
     });
     setStarConfigs(completedRows);
@@ -176,7 +223,7 @@ export function PointsPage() {
     const normalized = toRecordArray(response?.data)
       .map((item) => ({
         tier: toText(item.tier) || "UNKNOWN",
-        minPoints: toNumber(item.minPoints),
+        minPoints: toNullableNumber(item.minPoints),
         maxPoints: toNullableNumber(item.maxPoints),
         label: toText(item.label) || toText(item.tier),
         badgeUrl: toText(item.badgeUrl),
@@ -266,7 +313,12 @@ export function PointsPage() {
     try {
       setSavingKey("star-all");
       setPageError(null);
-      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, { configs: starConfigs });
+      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, {
+        configs: starConfigs.map((item) => ({
+          starCount: item.starCount,
+          pointsAwarded: item.pointsAwarded,
+        })),
+      });
       showToast("Saved!");
       await loadStarConfigs();
     } catch (error) {
@@ -280,7 +332,12 @@ export function PointsPage() {
     try {
       setSavingKey(`star-${index}`);
       setPageError(null);
-      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, { configs: starConfigs });
+      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, {
+        configs: starConfigs.map((item) => ({
+          starCount: item.starCount,
+          pointsAwarded: item.pointsAwarded,
+        })),
+      });
       showToast("Saved!");
       await loadStarConfigs();
     } catch (error) {
@@ -294,7 +351,13 @@ export function PointsPage() {
     try {
       setSavingKey("rank-all");
       setPageError(null);
-      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, { configs: rankConfigs });
+      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, {
+        configs: rankConfigs.map((item) => ({
+          ...item,
+          minPoints: item.minPoints,
+          maxPoints: item.maxPoints,
+        })),
+      });
       showToast("Saved!");
       await loadRankConfigs();
     } catch (error) {
@@ -308,7 +371,13 @@ export function PointsPage() {
     try {
       setSavingKey(`rank-${index}`);
       setPageError(null);
-      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, { configs: rankConfigs });
+      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, {
+        configs: rankConfigs.map((item) => ({
+          ...item,
+          minPoints: item.minPoints,
+          maxPoints: item.maxPoints,
+        })),
+      });
       showToast("Saved!");
       await loadRankConfigs();
     } catch (error) {
@@ -406,6 +475,7 @@ export function PointsPage() {
     <section className="page rewardsPage">
       <div className="pageHeader rewardsHeader">
         <div>
+          <p className="pageEyebrow">Rewards</p>
           <h1 className="pageTitle">Rewards Control Center</h1>
           <p className="pageDescription">
             Manage review point rules, rank thresholds, and the documented withdrawal flow in one workspace.
@@ -415,20 +485,36 @@ export function PointsPage() {
 
       <div className="rewardsSummaryGrid">
         <div className="metricCard rewardsSummaryCard">
+          <div className="rewardsSummaryIcon rewardsSummaryIconIndigo">
+            <CoinsIcon />
+          </div>
           <div className="metricLabel">Total Points Distributed</div>
           <div className="metricValue">{totalPointsDistributed.toLocaleString()}</div>
+          <div className="metricMeta">Approved and transferred reward points</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
+          <div className="rewardsSummaryIcon rewardsSummaryIconAmber">
+            <AwardIcon />
+          </div>
           <div className="metricLabel">Active Rewards</div>
           <div className="metricValue">{activeRewards}</div>
+          <div className="metricMeta">Rank tiers configured for resellers</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
+          <div className="rewardsSummaryIcon rewardsSummaryIconRose">
+            <WalletIcon />
+          </div>
           <div className="metricLabel">Pending Withdrawals</div>
           <div className="metricValue">{pendingWithdrawals}</div>
+          <div className="metricMeta">Withdrawal requests needing admin action</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
+          <div className="rewardsSummaryIcon rewardsSummaryIconSky">
+            <UsersIcon />
+          </div>
           <div className="metricLabel">Total Resellers</div>
           <div className="metricValue">{totalResellers}</div>
+          <div className="metricMeta">Staff users participating in the program</div>
         </div>
       </div>
 
@@ -441,7 +527,7 @@ export function PointsPage() {
             className={activeTab === "config" ? "rewardsTab active" : "rewardsTab"}
             onClick={() => setActiveTab("config")}
           >
-            Points and Rank Configuration
+            Rewards Configuration
           </button>
           <button
             type="button"
@@ -485,12 +571,12 @@ export function PointsPage() {
                             className="authInput"
                             type="number"
                             min={0}
-                            value={row.pointsAwarded}
+                            value={row.pointsAwarded ?? ""}
                             onChange={(e) =>
                               setStarConfigs((prev) =>
                                 prev.map((item, itemIndex) =>
                                   itemIndex === index
-                                    ? { ...item, pointsAwarded: Math.max(0, Number(e.target.value) || 0) }
+                                    ? { ...item, pointsAwarded: toOptionalNonNegativeNumber(e.target.value) }
                                     : item
                                 )
                               )
@@ -545,12 +631,12 @@ export function PointsPage() {
                             className="authInput"
                             type="number"
                             min={0}
-                            value={row.minPoints}
+                            value={row.minPoints ?? ""}
                             onChange={(e) =>
                               setRankConfigs((prev) =>
                                 prev.map((item, itemIndex) =>
                                   itemIndex === index
-                                    ? { ...item, minPoints: Math.max(0, Number(e.target.value) || 0) }
+                                    ? { ...item, minPoints: toOptionalNonNegativeNumber(e.target.value) }
                                     : item
                                 )
                               )
@@ -570,7 +656,7 @@ export function PointsPage() {
                                   itemIndex === index
                                     ? {
                                         ...item,
-                                        maxPoints: e.target.value === "" ? null : Math.max(0, Number(e.target.value) || 0),
+                                        maxPoints: toOptionalNonNegativeNumber(e.target.value),
                                       }
                                     : item
                                 )
@@ -645,7 +731,13 @@ export function PointsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {withdrawals.map((item) => {
+                  {withdrawals.length === 0 ? (
+                    <tr>
+                      <td colSpan={9}>
+                        <div className="verificationEmptyState">No data available.</div>
+                      </td>
+                    </tr>
+                  ) : withdrawals.map((item) => {
                     const draft = withdrawalDrafts[item.id] ?? { adminNote: item.adminNote, kbzTransferRef: item.kbzTransferRef };
 
                     return (
@@ -691,7 +783,7 @@ export function PointsPage() {
                             <div className="rewardsInlineActions">
                               <button
                                 type="button"
-                                className="rewardsBtn success"
+                                className="rewardsBtn primary"
                                 disabled={!!savingKey}
                                 onClick={() => runWithdrawalAction("approve", item.id)}
                               >
@@ -699,7 +791,7 @@ export function PointsPage() {
                               </button>
                               <button
                                 type="button"
-                                className="rewardsBtn danger"
+                                className="rewardsBtn danger subtle"
                                 disabled={!!savingKey}
                                 onClick={() => runWithdrawalAction("reject", item.id)}
                               >

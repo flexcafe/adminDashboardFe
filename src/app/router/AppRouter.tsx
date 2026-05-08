@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
+import { AdminNotificationsProvider } from "@/features/adminNotifications/AdminNotificationsContext";
 
 const LoginPage = lazy(() =>
   import("../../pages/LoginPage").then((module) => ({
@@ -12,9 +13,24 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   }))
 );
+const VerificationFlowPage = lazy(() =>
+  import("../../pages/VerificationFlowPage").then((module) => ({
+    default: module.VerificationFlowPage,
+  }))
+);
+const UserVerificationDetailPage = lazy(() =>
+  import("../../pages/UserVerificationDetailPage").then((module) => ({
+    default: module.UserVerificationDetailPage,
+  }))
+);
 const PointsPage = lazy(() =>
   import("../../pages/PointsPage").then((module) => ({
     default: module.PointsPage,
+  }))
+);
+const NotificationsPage = lazy(() =>
+  import("../../pages/NotificationsPage").then((module) => ({
+    default: module.NotificationsPage,
   }))
 );
 const NotFoundPage = lazy(() =>
@@ -57,10 +73,20 @@ export function AppRouter() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
-            <Route element={<AppShell />}>
+            <Route
+              element={
+                <AdminNotificationsProvider>
+                  <AppShell />
+                </AdminNotificationsProvider>
+              }
+            >
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<VerificationFlowPage />}>
+                <Route index element={<DashboardPage />} />
+                <Route path=":userId" element={<UserVerificationDetailPage />} />
+              </Route>
               <Route path="/points" element={<PointsPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />
