@@ -14,10 +14,36 @@ function DashboardIcon() {
   );
 }
 
+function CategoriesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" />
+    </svg>
+  );
+}
+
 function PointsIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3l2.6 5.26 5.8.84-4.2 4.1.99 5.8L12 16.2 6.81 19l.99-5.8-4.2-4.1 5.8-.84L12 3z" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 8h3V4h-3a5 5 0 0 0-5 5v3H6v4h3v4h4v-4h3l1-4h-4V9a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
+
+function SliderIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 15 4.5-4.5a2 2 0 0 1 2.83 0L14 14l1.5-1.5a2 2 0 0 1 2.83 0L21 15" />
+      <circle cx="9" cy="10" r="1.5" />
     </svg>
   );
 }
@@ -69,12 +95,14 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const {
     notifications,
+    toastNotifications,
     unreadCount,
     isLoading: isNotificationsLoading,
     error: notificationsError,
     isRealtimeConnected,
     refreshNotifications,
     markPanelOpened,
+    dismissToast,
   } = useAdminNotifications();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
@@ -140,6 +168,15 @@ export function AppShell() {
     navigate(routePath);
   };
 
+  const handleToastClick = (routePath?: string, toastId?: string) => {
+    if (toastId) {
+      dismissToast(toastId);
+    }
+    if (routePath) {
+      navigate(routePath);
+    }
+  };
+
   return (
     <div className="appShell">
       <aside className="sidebar">
@@ -162,6 +199,15 @@ export function AppShell() {
               <span className="navItemMeta">Manage pending ownership checks</span>
             </span>
           </NavLink>
+          <NavLink to="/categories" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+            <span className="navItemIcon">
+              <CategoriesIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">Categories</span>
+              <span className="navItemMeta">Build and manage category hierarchy</span>
+            </span>
+          </NavLink>
           <NavLink to="/points" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
             <span className="navItemIcon">
               <PointsIcon />
@@ -169,6 +215,24 @@ export function AppShell() {
             <span className="navItemBody">
               <span className="navItemTitle">Rewards</span>
               <span className="navItemMeta">Points, ranks, and withdrawal control</span>
+            </span>
+          </NavLink>
+          <NavLink to="/facebook-follow" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+            <span className="navItemIcon">
+              <FacebookIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">Facebook Follow</span>
+              <span className="navItemMeta">Review manual follow proof submissions</span>
+            </span>
+          </NavLink>
+          <NavLink to="/slider-ads" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+            <span className="navItemIcon">
+              <SliderIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">Slider Ads</span>
+              <span className="navItemMeta">Create, reorder, and preview homepage banners</span>
             </span>
           </NavLink>
           <NavLink to="/notifications" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
@@ -316,6 +380,56 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      {toastNotifications.length > 0 ? (
+        <div className="notificationsToastStack" aria-live="polite" aria-atomic="false">
+          {toastNotifications.map((toast) => (
+            <article
+              key={toast.id}
+              className={toast.notification.routePath ? "notificationsToast clickable" : "notificationsToast"}
+              role={toast.notification.routePath ? "button" : "status"}
+              tabIndex={toast.notification.routePath ? 0 : -1}
+              onClick={() =>
+                handleToastClick(toast.notification.routePath, toast.id)
+              }
+              onKeyDown={(event) => {
+                if (!toast.notification.routePath) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleToastClick(toast.notification.routePath, toast.id);
+                }
+              }}
+            >
+              <div className="notificationsToastTop">
+                <span className="inlineBadge">{toast.notification.type}</span>
+                <button
+                  type="button"
+                  className="notificationsToastClose"
+                  aria-label="Dismiss notification"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    dismissToast(toast.id);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="notificationsToastTitle">
+                {toast.notification.title}
+              </div>
+              <p className="notificationsToastMessage">
+                {toast.notification.message}
+              </p>
+              <div className="notificationsToastMeta">
+                <span>{formatNotificationDate(toast.notification.createdAt)}</span>
+                {toast.notification.routePath ? (
+                  <span className="notificationsToastHint">Open details</span>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

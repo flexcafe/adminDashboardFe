@@ -310,6 +310,8 @@ export function VerificationWorkflowProvider({
   );
 }
 
+// Provider + hook in one module to keep workflow state colocated.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useVerificationWorkflow() {
   const context = useContext(VerificationWorkflowContext);
 

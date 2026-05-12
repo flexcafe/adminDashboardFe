@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -37,8 +38,14 @@ export type AdminNotification = {
   routePath?: string;
 };
 
+export type AdminNotificationToast = {
+  id: string;
+  notification: AdminNotification;
+};
+
 type AdminNotificationsContextValue = {
   notifications: AdminNotification[];
+  toastNotifications: AdminNotificationToast[];
   unreadCount: number;
   isLoading: boolean;
   error: string | null;
@@ -46,6 +53,7 @@ type AdminNotificationsContextValue = {
   lastNotificationAt: number;
   refreshNotifications: () => Promise<void>;
   markPanelOpened: () => void;
+  dismissToast: (toastId: string) => void;
 };
 
 const AdminNotificationsContext =
@@ -77,7 +85,7 @@ const toRecordArray = (value: unknown): Record<string, unknown>[] => {
 
   if (value && typeof value === "object") {
     const root = value as Record<string, unknown>;
-    const candidates = [root.items, root.notifications, root.rows];
+    const candidates = [root.items, root.notifications, root.rows, root.data];
 
     for (const candidate of candidates) {
       if (Array.isArray(candidate)) {
@@ -118,9 +126,17 @@ const normalizeNotification = (item: Record<string, unknown>): AdminNotification
     toText(item.category) ||
     toText(item.event) ||
     "GENERAL";
+  const explicitRoutePath =
+    toText(item.routePath) ||
+    toText(item.path) ||
+    toText(item.link) ||
+    toText(item.url);
   const routeHint = `${title} ${message} ${type}`.toLowerCase();
+  const isFacebookFollowNotification =
+    routeHint.includes("facebook") || routeHint.includes("follow");
   const isVerificationNotification =
     !!userId &&
+    !isFacebookFollowNotification &&
     (routeHint.includes("verification") ||
       routeHint.includes("verify") ||
       routeHint.includes("kbz") ||
@@ -141,7 +157,13 @@ const normalizeNotification = (item: Record<string, unknown>): AdminNotification
       toBoolean(item.read) ||
       toBoolean(item.is_seen),
     userId: userId || undefined,
-    routePath: isVerificationNotification ? `/dashboard/${userId}` : undefined,
+    routePath:
+      explicitRoutePath ||
+      (isFacebookFollowNotification
+        ? "/facebook-follow"
+        : isVerificationNotification
+          ? `/dashboard/${userId}`
+          : undefined),
   };
 };
 
@@ -155,10 +177,37 @@ export function AdminNotificationsProvider({
 }: PropsWithChildren) {
   const httpClient = container.resolve<HttpClient>("httpClient");
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [toastNotifications, setToastNotifications] = useState<
+    AdminNotificationToast[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [lastNotificationAt, setLastNotificationAt] = useState(0);
+  const toastTimeoutsRef = useRef<number[]>([]);
+
+  const dismissToast = useCallback((toastId: string) => {
+    setToastNotifications((current) =>
+      current.filter((toast) => toast.id !== toastId)
+    );
+  }, []);
+
+  const enqueueToast = useCallback(
+    (notification: AdminNotification) => {
+      const toastId = `${notification.id}-${Date.now()}`;
+
+      setToastNotifications((current) =>
+        [{ id: toastId, notification }, ...current].slice(0, 4)
+      );
+
+      const timeoutId = window.setTimeout(() => {
+        dismissToast(toastId);
+      }, 4500);
+
+      toastTimeoutsRef.current.push(timeoutId);
+    },
+    [dismissToast]
+  );
 
   const refreshNotifications = useCallback(async () => {
     try {
@@ -188,6 +237,15 @@ export function AdminNotificationsProvider({
   useEffect(() => {
     void refreshNotifications();
   }, [refreshNotifications]);
+
+  useEffect(() => {
+    return () => {
+      toastTimeoutsRef.current.forEach((timeoutId) =>
+        window.clearTimeout(timeoutId)
+      );
+      toastTimeoutsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (!PUSHER_CONFIG.key) return;
@@ -224,7 +282,16 @@ export function AdminNotificationsProvider({
           : null;
 
       if (normalized) {
-        setNotifications((current) => mergeNotifications(current, normalized));
+        let shouldToast = false;
+
+        setNotifications((current) => {
+          shouldToast = !current.some((item) => item.id === normalized.id);
+          return mergeNotifications(current, normalized);
+        });
+
+        if (shouldToast) {
+          enqueueToast(normalized);
+        }
         setLastNotificationAt(Date.now());
       } else {
         void refreshNotifications();
@@ -252,7 +319,7 @@ export function AdminNotificationsProvider({
       pusher.disconnect();
       setIsRealtimeConnected(false);
     };
-  }, [httpClient, refreshNotifications]);
+  }, [enqueueToast, httpClient, refreshNotifications]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -268,6 +335,7 @@ export function AdminNotificationsProvider({
   const value = useMemo<AdminNotificationsContextValue>(
     () => ({
       notifications,
+      toastNotifications,
       unreadCount,
       isLoading,
       error,
@@ -275,8 +343,10 @@ export function AdminNotificationsProvider({
       lastNotificationAt,
       refreshNotifications,
       markPanelOpened,
+      dismissToast,
     }),
     [
+      dismissToast,
       error,
       isLoading,
       isRealtimeConnected,
@@ -284,6 +354,7 @@ export function AdminNotificationsProvider({
       markPanelOpened,
       notifications,
       refreshNotifications,
+      toastNotifications,
       unreadCount,
     ]
   );
@@ -295,6 +366,8 @@ export function AdminNotificationsProvider({
   );
 }
 
+// Provider + hook in one module to keep feature state colocated.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAdminNotifications() {
   const context = useContext(AdminNotificationsContext);
 

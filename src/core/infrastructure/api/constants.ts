@@ -59,6 +59,24 @@ export const API_ENDPOINTS = {
       `/api/v1/admin/dashboard/withdrawals/${withdrawalId}/mark-paid`,
   },
 
+  DASHBOARD_FACEBOOK_FOLLOW: {
+    BASE: "/api/v1/admin/dashboard/facebook-follow/submissions",
+    APPROVE: (submissionId: string) =>
+      `/api/v1/admin/dashboard/facebook-follow/submissions/${submissionId}/approve`,
+    REJECT: (submissionId: string) =>
+      `/api/v1/admin/dashboard/facebook-follow/submissions/${submissionId}/reject`,
+  },
+
+  DASHBOARD_SLIDER_ADS: {
+    BASE: "/api/v1/admin/dashboard/slider-ads",
+    BY_ID: (sliderId: string) => `/api/v1/admin/dashboard/slider-ads/${sliderId}`,
+  },
+
+  DASHBOARD_CATEGORIES: {
+    BASE: "/api/v1/admin/dashboard/categories",
+    BY_ID: (categoryId: string) => `/api/v1/admin/dashboard/categories/${categoryId}`,
+  },
+
   // CSRF protection endpoint
   CSRF: {
     TOKEN: "/csrf/token",

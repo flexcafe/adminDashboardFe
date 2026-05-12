@@ -13,6 +13,11 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   }))
 );
+const CategoriesPage = lazy(() =>
+  import("../../pages/CategoriesPage").then((module) => ({
+    default: module.CategoriesPage,
+  }))
+);
 const VerificationFlowPage = lazy(() =>
   import("../../pages/VerificationFlowPage").then((module) => ({
     default: module.VerificationFlowPage,
@@ -31,6 +36,16 @@ const PointsPage = lazy(() =>
 const NotificationsPage = lazy(() =>
   import("../../pages/NotificationsPage").then((module) => ({
     default: module.NotificationsPage,
+  }))
+);
+const FacebookFollowPage = lazy(() =>
+  import("../../pages/FacebookFollowPage").then((module) => ({
+    default: module.FacebookFollowPage,
+  }))
+);
+const SliderAdsPage = lazy(() =>
+  import("../../pages/SliderAdsPage").then((module) => ({
+    default: module.SliderAdsPage,
   }))
 );
 const NotFoundPage = lazy(() =>
@@ -85,6 +100,9 @@ export function AppRouter() {
                 <Route index element={<DashboardPage />} />
                 <Route path=":userId" element={<UserVerificationDetailPage />} />
               </Route>
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/slider-ads" element={<SliderAdsPage />} />
+              <Route path="/facebook-follow" element={<FacebookFollowPage />} />
               <Route path="/points" element={<PointsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
