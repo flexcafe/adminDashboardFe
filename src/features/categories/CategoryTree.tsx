@@ -48,6 +48,44 @@ type TreeRowProps = {
   onToggleSelect: (categoryId: string) => void;
 };
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={expanded ? "m6 15 6-6 6 6" : "m9 6 6 6-6 6"} />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" />
+    </svg>
+  );
+}
+
+function DragIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="9" cy="7" r="1.2" />
+      <circle cx="15" cy="7" r="1.2" />
+      <circle cx="9" cy="12" r="1.2" />
+      <circle cx="15" cy="12" r="1.2" />
+      <circle cx="9" cy="17" r="1.2" />
+      <circle cx="15" cy="17" r="1.2" />
+    </svg>
+  );
+}
+
 function TreeChildDropZone({ categoryId }: { categoryId: string }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `child:${categoryId}`,
@@ -58,7 +96,7 @@ function TreeChildDropZone({ categoryId }: { categoryId: string }) {
       ref={setNodeRef}
       className={isOver ? "categoryTreeChildZone active" : "categoryTreeChildZone"}
     >
-      Drop to nest
+      Drop here to move inside
     </div>
   );
 }
@@ -111,7 +149,7 @@ function TreeRow({
             }}
             disabled={category.childCount === 0 || searchActive}
           >
-            {category.childCount === 0 ? "•" : isExpanded || searchActive ? "−" : "+"}
+            {category.childCount === 0 ? <span className="categoryTreeExpandDot" /> : <ChevronIcon expanded={isExpanded || searchActive} />}
           </button>
           <input
             type="checkbox"
@@ -122,7 +160,7 @@ function TreeRow({
             }}
           />
           <span className="categoryTreeFolder" aria-hidden="true">
-            📁
+            <FolderIcon />
           </span>
           <div className="categoryTreeText">
             <span className="categoryTreeName">{category.name}</span>
@@ -135,11 +173,12 @@ function TreeRow({
           <button
             type="button"
             className={isDragging ? "categoryTreeDragHandle dragging" : "categoryTreeDragHandle"}
+            aria-label={`Reorder ${category.name}`}
             {...attributes}
             {...listeners}
             onClick={(event) => event.stopPropagation()}
           >
-            Drag
+            <DragIcon />
           </button>
         </div>
       </div>
@@ -198,6 +237,7 @@ export function CategoryTree({
   const allVisibleSelected =
     visibleTree.length > 0 &&
     visibleTree.every((category) => selectedIds.includes(category.id));
+  const activeVisibleCount = visibleTree.filter((category) => category.isActive).length;
 
   const handleDragEnd = (event: DragEndEvent) => {
     if (!event.over?.id) return;
@@ -214,19 +254,29 @@ export function CategoryTree({
           <p className="pageEyebrow">Categories</p>
           <h2 className="sectionTitle">Category Tree</h2>
           <p className="sectionDescription">
-            Expand categories, drag items to reorder, or drop into the nest zone to move under a new parent.
+            Search quickly, select in bulk, and drag categories into a cleaner hierarchy.
           </p>
         </div>
       </div>
 
       <div className="categoriesTreeControls">
-        <input
-          type="search"
-          className="authInput"
-          placeholder="Search categories..."
-          value={searchQuery}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
+        <label className="categoriesSearchField">
+          <span className="categoriesSearchIcon">
+            <SearchIcon />
+          </span>
+          <input
+            type="search"
+            className="authInput categoriesSearchInput"
+            placeholder="Search categories, slugs, or branches..."
+            value={searchQuery}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </label>
+        <div className="categoriesTreeStats">
+          <span className="inlineBadge">{visibleTree.length} visible</span>
+          <span className="inlineBadge">{activeVisibleCount} active</span>
+          <span className="inlineBadge">{selectedIds.length} selected</span>
+        </div>
         <div className="categoriesTreeActions">
           <button type="button" className="verificationActionButton subtle" onClick={onExpandAll}>
             Expand All
@@ -248,6 +298,7 @@ export function CategoryTree({
             />
             <span>Select visible</span>
           </label>
+          {searchActive ? <span className="categoriesTreeHint">Search keeps matching branches expanded.</span> : null}
         </div>
       </div>
 

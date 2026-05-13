@@ -48,6 +48,16 @@ function BatchIcon() {
   );
 }
 
+function LayersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m12 3 9 4.5-9 4.5-9-4.5 9-4.5Z" />
+      <path d="m3 12 9 4.5 9-4.5" />
+      <path d="m3 16.5 9 4.5 9-4.5" />
+    </svg>
+  );
+}
+
 const persistCategoryTree = async (nextTree: Category[]) => {
   const flat = flattenCategories(nextTree);
   await Promise.all(
@@ -212,6 +222,7 @@ export function CategoriesPage() {
       ? findCategoryById(categories, selectedCategory.parentId)?.name || ""
       : "";
   const inactiveCount = flatCategories.filter((category) => !category.isActive).length;
+  const rootCount = categories.length;
   const availableCategoryIds = new Set(flatCategories.map((category) => category.id));
   const canViewProducts = false;
 
@@ -485,7 +496,7 @@ export function CategoriesPage() {
         </div>
       </div>
 
-      <div className="sliderAdsSummaryGrid">
+      <div className="categoriesSummaryGrid">
         <div className="metricCard rewardsSummaryCard">
           <div className="rewardsSummaryIcon rewardsSummaryIconIndigo">
             <BatchIcon />
@@ -502,11 +513,19 @@ export function CategoriesPage() {
           <div className="metricValue">{inactiveCount}</div>
           <div className="metricMeta">Soft-deleted categories shown with grayed styling</div>
         </div>
+        <div className="metricCard rewardsSummaryCard">
+          <div className="rewardsSummaryIcon rewardsSummaryIconSky">
+            <LayersIcon />
+          </div>
+          <div className="metricLabel">Root Groups</div>
+          <div className="metricValue">{rootCount}</div>
+          <div className="metricMeta">Top-level navigation groups visible in the category tree</div>
+        </div>
       </div>
 
       {selectedIds.length > 0 ? (
         <div className="card categoriesBatchPanel">
-          <div className="sliderSectionHead sliderSectionHeadSplit">
+          <div className="categoriesBatchHeader">
             <div>
               <div className="sectionTitle">Batch Actions</div>
               <p className="sectionDescription">
@@ -514,18 +533,21 @@ export function CategoriesPage() {
               </p>
             </div>
             <div className="categoriesBatchActions">
-              <select
-                className="authInput"
-                value={batchMoveParentId}
-                onChange={(event) => setBatchMoveParentId(event.target.value)}
-              >
-                <option value="__root__">Move to root</option>
-                {batchParentOptions.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <label className="categoriesBatchSelect">
+                <span className="authLabel">Destination</span>
+                <select
+                  className="authInput"
+                  value={batchMoveParentId}
+                  onChange={(event) => setBatchMoveParentId(event.target.value)}
+                >
+                  <option value="__root__">Move to root</option>
+                  {batchParentOptions.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 type="button"
                 className="verificationActionButton subtle"

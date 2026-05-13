@@ -32,6 +32,7 @@ export type CategoryPayload = {
   parentId?: string | null;
   sortOrder?: number;
   icon?: string;
+  iconFile?: File | null;
   description?: string;
   metaTitle?: string;
   metaDescription?: string;
@@ -216,6 +217,26 @@ const buildCategoryPayload = (payload: CategoryPayload) => {
   if (payload.sortOrder !== undefined) next.sortOrder = payload.sortOrder;
   if (payload.icon !== undefined) next.icon = payload.icon.trim();
   return next;
+};
+
+const buildCategoryFormData = (payload: CategoryPayload) => {
+  const formData = new FormData();
+
+  if (payload.name !== undefined) formData.append("name", payload.name.trim());
+  if (payload.slug !== undefined) formData.append("slug", payload.slug.trim());
+  if (payload.sortOrder !== undefined) {
+    formData.append("sortOrder", String(payload.sortOrder));
+  }
+  if (payload.parentId !== undefined && payload.parentId) {
+    formData.append("parentId", payload.parentId);
+  }
+  if (payload.iconFile) {
+    formData.append("icon", payload.iconFile);
+  } else if (payload.icon !== undefined && payload.icon.trim()) {
+    formData.append("icon", payload.icon.trim());
+  }
+
+  return formData;
 };
 
 const normalizeCategoryTree = (value: unknown) =>
@@ -420,7 +441,7 @@ export async function createCategory(payload: CategoryPayload) {
   try {
     const response = await categoriesApiClient.post<ApiResponse<unknown>>(
       API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE,
-      buildCategoryPayload(payload)
+      buildCategoryFormData(payload)
     );
 
     return ensureSuccessResponse(response.data, "Failed to create category.");
@@ -433,7 +454,7 @@ export async function updateCategory(categoryId: string, payload: CategoryPayloa
   try {
     const response = await categoriesApiClient.patch<ApiResponse<unknown>>(
       API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(categoryId),
-      buildCategoryPayload(payload)
+      payload.iconFile ? buildCategoryFormData(payload) : buildCategoryPayload(payload)
     );
 
     return ensureSuccessResponse(response.data, "Failed to update category.");

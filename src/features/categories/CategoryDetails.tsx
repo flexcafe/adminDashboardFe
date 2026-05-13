@@ -50,10 +50,15 @@ export function CategoryDetails({
 
   return (
     <section className="card categoriesDetailsPanel">
-      <div className="categoriesDetailsHeader">
-        <div>
-          <p className="pageEyebrow">Details</p>
-          <h2 className="sectionTitle">{category.name}</h2>
+      <div className="categoriesDetailsHero">
+        <div className="categoriesDetailsHeroContent">
+          <div className="categoriesDetailsTopline">
+            <span className="pageEyebrow">Category Details</span>
+            <span className={category.isActive ? "statusPill categoriesStatusPill" : "statusPill categoriesStatusPill inactive"}>
+              {category.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+          <h2 className="sectionTitle categoriesDetailsTitle">{category.name}</h2>
           <div className="categoriesBreadcrumbs">
             {breadcrumbs.map((item, index) => (
               <span key={item.id} className="categoriesBreadcrumbItem">
@@ -62,6 +67,9 @@ export function CategoryDetails({
               </span>
             ))}
           </div>
+          <p className="sectionDescription">
+            Keep naming, hierarchy, and merchandising data aligned before this category goes live on the user-facing app.
+          </p>
         </div>
 
         <div className="categoriesDetailsActions">
@@ -69,7 +77,7 @@ export function CategoryDetails({
             Edit
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={onCreateChild}>
-            Create Child Category
+            Create Child
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={onViewProducts} disabled={!canViewProducts}>
             View Products
@@ -80,62 +88,93 @@ export function CategoryDetails({
         </div>
       </div>
 
-      <div className="categoriesDetailsGrid">
-        <label className="sliderFormField">
-          <span className="authLabel">Name</span>
-          <input className="authInput" value={category.name} readOnly />
-        </label>
-        <label className="sliderFormField">
-          <span className="authLabel">Slug</span>
-          <input className="authInput" value={category.slug || "-"} readOnly />
-        </label>
-        <label className="sliderFormField">
-          <span className="authLabel">Parent Category</span>
-          <input className="authInput" value={parentName || "Root category"} readOnly />
-        </label>
-        <label className="sliderFormField">
-          <span className="authLabel">Status</span>
-          <div className={category.isActive ? "sliderToggle active disabled" : "sliderToggle disabled"}>
-            <span className="sliderToggleKnob" />
-            <span className="sliderToggleLabel">
-              {category.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
-        </label>
-        <label className="sliderFormField">
-          <span className="authLabel">Display Order</span>
-          <input className="authInput" value={String(category.sortOrder)} readOnly />
-        </label>
-        <label className="sliderFormField">
-          <span className="authLabel">Image / Icon URL</span>
-          <input className="authInput" value={category.iconUrl || category.imageUrl || "-"} readOnly />
-        </label>
-      </div>
-
-      <div className="categoriesDetailsDescription">
-        <label className="sliderFormField">
-          <span className="authLabel">Description</span>
-          <textarea className="authInput categoriesTextarea" value={category.description || ""} readOnly />
-        </label>
-      </div>
-
-      <div className="categoriesMetaGrid">
-        <div className="detailItem">
-          <span className="detailLabel">Created At</span>
-          <span className="detailValue">{formatDateTime(category.createdAt)}</span>
+      <div className="categoriesOverviewGrid">
+        <div className="detailItem categoriesOverviewCard">
+          <span className="detailLabel">Parent</span>
+          <span className="detailValue">{parentName || "Root category"}</span>
         </div>
-        <div className="detailItem">
-          <span className="detailLabel">Updated At</span>
+        <div className="detailItem categoriesOverviewCard">
+          <span className="detailLabel">Display Order</span>
+          <span className="detailValue">{category.sortOrder}</span>
+        </div>
+        <div className="detailItem categoriesOverviewCard">
+          <span className="detailLabel">Products Linked</span>
+          <span className="detailValue">{category.productCount}</span>
+        </div>
+        <div className="detailItem categoriesOverviewCard">
+          <span className="detailLabel">Last Updated</span>
           <span className="detailValue">{formatDateTime(category.updatedAt)}</span>
         </div>
-        <div className="detailItem">
-          <span className="detailLabel">Product Count</span>
-          <span className="detailValue">{category.productCount}</span>
+      </div>
+
+      <div className="categoriesDetailsSection">
+        <div className="sectionHeader">
+          <div>
+            <div className="sectionTitle">Core Information</div>
+            <p className="sectionDescription">Primary fields used for category display and structure.</p>
+          </div>
+        </div>
+        <div className="categoriesDetailsGrid">
+          <label className="sliderFormField">
+            <span className="authLabel">Name</span>
+            <input className="authInput" value={category.name} readOnly />
+          </label>
+          <label className="sliderFormField">
+            <span className="authLabel">Slug</span>
+            <input className="authInput" value={category.slug || "-"} readOnly />
+          </label>
+          <label className="sliderFormField">
+            <span className="authLabel">Parent Category</span>
+            <input className="authInput" value={parentName || "Root category"} readOnly />
+          </label>
+          <label className="sliderFormField">
+            <span className="authLabel">Image / Icon URL</span>
+            <input className="authInput" value={category.iconUrl || category.imageUrl || "-"} readOnly />
+          </label>
+        </div>
+      </div>
+
+      <div className="categoriesDetailsSection">
+        <div className="sectionHeader">
+          <div>
+            <div className="sectionTitle">Description</div>
+            <p className="sectionDescription">Reference copy for merchandising and customer-facing context.</p>
+          </div>
+        </div>
+        <div className="categoriesDetailsDescription">
+          <label className="sliderFormField">
+            <span className="authLabel">Description</span>
+            <textarea className="authInput categoriesTextarea" value={category.description || ""} readOnly />
+          </label>
+        </div>
+      </div>
+
+      <div className="categoriesDetailsSection">
+        <div className="sectionHeader">
+          <div>
+            <div className="sectionTitle">Audit Information</div>
+            <p className="sectionDescription">Quick operational context for when this category was created and updated.</p>
+          </div>
+        </div>
+        <div className="categoriesMetaGrid">
+          <div className="detailItem">
+            <span className="detailLabel">Created At</span>
+            <span className="detailValue">{formatDateTime(category.createdAt)}</span>
+          </div>
+          <div className="detailItem">
+            <span className="detailLabel">Updated At</span>
+            <span className="detailValue">{formatDateTime(category.updatedAt)}</span>
+          </div>
         </div>
       </div>
 
       <div className="categoriesSeoPanel">
-        <div className="sectionTitle">SEO Meta</div>
+        <div className="sectionHeader">
+          <div>
+            <div className="sectionTitle">SEO Meta</div>
+            <p className="sectionDescription">Helpful for search preview and metadata consistency.</p>
+          </div>
+        </div>
         <div className="categoriesDetailsGrid">
           <label className="sliderFormField">
             <span className="authLabel">Meta Title</span>

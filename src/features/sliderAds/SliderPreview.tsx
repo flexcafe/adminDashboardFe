@@ -58,7 +58,7 @@ export function SliderPreview({ items }: SliderPreviewProps) {
             <div className="sliderPreviewPlaceholder">No image available</div>
           )}
           <div className="sliderPreviewOverlay">
-            <span className="inlineBadge">#{activeItem.sortOrder}</span>
+            <span className="sliderPreviewOrder">#{activeItem.sortOrder}</span>
             <div className="sliderPreviewContent">
               <h3 className="sliderPreviewTitle">{activeItem.title}</h3>
               {activeItem.linkUrl ? (

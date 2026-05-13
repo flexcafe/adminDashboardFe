@@ -59,6 +59,8 @@ type AdminNotificationsContextValue = {
 const AdminNotificationsContext =
   createContext<AdminNotificationsContextValue | null>(null);
 
+const READ_NOTIFICATIONS_STORAGE_KEY = "admin-notifications-read-ids";
+
 const toText = (value: unknown): string => {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
@@ -172,6 +174,31 @@ const mergeNotifications = (
   incoming: AdminNotification
 ) => [incoming, ...current.filter((item) => item.id !== incoming.id)];
 
+const readStoredNotificationIds = () => {
+  try {
+    const raw = window.localStorage.getItem(READ_NOTIFICATIONS_STORAGE_KEY);
+    if (!raw) return new Set<string>();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set<string>();
+    return new Set(
+      parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    );
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const writeStoredNotificationIds = (ids: Set<string>) => {
+  try {
+    window.localStorage.setItem(
+      READ_NOTIFICATIONS_STORAGE_KEY,
+      JSON.stringify(Array.from(ids).slice(-500))
+    );
+  } catch {
+    // Ignore storage failures and keep in-memory state working.
+  }
+};
+
 export function AdminNotificationsProvider({
   children,
 }: PropsWithChildren) {
@@ -185,6 +212,11 @@ export function AdminNotificationsProvider({
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [lastNotificationAt, setLastNotificationAt] = useState(0);
   const toastTimeoutsRef = useRef<number[]>([]);
+  const readNotificationIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    readNotificationIdsRef.current = readStoredNotificationIds();
+  }, []);
 
   const dismissToast = useCallback((toastId: string) => {
     setToastNotifications((current) =>
@@ -220,6 +252,10 @@ export function AdminNotificationsProvider({
       const normalized = toRecordArray(response?.data)
         .map((item) => normalizeNotification(item))
         .filter((item): item is AdminNotification => !!item)
+        .map((item) => ({
+          ...item,
+          isRead: item.isRead || readNotificationIdsRef.current.has(item.id),
+        }))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
       setNotifications(normalized);
@@ -282,11 +318,15 @@ export function AdminNotificationsProvider({
           : null;
 
       if (normalized) {
+        const isLocallyRead = readNotificationIdsRef.current.has(normalized.id);
         let shouldToast = false;
 
         setNotifications((current) => {
-          shouldToast = !current.some((item) => item.id === normalized.id);
-          return mergeNotifications(current, normalized);
+          shouldToast = !current.some((item) => item.id === normalized.id) && !isLocallyRead;
+          return mergeNotifications(current, {
+            ...normalized,
+            isRead: normalized.isRead || isLocallyRead,
+          });
         });
 
         if (shouldToast) {
@@ -327,9 +367,12 @@ export function AdminNotificationsProvider({
   );
 
   const markPanelOpened = useCallback(() => {
-    setNotifications((current) =>
-      current.map((item) => ({ ...item, isRead: true }))
-    );
+    setNotifications((current) => {
+      const next = current.map((item) => ({ ...item, isRead: true }));
+      next.forEach((item) => readNotificationIdsRef.current.add(item.id));
+      writeStoredNotificationIds(readNotificationIdsRef.current);
+      return next;
+    });
   }, []);
 
   const value = useMemo<AdminNotificationsContextValue>(

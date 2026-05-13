@@ -20,6 +20,7 @@ type FormState = {
   parentId: string;
   sortOrder: string;
   icon: string;
+  iconFile: File | null;
   description: string;
   metaTitle: string;
   metaDescription: string;
@@ -44,6 +45,7 @@ const createInitialState = (
   parentId: initialCategory?.parentId || parentId || "",
   sortOrder: String(initialCategory?.sortOrder ?? 1),
   icon: initialCategory?.iconUrl || "",
+  iconFile: null,
   description: initialCategory?.description || "",
   metaTitle: initialCategory?.metaTitle || "",
   metaDescription: initialCategory?.metaDescription || "",
@@ -87,7 +89,7 @@ export function CategoryFormModal({
     if (!Number.isInteger(orderNumber) || orderNumber < 1) {
       nextErrors.sortOrder = "Display order must be a positive number.";
     }
-    if (formState.icon.trim()) {
+    if (!formState.iconFile && formState.icon.trim()) {
       try {
         new URL(formState.icon.trim());
       } catch {
@@ -109,6 +111,7 @@ export function CategoryFormModal({
       parentId: formState.parentId || null,
       sortOrder: Number(formState.sortOrder),
       icon: formState.icon,
+      iconFile: formState.iconFile,
       description: formState.description,
       metaTitle: formState.metaTitle,
       metaDescription: formState.metaDescription,
@@ -229,19 +232,33 @@ export function CategoryFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Image / Icon URL</span>
+              <span className="authLabel">Category Icon</span>
               <input
                 className="authInput"
-                value={formState.icon}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 onChange={(event) => {
+                  const nextFile = event.target.files?.[0] || null;
                   setFormState((current) => ({
                     ...current,
-                    icon: event.target.value,
+                    iconFile: nextFile,
                   }));
                   setErrors((current) => ({ ...current, icon: undefined }));
                 }}
-                placeholder="https://example.com/icon.png"
               />
+              {formState.iconFile ? (
+                <span className="sectionDescription">
+                  Selected file: {formState.iconFile.name}
+                </span>
+              ) : formState.icon ? (
+                <span className="sectionDescription">
+                  Current icon: {formState.icon}
+                </span>
+              ) : (
+                <span className="sectionDescription">
+                  Upload PNG, JPEG, WebP, or SVG. The admin API expects the file in the `icon` field.
+                </span>
+              )}
               {errors.icon ? <span className="authError">{errors.icon}</span> : null}
             </label>
           </div>

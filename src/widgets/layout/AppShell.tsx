@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
+import flexUsedLogo from "@/assets/flex-used-logo.svg";
 
 function DashboardIcon() {
   return (
@@ -106,6 +107,7 @@ export function AppShell() {
   } = useAdminNotifications();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
+  const currentUserInitial = currentUserName.trim().charAt(0).toUpperCase() || "A";
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
@@ -162,10 +164,11 @@ export function AppShell() {
     return date.toLocaleString();
   };
 
-  const handleNotificationClick = (routePath?: string) => {
-    if (!routePath) return;
+  const handleNotificationClick = (notificationId?: string) => {
     setIsNotificationsOpen(false);
-    navigate(routePath);
+    navigate("/notifications", {
+      state: notificationId ? { highlightNotificationId: notificationId } : undefined,
+    });
   };
 
   const handleToastClick = (routePath?: string, toastId?: string) => {
@@ -181,10 +184,10 @@ export function AppShell() {
     <div className="appShell">
       <aside className="sidebar">
         <div className="sidebarHeader">
-          <div className="brandMark" aria-hidden="true" />
+          <img className="brandLogo" src={flexUsedLogo} alt="Flex Used Market logo" />
           <div className="brandText">
-            <div className="brandTitle">Flex reseller</div>
-            <div className="brandSubtitle">Admin dashboard</div>
+            <div className="brandTitle">Flex</div>
+            <div className="brandSubtitle">Used Market Admin</div>
           </div>
         </div>
 
@@ -251,15 +254,25 @@ export function AppShell() {
           <div className="sidebarInfoTitle">Operations hub</div>
           <div className="sidebarInfoText">Track verifications, payouts, and reseller rewards.</div>
         </div>
+        <div className="sidebarFoot">
+          <div className="sidebarFootAvatar" aria-hidden="true">{currentUserInitial}</div>
+          <div>
+            <div className="sidebarFootLabel">Signed in</div>
+            <div className="sidebarFootUser">{currentUserName}</div>
+          </div>
+        </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
           <div className="topbarLeft">
-            <div className="topbarEyebrow">Flex reseller</div>
+            <div>
+              <div className="topbarEyebrow">Flex Used Admin</div>
+              <div className="topbarSubtext">Operations workspace for catalog, rewards, and marketplace administration.</div>
+            </div>
           </div>
           <div className="topbarRight">
-            <button className="topbarIconButton" type="button" aria-label="Open apps">
+            <button className="topbarIconButton" type="button" aria-label="Quick actions">
               <GridIcon />
             </button>
             <div className="notificationsWrap" ref={notificationsRef}>
@@ -320,14 +333,13 @@ export function AppShell() {
                               ? "notificationsItem"
                               : "notificationsItem unread"
                           }
-                          role={item.routePath ? "button" : undefined}
-                          tabIndex={item.routePath ? 0 : undefined}
-                          onClick={() => handleNotificationClick(item.routePath)}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleNotificationClick(item.id)}
                           onKeyDown={(event) => {
-                            if (!item.routePath) return;
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              handleNotificationClick(item.routePath);
+                              handleNotificationClick(item.id);
                             }
                           }}
                         >
@@ -338,12 +350,6 @@ export function AppShell() {
                             </span>
                           </div>
                           <div className="notificationsTitle">{item.title}</div>
-                          <p className="notificationsMessage">{item.message}</p>
-                          {item.routePath ? (
-                            <div className="notificationsActionHint">
-                              Open verification details
-                            </div>
-                          ) : null}
                         </article>
                       ))
                     )}
@@ -367,7 +373,7 @@ export function AppShell() {
               {themeMode === "dark" ? <SunIcon /> : <MoonIcon />}
             </button>
             <div className="topbarIdentity">
-              <span className="topbarRole">Signed in as Admin</span>
+              <span className="topbarRole">Signed in as</span>
               <span className="topbarUser">{currentUserName}</span>
               <span className="topbarRole">Administrator</span>
             </div>

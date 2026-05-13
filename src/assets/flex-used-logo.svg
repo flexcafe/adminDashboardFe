@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="flex-used-logo-title flex-used-logo-desc">
+  <title id="flex-used-logo-title">Flex Used Market logo</title>
+  <desc id="flex-used-logo-desc">Gold circular emblem with the words FLEX USED and USED MARKET.</desc>
+  <defs>
+    <linearGradient id="gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff2bf" />
+      <stop offset="22%" stop-color="#f9d875" />
+      <stop offset="48%" stop-color="#cc8e24" />
+      <stop offset="72%" stop-color="#f5c957" />
+      <stop offset="100%" stop-color="#8f5a11" />
+    </linearGradient>
+    <linearGradient id="gold-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8e5811" />
+      <stop offset="100%" stop-color="#d9a33b" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f4ead3" />
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#7a4e12" flood-opacity="0.22" />
+    </filter>
+  </defs>
+
+  <rect width="800" height="800" rx="64" fill="url(#glow)" />
+
+  <g fill="none" stroke="url(#gold-main)" stroke-linecap="round" filter="url(#shadow)">
+    <path d="M372 162a210 210 0 1 0 0 476" stroke-width="30" />
+    <path d="M350 188a184 184 0 1 0 0 424" stroke-width="10" opacity="0.9" />
+    <path d="M428 162a210 210 0 1 1 0 476" stroke-width="30" />
+    <path d="M450 188a184 184 0 1 1 0 424" stroke-width="10" opacity="0.9" />
+    <path d="M346 290c14-56 46-92 78-112" stroke-width="22" />
+    <path d="M454 290c-14-56-46-92-78-112" stroke-width="22" />
+    <path d="M356 556c18 26 44 44 74 54" stroke-width="18" />
+    <path d="M444 556c-18 26-44 44-74 54" stroke-width="18" />
+  </g>
+
+  <path d="M400 222l34 42h-68z" fill="url(#gold-main)" filter="url(#shadow)" />
+  <path d="M400 234l17 20h-34z" fill="#fff2bf" opacity="0.7" />
+
+  <g fill="url(#gold-main)" stroke="url(#gold-dark)" stroke-width="4" filter="url(#shadow)" font-family="Segoe UI, Arial, sans-serif" font-weight="900" text-anchor="middle">
+    <text x="400" y="372" font-size="118" letter-spacing="4">FLEX</text>
+    <text x="400" y="474" font-size="94" letter-spacing="3">USED</text>
+  </g>
+
+  <text x="400" y="652" fill="url(#gold-dark)" font-family="Segoe UI, Arial, sans-serif" font-size="62" letter-spacing="12" text-anchor="middle">USED MARKET</text>
+</svg>

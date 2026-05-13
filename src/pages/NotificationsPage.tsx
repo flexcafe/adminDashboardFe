@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAdminNotifications, type AdminNotification } from "@/features/adminNotifications/AdminNotificationsContext";
 
 const formatDateTime = (value: string) => {
   const date = new Date(value);
@@ -8,8 +8,15 @@ const formatDateTime = (value: string) => {
   return date.toLocaleString();
 };
 
+const getNotificationRoute = (item: AdminNotification): string | null => {
+  if (item.routePath) return item.routePath;
+  if (item.userId) return `/dashboard/${item.userId}`;
+  return null;
+};
+
 export function NotificationsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     notifications,
     unreadCount,
@@ -19,6 +26,8 @@ export function NotificationsPage() {
     refreshNotifications,
   } = useAdminNotifications();
   const [searchQuery, setSearchQuery] = useState("");
+  const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const highlightId = (location.state as { highlightNotificationId?: string } | null)?.highlightNotificationId;
 
   const filteredNotifications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -27,6 +36,16 @@ export function NotificationsPage() {
       `${item.title} ${item.message} ${item.type}`.toLowerCase().includes(query)
     );
   }, [notifications, searchQuery]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = itemRefs.current.get(highlightId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("highlighted");
+    const timer = setTimeout(() => el.classList.remove("highlighted"), 3000);
+    return () => clearTimeout(timer);
+  }, [highlightId, filteredNotifications]);
 
   return (
     <section className="page notificationsPage">
@@ -99,32 +118,37 @@ export function NotificationsPage() {
               {searchQuery.trim() ? "No notifications match your search." : "No admin notifications yet."}
             </div>
           ) : (
-            filteredNotifications.map((item) => (
-              <article
-                key={item.id}
-                className={item.isRead ? "notificationsPageItem" : "notificationsPageItem unread"}
-              >
-                <div className="notificationsPageItemTop">
-                  <span className="inlineBadge">{item.type}</span>
-                  <span className="notificationsTimestamp">{formatDateTime(item.createdAt)}</span>
-                </div>
-                <div className="notificationsTitle">{item.title}</div>
-                <p className="notificationsMessage">{item.message}</p>
-                <div className="notificationsPageItemActions">
-                  {item.routePath ? (
-                    <button
-                      type="button"
-                      className="verificationActionButton"
-                      onClick={() => navigate(item.routePath!)}
-                    >
-                      Open Details
-                    </button>
-                  ) : (
-                    <span className="muted">No linked page</span>
-                  )}
-                </div>
-              </article>
-            ))
+            filteredNotifications.map((item) => {
+              const detailsRoute = getNotificationRoute(item);
+              return (
+                <article
+                  key={item.id}
+                  ref={(el) => {
+                    if (el) itemRefs.current.set(item.id, el);
+                    else itemRefs.current.delete(item.id);
+                  }}
+                  className={item.isRead ? "notificationsPageItem" : "notificationsPageItem unread"}
+                >
+                  <div className="notificationsPageItemTop">
+                    <span className="inlineBadge">{item.type}</span>
+                    <span className="notificationsTimestamp">{formatDateTime(item.createdAt)}</span>
+                  </div>
+                  <div className="notificationsTitle">{item.title}</div>
+                  <p className="notificationsMessage">{item.message}</p>
+                  <div className="notificationsPageItemActions">
+                    {detailsRoute ? (
+                      <button
+                        type="button"
+                        className="verificationActionButton"
+                        onClick={() => navigate(detailsRoute)}
+                      >
+                        View Details
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
+import flexUsedLogo from "@/assets/flex-used-logo.svg";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -34,9 +35,10 @@ export function LoginPage() {
   return (
     <section className="authPage">
       <div className="authCard authCardSimple">
+        <img className="authBrandLogo" src={flexUsedLogo} alt="Flex Used Market logo" />
         <h1 className="authTitle">Admin Login</h1>
         <p className="authSubtitle">
-          Sign in with your phone/email and password.
+          Sign in to the Flex Used Market dashboard with your phone/email and password.
         </p>
 
         <form className="authForm" onSubmit={handleSubmit}>
