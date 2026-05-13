@@ -201,19 +201,6 @@ export function CategoryFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Status</span>
-              <div className={initialCategory?.isActive === false ? "sliderToggle disabled" : "sliderToggle active disabled"}>
-                <span className="sliderToggleKnob" />
-                <span className="sliderToggleLabel">
-                  {initialCategory?.isActive === false ? "Inactive" : "Active"}
-                </span>
-              </div>
-              <span className="sectionDescription">
-                Inactive categories are managed through the Deactivate action because the API does not patch status directly.
-              </span>
-            </label>
-
-            <label className="sliderFormField">
               <span className="authLabel">Display Order</span>
               <input
                 className="authInput"
@@ -262,72 +249,6 @@ export function CategoryFormModal({
               {errors.icon ? <span className="authError">{errors.icon}</span> : null}
             </label>
           </div>
-
-          <label className="sliderFormField">
-            <span className="authLabel">Description</span>
-            <textarea
-              className="authInput categoriesTextarea"
-              disabled
-              value={formState.description}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-              placeholder="Optional category description"
-            />
-            <span className="sectionDescription">
-              Description and SEO fields are visible for future support, but the current API only documents `name`, `slug`, `parentId`, `sortOrder`, and `icon` for save operations.
-            </span>
-          </label>
-
-          <div className="categoriesSeoGrid">
-            <label className="sliderFormField">
-              <span className="authLabel">SEO Meta Title</span>
-              <input
-                className="authInput"
-                disabled
-                value={formState.metaTitle}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    metaTitle: event.target.value,
-                  }))
-                }
-              />
-            </label>
-            <label className="sliderFormField">
-              <span className="authLabel">SEO Meta Keywords</span>
-              <input
-                className="authInput"
-                disabled
-                value={formState.metaKeywords}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    metaKeywords: event.target.value,
-                  }))
-                }
-                placeholder="running, shoes, apparel"
-              />
-            </label>
-          </div>
-
-          <label className="sliderFormField">
-            <span className="authLabel">SEO Meta Description</span>
-            <textarea
-              className="authInput categoriesTextarea"
-              disabled
-              value={formState.metaDescription}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  metaDescription: event.target.value,
-                }))
-              }
-            />
-          </label>
 
           <div className="sliderModalActions">
             <button type="button" className="verificationActionButton subtle" onClick={onClose} disabled={isSaving}>

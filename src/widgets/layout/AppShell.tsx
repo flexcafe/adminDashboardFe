@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
@@ -102,7 +102,8 @@ export function AppShell() {
     error: notificationsError,
     isRealtimeConnected,
     refreshNotifications,
-    markPanelOpened,
+    markAllNotificationsRead,
+    markNotificationsRead,
     dismissToast,
   } = useAdminNotifications();
   const navigate = useNavigate();
@@ -149,13 +150,7 @@ export function AppShell() {
   };
 
   const handleToggleNotifications = () => {
-    setIsNotificationsOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        markPanelOpened();
-      }
-      return next;
-    });
+    setIsNotificationsOpen((prev) => !prev);
   };
 
   const formatNotificationDate = (value: string) => {
@@ -166,6 +161,9 @@ export function AppShell() {
 
   const handleNotificationClick = (notificationId?: string) => {
     setIsNotificationsOpen(false);
+    if (notificationId) {
+      markNotificationsRead([notificationId]);
+    }
     navigate("/notifications", {
       state: notificationId ? { highlightNotificationId: notificationId } : undefined,
     });
@@ -293,14 +291,14 @@ export function AppShell() {
               {isNotificationsOpen ? (
                 <div className="notificationsPanel">
                   <div className="notificationsPanelHeader">
-                    <div>
-                      <div className="sectionTitle">Admin Notifications</div>
-                      <p className="sectionDescription">
-                        {isRealtimeConnected
-                          ? "Realtime connection active"
-                          : "Showing latest fetched notifications"}
-                      </p>
-                    </div>
+                      <div>
+                        <div className="sectionTitle">Admin Notifications</div>
+                        <p className="sectionDescription">
+                          {isRealtimeConnected
+                            ? "Realtime connection active"
+                            : "Showing the latest fetched notifications"}
+                        </p>
+                      </div>
                     <button
                       type="button"
                       className="verificationActionButton subtle"
@@ -360,10 +358,11 @@ export function AppShell() {
                       className="verificationActionButton subtle notificationsViewAllButton"
                       onClick={() => {
                         setIsNotificationsOpen(false);
+                        markAllNotificationsRead();
                         navigate("/notifications");
                       }}
                     >
-                      View All Notifications
+                      Open Notification Center
                     </button>
                   </div>
                 </div>
@@ -417,7 +416,7 @@ export function AppShell() {
                     dismissToast(toast.id);
                   }}
                 >
-                  ×
+                  x
                 </button>
               </div>
               <div className="notificationsToastTitle">
@@ -439,3 +438,4 @@ export function AppShell() {
     </div>
   );
 }
+

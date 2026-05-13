@@ -224,7 +224,6 @@ export function CategoriesPage() {
   const inactiveCount = flatCategories.filter((category) => !category.isActive).length;
   const rootCount = categories.length;
   const availableCategoryIds = new Set(flatCategories.map((category) => category.id));
-  const canViewProducts = false;
 
   const handleFormSubmit = async (payload: CategoryPayload) => {
     try {
@@ -633,10 +632,6 @@ export function CategoriesPage() {
               parentId: selectedCategory.id,
             });
           }}
-          onViewProducts={() => {
-            showToast("Products page is not available in this dashboard yet.");
-          }}
-          canViewProducts={canViewProducts}
         />
       </div>
 

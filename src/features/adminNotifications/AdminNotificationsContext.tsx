@@ -12,6 +12,7 @@ import Pusher from "pusher-js";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
+import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { tokenCookies } from "@/lib/cookies";
 import { PUSHER_CHANNELS, PUSHER_CONFIG, PUSHER_EVENTS } from "@/config/pusher";
 
@@ -52,7 +53,8 @@ type AdminNotificationsContextValue = {
   isRealtimeConnected: boolean;
   lastNotificationAt: number;
   refreshNotifications: () => Promise<void>;
-  markPanelOpened: () => void;
+  markNotificationsRead: (notificationIds: string[]) => void;
+  markAllNotificationsRead: () => void;
   dismissToast: (toastId: string) => void;
 };
 
@@ -174,9 +176,12 @@ const mergeNotifications = (
   incoming: AdminNotification
 ) => [incoming, ...current.filter((item) => item.id !== incoming.id)];
 
-const readStoredNotificationIds = () => {
+const getReadNotificationsStorageKey = (userId?: string | null) =>
+  `${READ_NOTIFICATIONS_STORAGE_KEY}:${userId || "anonymous"}`;
+
+const readStoredNotificationIds = (userId?: string | null) => {
   try {
-    const raw = window.localStorage.getItem(READ_NOTIFICATIONS_STORAGE_KEY);
+    const raw = window.localStorage.getItem(getReadNotificationsStorageKey(userId));
     if (!raw) return new Set<string>();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set<string>();
@@ -188,10 +193,10 @@ const readStoredNotificationIds = () => {
   }
 };
 
-const writeStoredNotificationIds = (ids: Set<string>) => {
+const writeStoredNotificationIds = (ids: Set<string>, userId?: string | null) => {
   try {
     window.localStorage.setItem(
-      READ_NOTIFICATIONS_STORAGE_KEY,
+      getReadNotificationsStorageKey(userId),
       JSON.stringify(Array.from(ids).slice(-500))
     );
   } catch {
@@ -203,6 +208,7 @@ export function AdminNotificationsProvider({
   children,
 }: PropsWithChildren) {
   const httpClient = container.resolve<HttpClient>("httpClient");
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [toastNotifications, setToastNotifications] = useState<
     AdminNotificationToast[]
@@ -213,10 +219,11 @@ export function AdminNotificationsProvider({
   const [lastNotificationAt, setLastNotificationAt] = useState(0);
   const toastTimeoutsRef = useRef<number[]>([]);
   const readNotificationIdsRef = useRef<Set<string>>(new Set());
+  const currentUserId = user?.id || null;
 
   useEffect(() => {
-    readNotificationIdsRef.current = readStoredNotificationIds();
-  }, []);
+    readNotificationIdsRef.current = readStoredNotificationIds(currentUserId);
+  }, [currentUserId]);
 
   const dismissToast = useCallback((toastId: string) => {
     setToastNotifications((current) =>
@@ -268,7 +275,7 @@ export function AdminNotificationsProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [httpClient]);
+  }, [currentUserId, httpClient]);
 
   useEffect(() => {
     void refreshNotifications();
@@ -366,14 +373,26 @@ export function AdminNotificationsProvider({
     [notifications]
   );
 
-  const markPanelOpened = useCallback(() => {
+  const markNotificationsRead = useCallback((notificationIds: string[]) => {
+    if (notificationIds.length === 0) return;
+    setNotifications((current) => {
+      const next = current.map((item) =>
+        notificationIds.includes(item.id) ? { ...item, isRead: true } : item
+      );
+      notificationIds.forEach((id) => readNotificationIdsRef.current.add(id));
+      writeStoredNotificationIds(readNotificationIdsRef.current, currentUserId);
+      return next;
+    });
+  }, [currentUserId]);
+
+  const markAllNotificationsRead = useCallback(() => {
     setNotifications((current) => {
       const next = current.map((item) => ({ ...item, isRead: true }));
       next.forEach((item) => readNotificationIdsRef.current.add(item.id));
-      writeStoredNotificationIds(readNotificationIdsRef.current);
+      writeStoredNotificationIds(readNotificationIdsRef.current, currentUserId);
       return next;
     });
-  }, []);
+  }, [currentUserId]);
 
   const value = useMemo<AdminNotificationsContextValue>(
     () => ({
@@ -385,7 +404,8 @@ export function AdminNotificationsProvider({
       isRealtimeConnected,
       lastNotificationAt,
       refreshNotifications,
-      markPanelOpened,
+      markNotificationsRead,
+      markAllNotificationsRead,
       dismissToast,
     }),
     [
@@ -394,7 +414,8 @@ export function AdminNotificationsProvider({
       isLoading,
       isRealtimeConnected,
       lastNotificationAt,
-      markPanelOpened,
+      markAllNotificationsRead,
+      markNotificationsRead,
       notifications,
       refreshNotifications,
       toastNotifications,

@@ -23,6 +23,7 @@ export function NotificationsPage() {
     isLoading,
     error,
     isRealtimeConnected,
+    markNotificationsRead,
     refreshNotifications,
   } = useAdminNotifications();
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,6 +37,11 @@ export function NotificationsPage() {
       `${item.title} ${item.message} ${item.type}`.toLowerCase().includes(query)
     );
   }, [notifications, searchQuery]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    markNotificationsRead([highlightId]);
+  }, [highlightId, markNotificationsRead]);
 
   useEffect(() => {
     if (!highlightId) return;
@@ -54,7 +60,7 @@ export function NotificationsPage() {
           <p className="pageEyebrow">Notifications</p>
           <h1 className="pageTitle">Admin Notifications</h1>
           <p className="pageDescription">
-            Review every notification record and jump directly into the related verification work.
+            Review the full admin notification history and open the related verification work when needed.
           </p>
         </div>
         <div className="pageHeaderActions">
@@ -78,15 +84,15 @@ export function NotificationsPage() {
           <div className="metricMeta">All fetched admin notification records</div>
         </div>
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardAmber">
-          <div className="metricLabel">Unread</div>
+          <div className="metricLabel">Needs Review</div>
           <div className="metricValue">{unreadCount}</div>
-          <div className="metricMeta">Notifications not yet opened from the top bar</div>
+          <div className="metricMeta">Items still unread before opening this notifications page</div>
         </div>
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardGreen">
           <div className="metricLabel">Connection</div>
           <div className="metricValue">{isRealtimeConnected ? "Live" : "Sync"}</div>
           <div className="metricMeta">
-            {isRealtimeConnected ? "Realtime notification stream connected" : "Showing fetched notifications"}
+            {isRealtimeConnected ? "Realtime notification stream connected" : "Showing the latest fetched notifications"}
           </div>
         </div>
       </div>
@@ -96,7 +102,7 @@ export function NotificationsPage() {
           <div>
             <div className="sectionTitle">Notification Records</div>
             <p className="sectionDescription">
-              Search titles, message content, or types to find the exact admin notification you need.
+              Search by title, message, or type to quickly find a specific admin notification record.
             </p>
           </div>
           <div className="notificationsPageSearchField">
@@ -140,7 +146,10 @@ export function NotificationsPage() {
                       <button
                         type="button"
                         className="verificationActionButton"
-                        onClick={() => navigate(detailsRoute)}
+                        onClick={() => {
+                          markNotificationsRead([item.id]);
+                          navigate(detailsRoute);
+                        }}
                       >
                         View Details
                       </button>

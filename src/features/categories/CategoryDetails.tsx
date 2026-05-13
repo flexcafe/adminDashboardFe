@@ -8,8 +8,6 @@ type CategoryDetailsProps = {
   onEdit: () => void;
   onDelete: () => void;
   onCreateChild: () => void;
-  onViewProducts: () => void;
-  canViewProducts: boolean;
 };
 
 const formatDateTime = (value: string) => {
@@ -27,8 +25,6 @@ export function CategoryDetails({
   onEdit,
   onDelete,
   onCreateChild,
-  onViewProducts,
-  canViewProducts,
 }: CategoryDetailsProps) {
   if (isLoading) {
     return (
@@ -78,9 +74,6 @@ export function CategoryDetails({
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={onCreateChild}>
             Create Child
-          </button>
-          <button type="button" className="verificationActionButton subtle" onClick={onViewProducts} disabled={!canViewProducts}>
-            View Products
           </button>
           <button type="button" className="verificationActionButton subtle danger" onClick={onDelete}>
             Deactivate
