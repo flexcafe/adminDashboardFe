@@ -1,8 +1,9 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
-import flexUsedLogo from "@/assets/flex-used-logo.svg";
+import flexUsedLogo from "@/assets/flex-used-logo.png";
 
 function DashboardIcon() {
   return (
@@ -75,28 +76,10 @@ function GridIcon() {
   );
 }
 
-function SunIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2.5v2.5M12 19v2.5M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2.5 12H5M19 12h2.5M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20.4 14.5A8.7 8.7 0 1 1 9.5 3.6 7 7 0 1 0 20.4 14.5z" />
-    </svg>
-  );
-}
-
 export function AppShell() {
   const { user, logout } = useAuth();
   const {
     notifications,
-    toastNotifications,
     unreadCount,
     isLoading: isNotificationsLoading,
     error: notificationsError,
@@ -104,26 +87,12 @@ export function AppShell() {
     refreshNotifications,
     markAllNotificationsRead,
     markNotificationsRead,
-    dismissToast,
   } = useAdminNotifications();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
   const currentUserInitial = currentUserName.trim().charAt(0).toUpperCase() || "A";
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
-  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
-    const savedMode = window.localStorage.getItem("theme-mode");
-    if (savedMode === "dark" || savedMode === "light") {
-      return savedMode;
-    }
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return prefersDark ? "dark" : "light";
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", themeMode);
-    window.localStorage.setItem("theme-mode", themeMode);
-  }, [themeMode]);
 
   useEffect(() => {
     if (!isNotificationsOpen) return;
@@ -145,12 +114,13 @@ export function AppShell() {
     navigate("/login", { replace: true });
   };
 
-  const handleToggleTheme = () => {
-    setThemeMode((prev) => (prev === "light" ? "dark" : "light"));
-  };
-
   const handleToggleNotifications = () => {
-    setIsNotificationsOpen((prev) => !prev);
+    setIsNotificationsOpen((prev) => {
+      if (!prev) {
+        void refreshNotifications();
+      }
+      return !prev;
+    });
   };
 
   const formatNotificationDate = (value: string) => {
@@ -167,15 +137,6 @@ export function AppShell() {
     navigate("/notifications", {
       state: notificationId ? { highlightNotificationId: notificationId } : undefined,
     });
-  };
-
-  const handleToastClick = (routePath?: string, toastId?: string) => {
-    if (toastId) {
-      dismissToast(toastId);
-    }
-    if (routePath) {
-      navigate(routePath);
-    }
   };
 
   return (
@@ -368,9 +329,7 @@ export function AppShell() {
                 </div>
               ) : null}
             </div>
-            <button className="topbarIconButton" type="button" aria-label="Toggle theme" onClick={handleToggleTheme} title={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-              {themeMode === "dark" ? <SunIcon /> : <MoonIcon />}
-            </button>
+            <ThemeToggle />
             <div className="topbarIdentity">
               <span className="topbarRole">Signed in as</span>
               <span className="topbarUser">{currentUserName}</span>
@@ -385,56 +344,6 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-
-      {toastNotifications.length > 0 ? (
-        <div className="notificationsToastStack" aria-live="polite" aria-atomic="false">
-          {toastNotifications.map((toast) => (
-            <article
-              key={toast.id}
-              className={toast.notification.routePath ? "notificationsToast clickable" : "notificationsToast"}
-              role={toast.notification.routePath ? "button" : "status"}
-              tabIndex={toast.notification.routePath ? 0 : -1}
-              onClick={() =>
-                handleToastClick(toast.notification.routePath, toast.id)
-              }
-              onKeyDown={(event) => {
-                if (!toast.notification.routePath) return;
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  handleToastClick(toast.notification.routePath, toast.id);
-                }
-              }}
-            >
-              <div className="notificationsToastTop">
-                <span className="inlineBadge">{toast.notification.type}</span>
-                <button
-                  type="button"
-                  className="notificationsToastClose"
-                  aria-label="Dismiss notification"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    dismissToast(toast.id);
-                  }}
-                >
-                  x
-                </button>
-              </div>
-              <div className="notificationsToastTitle">
-                {toast.notification.title}
-              </div>
-              <p className="notificationsToastMessage">
-                {toast.notification.message}
-              </p>
-              <div className="notificationsToastMeta">
-                <span>{formatNotificationDate(toast.notification.createdAt)}</span>
-                {toast.notification.routePath ? (
-                  <span className="notificationsToastHint">Open details</span>
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

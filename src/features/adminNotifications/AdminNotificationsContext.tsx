@@ -39,14 +39,8 @@ export type AdminNotification = {
   routePath?: string;
 };
 
-export type AdminNotificationToast = {
-  id: string;
-  notification: AdminNotification;
-};
-
 type AdminNotificationsContextValue = {
   notifications: AdminNotification[];
-  toastNotifications: AdminNotificationToast[];
   unreadCount: number;
   isLoading: boolean;
   error: string | null;
@@ -55,13 +49,13 @@ type AdminNotificationsContextValue = {
   refreshNotifications: () => Promise<void>;
   markNotificationsRead: (notificationIds: string[]) => void;
   markAllNotificationsRead: () => void;
-  dismissToast: (toastId: string) => void;
 };
 
 const AdminNotificationsContext =
   createContext<AdminNotificationsContextValue | null>(null);
 
 const READ_NOTIFICATIONS_STORAGE_KEY = "admin-notifications-read-ids";
+const NOTIFICATIONS_REFRESH_INTERVAL_MS = 15000;
 
 const toText = (value: unknown): string => {
   if (typeof value === "string") return value;
@@ -176,6 +170,9 @@ const mergeNotifications = (
   incoming: AdminNotification
 ) => [incoming, ...current.filter((item) => item.id !== incoming.id)];
 
+const sortNotificationsByDate = (items: AdminNotification[]) =>
+  [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
 const getReadNotificationsStorageKey = (userId?: string | null) =>
   `${READ_NOTIFICATIONS_STORAGE_KEY}:${userId || "anonymous"}`;
 
@@ -210,42 +207,49 @@ export function AdminNotificationsProvider({
   const httpClient = container.resolve<HttpClient>("httpClient");
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [toastNotifications, setToastNotifications] = useState<
-    AdminNotificationToast[]
-  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [lastNotificationAt, setLastNotificationAt] = useState(0);
-  const toastTimeoutsRef = useRef<number[]>([]);
   const readNotificationIdsRef = useRef<Set<string>>(new Set());
+  const refreshNotificationsRef = useRef<() => Promise<void>>(async () => undefined);
   const currentUserId = user?.id || null;
 
   useEffect(() => {
     readNotificationIdsRef.current = readStoredNotificationIds(currentUserId);
   }, [currentUserId]);
 
-  const dismissToast = useCallback((toastId: string) => {
-    setToastNotifications((current) =>
-      current.filter((toast) => toast.id !== toastId)
-    );
-  }, []);
-
-  const enqueueToast = useCallback(
-    (notification: AdminNotification) => {
-      const toastId = `${notification.id}-${Date.now()}`;
-
-      setToastNotifications((current) =>
-        [{ id: toastId, notification }, ...current].slice(0, 4)
+  const mergeFetchedNotifications = useCallback(
+    (incoming: AdminNotification[]) => {
+      let foundNewNotification = false;
+      const nextNotifications = sortNotificationsByDate(
+        incoming.map((item) => ({
+          ...item,
+          isRead: item.isRead || readNotificationIdsRef.current.has(item.id),
+        }))
       );
 
-      const timeoutId = window.setTimeout(() => {
-        dismissToast(toastId);
-      }, 4500);
+      setNotifications((current) => {
+        const currentById = new Map(current.map((item) => [item.id, item]));
+        const next = nextNotifications.map((item) => {
+          const existing = currentById.get(item.id);
+          const isRead = item.isRead || existing?.isRead || false;
 
-      toastTimeoutsRef.current.push(timeoutId);
+          if (!existing && !isRead) {
+            foundNewNotification = true;
+          }
+
+          return { ...item, isRead };
+        });
+
+        return next;
+      });
+
+      if (foundNewNotification) {
+        setLastNotificationAt(Date.now());
+      }
     },
-    [dismissToast]
+    []
   );
 
   const refreshNotifications = useCallback(async () => {
@@ -259,13 +263,9 @@ export function AdminNotificationsProvider({
       const normalized = toRecordArray(response?.data)
         .map((item) => normalizeNotification(item))
         .filter((item): item is AdminNotification => !!item)
-        .map((item) => ({
-          ...item,
-          isRead: item.isRead || readNotificationIdsRef.current.has(item.id),
-        }))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-      setNotifications(normalized);
+      mergeFetchedNotifications(normalized);
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -275,45 +275,46 @@ export function AdminNotificationsProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [currentUserId, httpClient]);
+  }, [httpClient, mergeFetchedNotifications]);
+
+  refreshNotificationsRef.current = refreshNotifications;
 
   useEffect(() => {
     void refreshNotifications();
   }, [refreshNotifications]);
 
   useEffect(() => {
-    return () => {
-      toastTimeoutsRef.current.forEach((timeoutId) =>
-        window.clearTimeout(timeoutId)
-      );
-      toastTimeoutsRef.current = [];
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!PUSHER_CONFIG.key) return;
+    if (!PUSHER_CONFIG.key || !PUSHER_CONFIG.adminNotificationsEnabled) return;
 
     const token = tokenCookies.getToken();
     if (!token) return;
 
+    const isPrivateChannel =
+      PUSHER_CHANNELS.ADMIN_DASHBOARD.startsWith("private-") ||
+      PUSHER_CHANNELS.ADMIN_DASHBOARD.startsWith("presence-");
+
     const pusher = new Pusher(PUSHER_CONFIG.key, {
       cluster: PUSHER_CONFIG.cluster,
-      channelAuthorization: {
-        customHandler: async ({ socketId, channelName }, callback) => {
-          try {
-            const auth = await httpClient.post<PusherAuthorizationResponse>(
-              API_ENDPOINTS.PUSHER.ADMIN_AUTH,
-              {
-                socket_id: socketId,
-                channel_name: channelName,
-              }
-            );
-            callback(null, auth);
-          } catch (authError) {
-            callback(authError as Error, { auth: "" });
+      ...(isPrivateChannel
+        ? {
+            channelAuthorization: {
+              customHandler: async ({ socketId, channelName }, callback) => {
+                try {
+                  const auth = await httpClient.post<PusherAuthorizationResponse>(
+                    API_ENDPOINTS.PUSHER.ADMIN_AUTH,
+                    {
+                      socket_id: socketId,
+                      channel_name: channelName,
+                    }
+                  );
+                  callback(null, auth);
+                } catch (authError) {
+                  callback(authError as Error, { auth: "" });
+                }
+              },
+            },
           }
-        },
-      },
+        : {}),
     });
 
     const channel = pusher.subscribe(PUSHER_CHANNELS.ADMIN_DASHBOARD);
@@ -325,23 +326,16 @@ export function AdminNotificationsProvider({
           : null;
 
       if (normalized) {
-        const isLocallyRead = readNotificationIdsRef.current.has(normalized.id);
-        let shouldToast = false;
-
         setNotifications((current) => {
-          shouldToast = !current.some((item) => item.id === normalized.id) && !isLocallyRead;
+          const isLocallyRead = readNotificationIdsRef.current.has(normalized.id);
           return mergeNotifications(current, {
             ...normalized,
             isRead: normalized.isRead || isLocallyRead,
           });
         });
-
-        if (shouldToast) {
-          enqueueToast(normalized);
-        }
         setLastNotificationAt(Date.now());
       } else {
-        void refreshNotifications();
+        void refreshNotificationsRef.current();
         setLastNotificationAt(Date.now());
       }
     };
@@ -366,7 +360,29 @@ export function AdminNotificationsProvider({
       pusher.disconnect();
       setIsRealtimeConnected(false);
     };
-  }, [enqueueToast, httpClient, refreshNotifications]);
+  }, [httpClient]);
+
+  useEffect(() => {
+    const refreshIfActive = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshNotifications();
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (isRealtimeConnected) return;
+      void refreshNotifications();
+    }, NOTIFICATIONS_REFRESH_INTERVAL_MS);
+
+    window.addEventListener("focus", refreshIfActive);
+    document.addEventListener("visibilitychange", refreshIfActive);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshIfActive);
+      document.removeEventListener("visibilitychange", refreshIfActive);
+    };
+  }, [isRealtimeConnected, refreshNotifications]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -397,7 +413,6 @@ export function AdminNotificationsProvider({
   const value = useMemo<AdminNotificationsContextValue>(
     () => ({
       notifications,
-      toastNotifications,
       unreadCount,
       isLoading,
       error,
@@ -406,10 +421,8 @@ export function AdminNotificationsProvider({
       refreshNotifications,
       markNotificationsRead,
       markAllNotificationsRead,
-      dismissToast,
     }),
     [
-      dismissToast,
       error,
       isLoading,
       isRealtimeConnected,
@@ -418,7 +431,6 @@ export function AdminNotificationsProvider({
       markNotificationsRead,
       notifications,
       refreshNotifications,
-      toastNotifications,
       unreadCount,
     ]
   );

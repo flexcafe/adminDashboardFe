@@ -17,10 +17,12 @@ export class HttpClient {
   private client: AxiosInstance;
   private baseUrl: string;
   private csrfToken: string | null = null;
+  private csrfSupported: boolean = true;
   private isRedirecting: boolean = false;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || API_CONFIG.BASE_URL;
+    this.csrfToken = tokenCookies.getCsrfToken();
 
     // Create axios instance
     this.client = axios.create({
@@ -77,6 +79,10 @@ export class HttpClient {
         }
 
         // Get CSRF token if not available (required for all other POST/PUT/DELETE/PATCH)
+        if (!this.csrfSupported) {
+          return config;
+        }
+
         if (!this.csrfToken && token) {
           try {
             const response = await axios.get(
@@ -91,7 +97,13 @@ export class HttpClient {
               tokenCookies.setCsrfToken(this.csrfToken);
             }
           } catch (error) {
-            console.error("Failed to get CSRF token:", error);
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+              this.csrfSupported = false;
+              tokenCookies.removeCsrfToken();
+            } else {
+              console.error("Failed to get CSRF token:", error);
+            }
+            this.csrfToken = null;
             // Don't throw here, let the request proceed and handle the error in response interceptor
           }
         }
@@ -134,6 +146,7 @@ export class HttpClient {
         ) {
           // Clear CSRF token and retry
           this.csrfToken = null;
+          this.csrfSupported = true;
           tokenCookies.removeCsrfToken();
           console.error("CSRF token invalid, please retry");
         }
@@ -154,6 +167,7 @@ export class HttpClient {
     // Clear all tokens
     tokenCookies.clearAll();
     this.csrfToken = null;
+    this.csrfSupported = true;
 
     // Show user-friendly message
     console.log("Your session has expired. Please log in again.");
@@ -202,6 +216,10 @@ export class HttpClient {
         throw new Error("No JWT token available");
       }
 
+      if (!this.csrfSupported) {
+        return null;
+      }
+
       const response = await axios.get(
         `${this.baseUrl}${API_ENDPOINTS.CSRF.TOKEN}`,
         {
@@ -216,7 +234,11 @@ export class HttpClient {
       }
       return this.csrfToken;
     } catch (error) {
-      console.error("Failed to refresh CSRF token:", error);
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        this.csrfSupported = false;
+      } else {
+        console.error("Failed to refresh CSRF token:", error);
+      }
       this.csrfToken = null;
       tokenCookies.removeCsrfToken();
       return null;
@@ -228,6 +250,7 @@ export class HttpClient {
    */
   clearCsrfToken(): void {
     this.csrfToken = null;
+    this.csrfSupported = true;
     tokenCookies.removeCsrfToken();
   }
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Category } from "./categoriesApi";
 
 type CategoryDetailsProps = {
@@ -26,6 +27,8 @@ export function CategoryDetails({
   onDelete,
   onCreateChild,
 }: CategoryDetailsProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+
   if (isLoading) {
     return (
       <section className="card categoriesDetailsPanel">
@@ -47,6 +50,20 @@ export function CategoryDetails({
   return (
     <section className="card categoriesDetailsPanel">
       <div className="categoriesDetailsHero">
+        {category.iconUrl || category.imageUrl ? (
+          <div className="categoriesDetailsMedia">
+            {imageFailed ? (
+              <div className="categoriesDetailsImageFallback">Image unavailable</div>
+            ) : (
+              <img
+                className="categoriesDetailsImage"
+                src={(category.iconUrl || category.imageUrl).trim()}
+                alt={`${category.name} category`}
+                onError={() => setImageFailed(true)}
+              />
+            )}
+          </div>
+        ) : null}
         <div className="categoriesDetailsHeroContent">
           <div className="categoriesDetailsTopline">
             <span className="pageEyebrow">Category Details</span>

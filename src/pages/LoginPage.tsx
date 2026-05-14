@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
-import flexUsedLogo from "@/assets/flex-used-logo.svg";
+import flexUsedLogo from "@/assets/flex-used-logo.png";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -35,7 +35,28 @@ export function LoginPage() {
   return (
     <section className="authPage">
       <div className="authCard authCardSimple">
-        <img className="authBrandLogo" src={flexUsedLogo} alt="Flex Used Market logo" />
+        <div className="authHero">
+          <div className="authHeroInner">
+            <div className="loadingOrbits" aria-hidden="true">
+              <div className="loadingOrbit loadingOrbitOuter">
+                <span className="loadingOrbitDot loadingOrbitDotOuter" />
+              </div>
+              <div className="loadingOrbit loadingOrbitMiddle">
+                <span className="loadingOrbitDot loadingOrbitDotMiddle" />
+              </div>
+              <div className="loadingOrbit loadingOrbitInner">
+                <span className="loadingOrbitDot loadingOrbitDotInner" />
+              </div>
+              <span className="loadingParticle loadingParticleOne" />
+              <span className="loadingParticle loadingParticleTwo" />
+              <span className="loadingParticle loadingParticleThree" />
+              <span className="loadingParticle loadingParticleFour" />
+            </div>
+            <div className="loadingLogoWrap authLogoWrap">
+              <img className="loadingLogo authBrandLogo" src={flexUsedLogo} alt="Flex Used Market logo" />
+            </div>
+          </div>
+        </div>
         <h1 className="authTitle">Admin Login</h1>
         <p className="authSubtitle">
           Sign in to the Flex Used Market dashboard with your phone/email and password.

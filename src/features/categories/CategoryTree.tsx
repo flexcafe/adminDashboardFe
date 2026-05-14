@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Category, FlatCategory } from "./categoriesApi";
 import {
   filterCategoryTree,
@@ -111,6 +111,7 @@ function TreeRow({
   onToggleExpand,
   onToggleSelect,
 }: TreeRowProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const {
     attributes,
     listeners,
@@ -159,9 +160,27 @@ function TreeRow({
               onToggleSelect(category.id);
             }}
           />
-          <span className="categoryTreeFolder" aria-hidden="true">
-            <FolderIcon />
-          </span>
+          {category.iconUrl || category.imageUrl ? (
+            <span className="categoryTreeImageWrap" aria-hidden="true">
+              {imageFailed ? (
+                <span className="categoryTreeImageFallback">
+                  <FolderIcon />
+                </span>
+              ) : (
+                <img
+                  className="categoryTreeImage"
+                  src={(category.iconUrl || category.imageUrl).trim()}
+                  alt=""
+                  loading="lazy"
+                  onError={() => setImageFailed(true)}
+                />
+              )}
+            </span>
+          ) : (
+            <span className="categoryTreeFolder" aria-hidden="true">
+              <FolderIcon />
+            </span>
+          )}
           <div className="categoryTreeText">
             <span className="categoryTreeName">{category.name}</span>
             <span className="categoryTreeSlug">{category.slug || "No slug"}</span>

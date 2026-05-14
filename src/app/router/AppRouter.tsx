@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { AdminNotificationsProvider } from "@/features/adminNotifications/AdminNotificationsContext";
 
@@ -60,14 +61,7 @@ const AppShell = lazy(() =>
 );
 
 function RouteFallback() {
-  return (
-    <section className="authPage">
-      <div className="authCard">
-        <h1 className="authTitle">Loading...</h1>
-        <p className="authSubtitle">Preparing dashboard experience.</p>
-      </div>
-    </section>
-  );
+  return <LoadingScreen />;
 }
 
 function RequireAuth() {
@@ -86,6 +80,15 @@ export function AppRouter() {
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          <Route
+            path="/loading-preview"
+            element={
+              <LoadingScreen
+                title="Loading Preview"
+                subtitle="Use this route to review the logo spinner animation."
+              />
+            }
+          />
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
             <Route

@@ -69,6 +69,13 @@ export function CategoryFormModal({
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [slugTouched, setSlugTouched] = useState(Boolean(initialCategory?.slug));
+  const previewUrl = useMemo(() => {
+    if (formState.iconFile) {
+      return URL.createObjectURL(formState.iconFile);
+    }
+
+    return formState.icon.trim() || "";
+  }, [formState.icon, formState.iconFile]);
 
   const parentSelectOptions = useMemo(
     () => parentOptions.filter((option) => !excludedParentIds.includes(option.id)),
@@ -218,36 +225,49 @@ export function CategoryFormModal({
               {errors.sortOrder ? <span className="authError">{errors.sortOrder}</span> : null}
             </label>
 
-            <label className="sliderFormField">
-              <span className="authLabel">Category Icon</span>
-              <input
-                className="authInput"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                onChange={(event) => {
-                  const nextFile = event.target.files?.[0] || null;
-                  setFormState((current) => ({
-                    ...current,
-                    iconFile: nextFile,
-                  }));
-                  setErrors((current) => ({ ...current, icon: undefined }));
-                }}
-              />
-              {formState.iconFile ? (
-                <span className="sectionDescription">
-                  Selected file: {formState.iconFile.name}
-                </span>
-              ) : formState.icon ? (
-                <span className="sectionDescription">
-                  Current icon: {formState.icon}
-                </span>
-              ) : (
-                <span className="sectionDescription">
-                  Upload PNG, JPEG, WebP, or SVG. The admin API expects the file in the `icon` field.
-                </span>
-              )}
-              {errors.icon ? <span className="authError">{errors.icon}</span> : null}
-            </label>
+            <div className="categoryFormIconRow">
+              <label className="sliderFormField categoryFormIconField">
+                <span className="authLabel">Category Icon</span>
+                <input
+                  className="authInput"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  onChange={(event) => {
+                    const nextFile = event.target.files?.[0] || null;
+                    setFormState((current) => ({
+                      ...current,
+                      iconFile: nextFile,
+                    }));
+                    setErrors((current) => ({ ...current, icon: undefined }));
+                  }}
+                />
+                {formState.iconFile ? (
+                  <span className="sectionDescription">
+                    Selected file: {formState.iconFile.name}
+                  </span>
+                ) : formState.icon ? (
+                  <span className="sectionDescription">
+                    Current icon: {formState.icon}
+                  </span>
+                ) : (
+                  <span className="sectionDescription">
+                    Upload PNG, JPEG, WebP, or SVG. The admin API expects the file in the `icon` field.
+                  </span>
+                )}
+                {errors.icon ? <span className="authError">{errors.icon}</span> : null}
+              </label>
+
+              <div className="sliderFormField categoryFormPreviewField">
+                <span className="authLabel">Icon Preview</span>
+                <div className="categoryFormPreviewBox">
+                  {previewUrl ? (
+                    <img className="categoryFormPreviewImage" src={previewUrl} alt="Category preview" />
+                  ) : (
+                    <span className="categoryFormPreviewEmpty">No image</span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="sliderModalActions">
