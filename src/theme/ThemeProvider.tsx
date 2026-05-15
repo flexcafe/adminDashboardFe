@@ -1,24 +1,19 @@
-import { createContext, useEffect, useState, type ReactNode } from "react";
-
-export type ThemeMode = "light" | "dark";
-
-type ThemeContextValue = {
-  theme: ThemeMode;
-  isDark: boolean;
-  setTheme: (theme: ThemeMode) => void;
-  toggleTheme: () => void;
-};
+import { useEffect, useState, type ReactNode } from "react";
+import { ThemeContext, type ThemeMode } from "./ThemeContext";
 
 const THEME_STORAGE_KEY = "theme-mode";
 
-export const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-
 function getSystemTheme(): ThemeMode {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
     return "light";
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function getStoredTheme(): ThemeMode | null {
@@ -35,8 +30,12 @@ type ThemeProviderProps = {
 };
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<ThemeMode>(() => getStoredTheme() ?? getSystemTheme());
-  const [followSystemTheme, setFollowSystemTheme] = useState(() => getStoredTheme() === null);
+  const [theme, setThemeState] = useState<ThemeMode>(
+    () => getStoredTheme() ?? getSystemTheme()
+  );
+  const [followSystemTheme, setFollowSystemTheme] = useState(
+    () => getStoredTheme() === null
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -73,7 +72,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   const toggleTheme = () => {
     setFollowSystemTheme(false);
-    setThemeState((currentTheme) => (currentTheme === "dark" ? "light" : "dark"));
+    setThemeState((currentTheme) =>
+      currentTheme === "dark" ? "light" : "dark"
+    );
   };
 
   return (

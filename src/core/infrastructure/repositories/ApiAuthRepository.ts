@@ -2,7 +2,7 @@ import axios from "axios";
 import { User } from "../../domain/entities/User";
 import { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS, API_CONFIG } from "../api/constants";
-import { tokenCookies } from "@/lib/cookies";
+import { isTokenExpired, tokenCookies } from "@/lib/cookies";
 
 /**
  * API response types for auth endpoints
@@ -122,8 +122,15 @@ export class ApiAuthRepository {
    */
   async getCurrentUser(): Promise<User | null> {
     try {
+      const token = tokenCookies.getToken();
       const userJson = tokenCookies.getUser();
-      if (!userJson) {
+      if (!token || !userJson) {
+        tokenCookies.clearAll();
+        return null;
+      }
+
+      if (isTokenExpired(token)) {
+        tokenCookies.clearAll();
         return null;
       }
 

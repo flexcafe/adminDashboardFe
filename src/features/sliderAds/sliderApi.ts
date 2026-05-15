@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_CONFIG, API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import {
+  clearAuthAndRedirectToLogin,
   getTimeUntilExpiration,
   isTokenExpired,
   isTokenExpiringSoon,
@@ -50,6 +51,18 @@ const sliderApiClient = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   withCredentials: true,
 });
+
+sliderApiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearAuthAndRedirectToLogin();
+      return Promise.reject(new Error("Authentication required."));
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 const toText = (value: unknown): string => {
   if (typeof value === "string") return value;
@@ -179,10 +192,11 @@ const ensureSuccessResponse = <T,>(response: ApiResponse<T>, fallback: string) =
 const ensureAuthenticatedToken = () => {
   const token = tokenCookies.getToken();
   if (!token) {
+    clearAuthAndRedirectToLogin();
     throw new Error("Authentication required.");
   }
   if (isTokenExpired(token) || getTimeUntilExpiration(token) <= 0) {
-    tokenCookies.clearAll();
+    clearAuthAndRedirectToLogin();
     throw new Error("Your session has expired. Please log in again.");
   }
   if (isTokenExpiringSoon(token, 5)) {

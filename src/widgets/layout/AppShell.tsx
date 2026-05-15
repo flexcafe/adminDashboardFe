@@ -90,7 +90,6 @@ export function AppShell() {
   } = useAdminNotifications();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
-  const currentUserInitial = currentUserName.trim().charAt(0).toUpperCase() || "A";
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
@@ -212,13 +211,6 @@ export function AppShell() {
         <div className="sidebarInfoCard">
           <div className="sidebarInfoTitle">Operations hub</div>
           <div className="sidebarInfoText">Track verifications, payouts, and reseller rewards.</div>
-        </div>
-        <div className="sidebarFoot">
-          <div className="sidebarFootAvatar" aria-hidden="true">{currentUserInitial}</div>
-          <div>
-            <div className="sidebarFootLabel">Signed in</div>
-            <div className="sidebarFootUser">{currentUserName}</div>
-          </div>
         </div>
       </aside>
 

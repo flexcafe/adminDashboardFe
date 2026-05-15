@@ -448,6 +448,13 @@ export function PointsPage() {
     () => selectedWithdrawalIds.filter((id) => withdrawals.some((item) => item.id === id && item.status === "PENDING")),
     [selectedWithdrawalIds, withdrawals]
   );
+  const pendingWithdrawalIds = useMemo(
+    () => withdrawals.filter((item) => item.status === "PENDING").map((item) => item.id),
+    [withdrawals]
+  );
+  const allPendingSelected =
+    pendingWithdrawalIds.length > 0 &&
+    pendingWithdrawalIds.every((id) => selectedWithdrawalIds.includes(id));
 
   const processSelectedApprovals = async () => {
     if (selectedPendingIds.length === 0) return;
@@ -716,8 +723,12 @@ export function PointsPage() {
                     <th>
                       <input
                         type="checkbox"
-                        checked={withdrawals.length > 0 && selectedWithdrawalIds.length === withdrawals.length}
-                        onChange={(e) => setSelectedWithdrawalIds(e.target.checked ? withdrawals.map((item) => item.id) : [])}
+                        checked={allPendingSelected}
+                        onChange={(e) =>
+                          setSelectedWithdrawalIds(
+                            e.target.checked ? pendingWithdrawalIds : []
+                          )
+                        }
                       />
                     </th>
                     <th>Reseller</th>
@@ -745,6 +756,7 @@ export function PointsPage() {
                         <td>
                           <input
                             type="checkbox"
+                            disabled={item.status !== "PENDING"}
                             checked={selectedWithdrawalIds.includes(item.id)}
                             onChange={(e) =>
                               setSelectedWithdrawalIds((prev) =>

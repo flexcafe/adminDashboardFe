@@ -426,13 +426,19 @@ export function CategoriesPage() {
     try {
       setIsSaving(true);
       setPageError(null);
+      const destinationSiblingCount = flatCategories.filter(
+        (category) =>
+          category.parentId === nextParentId &&
+          !selectedIds.includes(category.id)
+      ).length;
+
       await Promise.all(
         selectedBatchCategories.map((category, index) =>
           updateCategory(category.id, {
             name: category.name,
             slug: category.slug,
             parentId: nextParentId,
-            sortOrder: index + 1,
+            sortOrder: destinationSiblingCount + index + 1,
             icon: category.iconUrl,
           })
         )

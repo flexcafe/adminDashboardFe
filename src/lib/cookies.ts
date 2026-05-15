@@ -93,6 +93,18 @@ export function getTimeUntilExpiration(token: string): number {
   return Math.max(0, payload.exp - currentTime);
 }
 
+export function clearAuthAndRedirectToLogin(): void {
+  tokenCookies.clearAll();
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
 /**
  * Set a cookie with secure defaults
  */
@@ -231,9 +243,11 @@ class SecureStorage {
     if (this.useCookies) {
       removeCookie("wms_token");
       removeCookie("wms_user");
+      removeCookie("wms_csrf_token");
     } else {
       sessionStorage.removeItem("wms_token");
       sessionStorage.removeItem("wms_user");
+      sessionStorage.removeItem("wms_csrf_token");
     }
   }
 }
