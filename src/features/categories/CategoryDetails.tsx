@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Category } from "./categoriesApi";
 
 type CategoryDetailsProps = {
@@ -11,13 +12,6 @@ type CategoryDetailsProps = {
   onCreateChild: () => void;
 };
 
-const formatDateTime = (value: string) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-};
-
 export function CategoryDetails({
   category,
   parentName,
@@ -27,12 +21,20 @@ export function CategoryDetails({
   onDelete,
   onCreateChild,
 }: CategoryDetailsProps) {
+  const { i18n, t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
+
+  const formatDateTime = (value: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString(i18n.language);
+  };
 
   if (isLoading) {
     return (
       <section className="card categoriesDetailsPanel">
-        <div className="categoriesEmptyState">Loading category details...</div>
+        <div className="categoriesEmptyState">{t("categoryDetails.loading")}</div>
       </section>
     );
   }
@@ -40,9 +42,7 @@ export function CategoryDetails({
   if (!category) {
     return (
       <section className="card categoriesDetailsPanel">
-        <div className="categoriesEmptyState">
-          Select a category or create a new one to view details here.
-        </div>
+        <div className="categoriesEmptyState">{t("categoryDetails.empty")}</div>
       </section>
     );
   }
@@ -53,12 +53,16 @@ export function CategoryDetails({
         {category.iconUrl || category.imageUrl ? (
           <div className="categoriesDetailsMedia">
             {imageFailed ? (
-              <div className="categoriesDetailsImageFallback">Image unavailable</div>
+              <div className="categoriesDetailsImageFallback">
+                {t("categoryDetails.imageUnavailable")}
+              </div>
             ) : (
               <img
                 className="categoriesDetailsImage"
                 src={(category.iconUrl || category.imageUrl).trim()}
-                alt={`${category.name} category`}
+                alt={t("categoryDetails.categoryImageAlt", {
+                  name: category.name,
+                })}
                 onError={() => setImageFailed(true)}
               />
             )}
@@ -66,9 +70,17 @@ export function CategoryDetails({
         ) : null}
         <div className="categoriesDetailsHeroContent">
           <div className="categoriesDetailsTopline">
-            <span className="pageEyebrow">Category Details</span>
-            <span className={category.isActive ? "statusPill categoriesStatusPill" : "statusPill categoriesStatusPill inactive"}>
-              {category.isActive ? "Active" : "Inactive"}
+            <span className="pageEyebrow">{t("categoryDetails.title")}</span>
+            <span
+              className={
+                category.isActive
+                  ? "statusPill categoriesStatusPill"
+                  : "statusPill categoriesStatusPill inactive"
+              }
+            >
+              {category.isActive
+                ? t("categoryDetails.active")
+                : t("categoryDetails.inactive")}
             </span>
           </div>
           <h2 className="sectionTitle categoriesDetailsTitle">{category.name}</h2>
@@ -80,39 +92,39 @@ export function CategoryDetails({
               </span>
             ))}
           </div>
-          <p className="sectionDescription">
-            Keep naming, hierarchy, and merchandising data aligned before this category goes live on the user-facing app.
-          </p>
+          <p className="sectionDescription">{t("categoryDetails.heroDescription")}</p>
         </div>
 
         <div className="categoriesDetailsActions">
           <button type="button" className="verificationActionButton subtle" onClick={onEdit}>
-            Edit
+            {t("categoryDetails.edit")}
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={onCreateChild}>
-            Create Child
+            {t("categoryDetails.createChild")}
           </button>
           <button type="button" className="verificationActionButton subtle danger" onClick={onDelete}>
-            Deactivate
+            {t("categoryDetails.deactivate")}
           </button>
         </div>
       </div>
 
       <div className="categoriesOverviewGrid">
         <div className="detailItem categoriesOverviewCard">
-          <span className="detailLabel">Parent</span>
-          <span className="detailValue">{parentName || "Root category"}</span>
+          <span className="detailLabel">{t("categoryDetails.parent")}</span>
+          <span className="detailValue">
+            {parentName || t("categoryDetails.rootCategory")}
+          </span>
         </div>
         <div className="detailItem categoriesOverviewCard">
-          <span className="detailLabel">Display Order</span>
+          <span className="detailLabel">{t("categoryDetails.displayOrder")}</span>
           <span className="detailValue">{category.sortOrder}</span>
         </div>
         <div className="detailItem categoriesOverviewCard">
-          <span className="detailLabel">Products Linked</span>
+          <span className="detailLabel">{t("categoryDetails.productsLinked")}</span>
           <span className="detailValue">{category.productCount}</span>
         </div>
         <div className="detailItem categoriesOverviewCard">
-          <span className="detailLabel">Last Updated</span>
+          <span className="detailLabel">{t("categoryDetails.lastUpdated")}</span>
           <span className="detailValue">{formatDateTime(category.updatedAt)}</span>
         </div>
       </div>
@@ -120,26 +132,38 @@ export function CategoryDetails({
       <div className="categoriesDetailsSection">
         <div className="sectionHeader">
           <div>
-            <div className="sectionTitle">Core Information</div>
-            <p className="sectionDescription">Primary fields used for category display and structure.</p>
+            <div className="sectionTitle">{t("categoryDetails.coreInformation")}</div>
+            <p className="sectionDescription">
+              {t("categoryDetails.coreInformationDescription")}
+            </p>
           </div>
         </div>
         <div className="categoriesDetailsGrid">
           <label className="sliderFormField">
-            <span className="authLabel">Name</span>
+            <span className="authLabel">{t("categoryDetails.name")}</span>
             <input className="authInput" value={category.name} readOnly />
           </label>
           <label className="sliderFormField">
-            <span className="authLabel">Slug</span>
+            <span className="authLabel">{t("categoryDetails.slug")}</span>
             <input className="authInput" value={category.slug || "-"} readOnly />
           </label>
           <label className="sliderFormField">
-            <span className="authLabel">Parent Category</span>
-            <input className="authInput" value={parentName || "Root category"} readOnly />
+            <span className="authLabel">
+              {t("categoryDetails.parentCategory")}
+            </span>
+            <input
+              className="authInput"
+              value={parentName || t("categoryDetails.rootCategory")}
+              readOnly
+            />
           </label>
           <label className="sliderFormField">
-            <span className="authLabel">Image / Icon URL</span>
-            <input className="authInput" value={category.iconUrl || category.imageUrl || "-"} readOnly />
+            <span className="authLabel">{t("categoryDetails.imageIconUrl")}</span>
+            <input
+              className="authInput"
+              value={category.iconUrl || category.imageUrl || "-"}
+              readOnly
+            />
           </label>
         </div>
       </div>
@@ -147,14 +171,22 @@ export function CategoryDetails({
       <div className="categoriesDetailsSection">
         <div className="sectionHeader">
           <div>
-            <div className="sectionTitle">Description</div>
-            <p className="sectionDescription">Reference copy for merchandising and customer-facing context.</p>
+            <div className="sectionTitle">{t("categoryDetails.descriptionTitle")}</div>
+            <p className="sectionDescription">
+              {t("categoryDetails.descriptionHelp")}
+            </p>
           </div>
         </div>
         <div className="categoriesDetailsDescription">
           <label className="sliderFormField">
-            <span className="authLabel">Description</span>
-            <textarea className="authInput categoriesTextarea" value={category.description || ""} readOnly />
+            <span className="authLabel">
+              {t("categoryDetails.descriptionLabel")}
+            </span>
+            <textarea
+              className="authInput categoriesTextarea"
+              value={category.description || ""}
+              readOnly
+            />
           </label>
         </div>
       </div>
@@ -162,17 +194,19 @@ export function CategoryDetails({
       <div className="categoriesDetailsSection">
         <div className="sectionHeader">
           <div>
-            <div className="sectionTitle">Audit Information</div>
-            <p className="sectionDescription">Quick operational context for when this category was created and updated.</p>
+            <div className="sectionTitle">{t("categoryDetails.auditInformation")}</div>
+            <p className="sectionDescription">
+              {t("categoryDetails.auditInformationDescription")}
+            </p>
           </div>
         </div>
         <div className="categoriesMetaGrid">
           <div className="detailItem">
-            <span className="detailLabel">Created At</span>
+            <span className="detailLabel">{t("categoryDetails.createdAt")}</span>
             <span className="detailValue">{formatDateTime(category.createdAt)}</span>
           </div>
           <div className="detailItem">
-            <span className="detailLabel">Updated At</span>
+            <span className="detailLabel">{t("categoryDetails.updatedAt")}</span>
             <span className="detailValue">{formatDateTime(category.updatedAt)}</span>
           </div>
         </div>
@@ -181,23 +215,37 @@ export function CategoryDetails({
       <div className="categoriesSeoPanel">
         <div className="sectionHeader">
           <div>
-            <div className="sectionTitle">SEO Meta</div>
-            <p className="sectionDescription">Helpful for search preview and metadata consistency.</p>
+            <div className="sectionTitle">{t("categoryDetails.seoMeta")}</div>
+            <p className="sectionDescription">
+              {t("categoryDetails.seoMetaDescription")}
+            </p>
           </div>
         </div>
         <div className="categoriesDetailsGrid">
           <label className="sliderFormField">
-            <span className="authLabel">Meta Title</span>
+            <span className="authLabel">{t("categoryDetails.metaTitle")}</span>
             <input className="authInput" value={category.metaTitle || ""} readOnly />
           </label>
           <label className="sliderFormField">
-            <span className="authLabel">Meta Keywords</span>
-            <input className="authInput" value={category.metaKeywords.join(", ")} readOnly />
+            <span className="authLabel">
+              {t("categoryDetails.metaKeywords")}
+            </span>
+            <input
+              className="authInput"
+              value={category.metaKeywords.join(", ")}
+              readOnly
+            />
           </label>
         </div>
         <label className="sliderFormField">
-          <span className="authLabel">Meta Description</span>
-          <textarea className="authInput categoriesTextarea" value={category.metaDescription || ""} readOnly />
+          <span className="authLabel">
+            {t("categoryDetails.metaDescription")}
+          </span>
+          <textarea
+            className="authInput categoriesTextarea"
+            value={category.metaDescription || ""}
+            readOnly
+          />
         </label>
       </div>
     </section>

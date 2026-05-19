@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { SliderFormModal } from "@/features/sliderAds/SliderFormModal";
 import { SliderPreview } from "@/features/sliderAds/SliderPreview";
 import {
   createSliderAd,
   deleteSliderAd,
+  getEffectiveSliderAdStatus,
+  isSliderAdCurrentlyActive,
   listSliderAds,
   type SliderAd,
   type SliderAdPayload,
@@ -54,13 +57,6 @@ function ArrowDownIcon() {
   );
 }
 
-const formatDateTime = (value: string) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-};
-
 const getStatusBadgeClassName = (status: SliderAd["status"]) =>
   status === "ACTIVE" ? "rewardsBadge completed" : "rewardsBadge rejected";
 
@@ -72,6 +68,7 @@ const moveItem = <T,>(list: T[], from: number, to: number) => {
 };
 
 export function SliderAdsPage() {
+  const { i18n, t } = useTranslation();
   const [sliderAds, setSliderAds] = useState<SliderAd[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -91,6 +88,13 @@ export function SliderAdsPage() {
   const [deleteTarget, setDeleteTarget] = useState<SliderAd | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState("--");
+
+  const formatDateTime = (value: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString(i18n.language);
+  };
 
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
@@ -114,12 +118,12 @@ export function SliderAdsPage() {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to load slider ads."
+          : t("sliderAdsPage.loadError")
       );
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadSliderAds();
@@ -137,7 +141,7 @@ export function SliderAdsPage() {
   }, [searchQuery, sliderAds]);
 
   const activeCount = useMemo(
-    () => sliderAds.filter((item) => item.status === "ACTIVE").length,
+    () => sliderAds.filter((item) => isSliderAdCurrentlyActive(item)).length,
     [sliderAds]
   );
   const isReorderDisabled = isSaving || searchQuery.trim().length > 0;
@@ -150,17 +154,17 @@ export function SliderAdsPage() {
 
       if (modalState.mode === "create") {
         await createSliderAd(payload);
-        showToast("Slider ad created.");
+        showToast(t("sliderAdsPage.createdToast"));
       } else if (modalState.slider) {
         await updateSliderAd(modalState.slider.id, payload);
-        showToast("Slider ad updated.");
+        showToast(t("sliderAdsPage.updatedToast"));
       }
 
       setModalState({ isOpen: false, mode: "create", slider: null });
       await loadSliderAds();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to save slider ad.";
+        error instanceof Error ? error.message : t("sliderAdsPage.saveError");
       setPageError(errorMessage);
       setModalSubmitError(errorMessage);
     } finally {
@@ -177,13 +181,13 @@ export function SliderAdsPage() {
       setModalSubmitError(null);
       await deleteSliderAd(deleteTarget.id);
       setDeleteTarget(null);
-      showToast("Slider ad deleted.");
+      showToast(t("sliderAdsPage.deletedToast"));
       await loadSliderAds();
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to delete slider ad."
+          : t("sliderAdsPage.deleteError")
       );
     } finally {
       setIsSaving(false);
@@ -203,13 +207,13 @@ export function SliderAdsPage() {
       setPageError(null);
       setModalSubmitError(null);
       await updateSliderSortOrder(normalized);
-      showToast("Slider order updated.");
+      showToast(t("sliderAdsPage.reorderedToast"));
       await loadSliderAds();
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to reorder slider ads."
+          : t("sliderAdsPage.reorderError")
       );
       await loadSliderAds();
     } finally {
@@ -245,11 +249,9 @@ export function SliderAdsPage() {
     <section className="page sliderAdsPage">
       <div className="pageHeader">
         <div>
-          <p className="pageEyebrow">Slider Ads</p>
-          <h1 className="pageTitle">Homepage Slider Management</h1>
-          <p className="pageDescription">
-            Manage promotional slider banners, preview the live carousel, and keep the homepage rotation ordered exactly how you want it.
-          </p>
+          <p className="pageEyebrow">{t("sliderAdsPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("sliderAdsPage.title")}</h1>
+          <p className="pageDescription">{t("sliderAdsPage.description")}</p>
         </div>
         <div className="pageHeaderActions">
           <button
@@ -260,7 +262,7 @@ export function SliderAdsPage() {
             }}
             disabled={isLoading || isSaving}
           >
-            {isLoading ? "Refreshing..." : "Refresh"}
+            {isLoading ? t("sliderAdsPage.refreshing") : t("common.refresh")}
           </button>
           <button
             type="button"
@@ -271,7 +273,7 @@ export function SliderAdsPage() {
             }}
           >
             <PlusIcon />
-            <span>Create Slider Ad</span>
+            <span>{t("sliderAdsPage.create")}</span>
           </button>
         </div>
       </div>
@@ -282,17 +284,17 @@ export function SliderAdsPage() {
             <div className="rewardsSummaryIcon rewardsSummaryIconIndigo">
               <ImageStackIcon />
             </div>
-            <div className="metricLabel">Total Ads</div>
+            <div className="metricLabel">{t("sliderAdsPage.totalAds")}</div>
             <div className="metricValue">{sliderAds.length}</div>
-            <div className="metricMeta">All slider banners in the admin library</div>
+            <div className="metricMeta">{t("sliderAdsPage.totalAdsMeta")}</div>
           </div>
           <div className="metricCard rewardsSummaryCard">
             <div className="rewardsSummaryIcon rewardsSummaryIconSky">
               <EyeIcon />
             </div>
-            <div className="metricLabel">Live Preview</div>
+            <div className="metricLabel">{t("sliderAdsPage.livePreview")}</div>
             <div className="metricValue">{activeCount}</div>
-            <div className="metricMeta">Active ads visible in the carousel preview</div>
+            <div className="metricMeta">{t("sliderAdsPage.livePreviewMeta")}</div>
           </div>
         </div>
 
@@ -300,9 +302,9 @@ export function SliderAdsPage() {
           <div className="sliderPreviewPanelContent">
             <div className="sliderSectionHead">
               <div>
-                <h2 className="sectionTitle">Live Carousel Preview</h2>
+                <h2 className="sectionTitle">{t("sliderAdsPage.previewTitle")}</h2>
                 <p className="sectionDescription">
-                  This panel simulates the homepage slider using only currently active ads.
+                  {t("sliderAdsPage.previewDescription")}
                 </p>
               </div>
             </div>
@@ -314,161 +316,162 @@ export function SliderAdsPage() {
       {pageError ? <p className="authError surfaceMessage">{pageError}</p> : null}
 
       <section className="card sliderTablePanel w-full">
-          <div className="sliderSectionHead sliderSectionHeadSplit">
-            <div>
-              <h2 className="sectionTitle">Slider Ad Library</h2>
-              <p className="sectionDescription">
-                Reorder by dragging rows or use the arrow controls for precise adjustments.
-              </p>
-            </div>
-            <div className="verificationSearchField sliderSearchField">
-              <input
-                type="search"
-                className="authInput verificationSearchInput"
-                placeholder="Search slider ads..."
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-            </div>
+        <div className="sliderSectionHead sliderSectionHeadSplit">
+          <div>
+            <h2 className="sectionTitle">{t("sliderAdsPage.libraryTitle")}</h2>
+            <p className="sectionDescription">
+              {t("sliderAdsPage.libraryDescription")}
+            </p>
           </div>
+          <div className="verificationSearchField sliderSearchField">
+            <input
+              type="search"
+              className="authInput verificationSearchInput"
+              placeholder={t("sliderAdsPage.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </div>
+        </div>
 
-          <div className="sliderAdsTableWrap">
-            <table className="verificationTable">
-              <thead>
+        <div className="sliderAdsTableWrap">
+          <table className="verificationTable">
+            <thead>
+              <tr>
+                <th>{t("sliderAdsPage.order")}</th>
+                <th>{t("sliderAdsPage.image")}</th>
+                <th>{t("sliderAdsPage.titleColumn")}</th>
+                <th>{t("sliderAdsPage.url")}</th>
+                <th>{t("rewardsPage.status")}</th>
+                <th>{t("sliderAdsPage.createdAt")}</th>
+                <th className="verificationActionCell">{t("sliderAdsPage.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
                 <tr>
-                  <th>Order</th>
-                  <th>Image</th>
-                  <th>Title</th>
-                  <th>URL</th>
-                  <th>Status</th>
-                  <th>Created At</th>
-                  <th className="verificationActionCell">Actions</th>
+                  <td colSpan={7}>
+                    <div className="verificationEmptyState">{t("sliderAdsPage.loading")}</div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="verificationEmptyState">Loading slider ads...</div>
-                    </td>
-                  </tr>
-                ) : filteredSliderAds.length === 0 ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="verificationEmptyState">
-                        {searchQuery.trim()
-                          ? "No slider ads match your search."
-                          : "No slider ads created yet."}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSliderAds.map((item) => {
-                    const fullIndex = sliderAds.findIndex(
-                      (slider) => slider.id === item.id
-                    );
+              ) : filteredSliderAds.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="verificationEmptyState">
+                      {searchQuery.trim()
+                        ? t("sliderAdsPage.emptySearch")
+                        : t("sliderAdsPage.emptyDefault")}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredSliderAds.map((item) => {
+                  const fullIndex = sliderAds.findIndex(
+                    (slider) => slider.id === item.id
+                  );
+                  const effectiveStatus = getEffectiveSliderAdStatus(item);
 
-                    return (
-                      <tr
-                        key={item.id}
-                        draggable={!isReorderDisabled}
-                        className={draggingId === item.id ? "sliderRow dragging" : "sliderRow"}
-                        onDragStart={() => handleDragStart(item.id)}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={() => {
-                          void handleDrop(item.id);
-                        }}
-                      >
-                        <td>
-                          <div className="sliderOrderCell">
-                            <span className="inlineBadge">#{item.sortOrder}</span>
-                            <div className="sliderOrderButtons">
-                              <button
-                                type="button"
-                                className="sliderReorderButton"
-                                onClick={() => {
-                                  void handleMove(fullIndex, -1);
-                                }}
-                                disabled={isReorderDisabled || fullIndex <= 0}
-                              >
-                                <ArrowUpIcon />
-                              </button>
-                              <button
-                                type="button"
-                                className="sliderReorderButton"
-                                onClick={() => {
-                                  void handleMove(fullIndex, 1);
-                                }}
-                                disabled={
-                                  isReorderDisabled ||
-                                  fullIndex === sliderAds.length - 1
-                                }
-                              >
-                                <ArrowDownIcon />
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          {item.imageUrl ? (
-                            <img
-                              className="sliderThumb"
-                              src={item.imageUrl}
-                              alt={item.title}
-                            />
-                          ) : (
-                            <div className="sliderThumbPlaceholder">No image</div>
-                          )}
-                        </td>
-                        <td>
-                          <div className="sliderTableTitle">{item.title}</div>
-                        </td>
-                        <td>
-                          <div className="sliderTableLink muted">
-                            {item.linkUrl || "No link URL"}
-                          </div>
-                        </td>
-                        <td>
-                          <span className={getStatusBadgeClassName(item.status)}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td>{formatDateTime(item.createdAt)}</td>
-                        <td className="verificationActionCell">
-                          <div className="sliderActionButtons">
+                  return (
+                    <tr
+                      key={item.id}
+                      draggable={!isReorderDisabled}
+                      className={draggingId === item.id ? "sliderRow dragging" : "sliderRow"}
+                      onDragStart={() => handleDragStart(item.id)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => {
+                        void handleDrop(item.id);
+                      }}
+                    >
+                      <td>
+                        <div className="sliderOrderCell">
+                          <span className="inlineBadge">#{item.sortOrder}</span>
+                          <div className="sliderOrderButtons">
                             <button
                               type="button"
-                              className="verificationActionButton subtle"
+                              className="sliderReorderButton"
                               onClick={() => {
-                                setModalSubmitError(null);
-                                setModalState({
-                                  isOpen: true,
-                                  mode: "edit",
-                                  slider: item,
-                                });
+                                void handleMove(fullIndex, -1);
                               }}
+                              disabled={isReorderDisabled || fullIndex <= 0}
                             >
-                              Edit
+                              <ArrowUpIcon />
                             </button>
                             <button
                               type="button"
-                              className="verificationActionButton subtle danger"
-                              onClick={() => setDeleteTarget(item)}
+                              className="sliderReorderButton"
+                              onClick={() => {
+                                void handleMove(fullIndex, 1);
+                              }}
+                              disabled={
+                                isReorderDisabled ||
+                                fullIndex === sliderAds.length - 1
+                              }
                             >
-                              Delete
+                              <ArrowDownIcon />
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {item.imageUrl ? (
+                          <img
+                            className="sliderThumb"
+                            src={item.imageUrl}
+                            alt={item.title}
+                          />
+                        ) : (
+                          <div className="sliderThumbPlaceholder">{t("sliderAdsPage.noImage")}</div>
+                        )}
+                      </td>
+                      <td>
+                        <div className="sliderTableTitle">{item.title}</div>
+                      </td>
+                      <td>
+                        <div className="sliderTableLink muted">
+                          {item.linkUrl || t("sliderAdsPage.noLinkUrl")}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={getStatusBadgeClassName(effectiveStatus)}>
+                          {effectiveStatus}
+                        </span>
+                      </td>
+                      <td>{formatDateTime(item.createdAt)}</td>
+                      <td className="verificationActionCell">
+                        <div className="sliderActionButtons">
+                          <button
+                            type="button"
+                            className="verificationActionButton subtle"
+                            onClick={() => {
+                              setModalSubmitError(null);
+                              setModalState({
+                                isOpen: true,
+                                mode: "edit",
+                                slider: item,
+                              });
+                            }}
+                          >
+                            {t("sliderAdsPage.edit")}
+                          </button>
+                          <button
+                            type="button"
+                            className="verificationActionButton subtle danger"
+                            onClick={() => setDeleteTarget(item)}
+                          >
+                            {t("sliderAdsPage.delete")}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <p className="rewardsLastUpdated">Last updated: today at {lastUpdated}</p>
+      <p className="rewardsLastUpdated">{t("sliderAdsPage.lastUpdated", { time: lastUpdated })}</p>
       {toastMessage ? <div className="rewardsToast">{toastMessage}</div> : null}
 
       <SliderFormModal
@@ -495,10 +498,14 @@ export function SliderAdsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="slider-delete-title" className="sectionTitle">
-              Delete Slider Ad
+              {t("sliderAdsPage.deleteTitle")}
             </h2>
             <p className="sectionDescription">
-              Delete <strong>{deleteTarget.title}</strong>? This action cannot be undone.
+              <Trans
+                i18nKey="sliderAdsPage.deleteDescription"
+                values={{ name: deleteTarget.title }}
+                components={{ strong: <strong /> }}
+              />
             </p>
             <div className="sliderModalActions">
               <button
@@ -507,7 +514,7 @@ export function SliderAdsPage() {
                 onClick={() => setDeleteTarget(null)}
                 disabled={isSaving}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -517,7 +524,7 @@ export function SliderAdsPage() {
                 }}
                 disabled={isSaving}
               >
-                {isSaving ? "Deleting..." : "Delete"}
+                {isSaving ? t("sliderAdsPage.deleting") : t("sliderAdsPage.delete")}
               </button>
             </div>
           </div>

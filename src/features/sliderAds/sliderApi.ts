@@ -32,6 +32,35 @@ export type SliderAdPayload = {
   endsAt?: string;
 };
 
+const parseSliderDate = (value?: string) => {
+  if (!value?.trim()) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+export const isSliderAdCurrentlyActive = (
+  slider: Pick<SliderAd, "status" | "startsAt" | "endsAt">,
+  now = new Date()
+) => {
+  if (slider.status !== "ACTIVE") return false;
+
+  const startsAt = parseSliderDate(slider.startsAt);
+  if (startsAt && startsAt.getTime() > now.getTime()) {
+    return false;
+  }
+
+  const endsAt = parseSliderDate(slider.endsAt);
+  if (endsAt && endsAt.getTime() <= now.getTime()) {
+    return false;
+  }
+
+  return true;
+};
+
+export const getEffectiveSliderAdStatus = (
+  slider: Pick<SliderAd, "status" | "startsAt" | "endsAt">
+): SliderAdStatus => (isSliderAdCurrentlyActive(slider) ? "ACTIVE" : "INACTIVE");
+
 type ApiResponse<T> = {
   success?: boolean;
   message?: string;

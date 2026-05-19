@@ -14,11 +14,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Category, FlatCategory } from "./categoriesApi";
-import {
-  filterCategoryTree,
-  flattenCategories,
-} from "./categoriesApi";
+import { filterCategoryTree, flattenCategories } from "./categoriesApi";
 
 type CategoryTreeProps = {
   categories: Category[];
@@ -87,6 +85,7 @@ function DragIcon() {
 }
 
 function TreeChildDropZone({ categoryId }: { categoryId: string }) {
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({
     id: `child:${categoryId}`,
   });
@@ -96,7 +95,7 @@ function TreeChildDropZone({ categoryId }: { categoryId: string }) {
       ref={setNodeRef}
       className={isOver ? "categoryTreeChildZone active" : "categoryTreeChildZone"}
     >
-      Drop here to move inside
+      {t("categoryTree.dropInside")}
     </div>
   );
 }
@@ -111,6 +110,7 @@ function TreeRow({
   onToggleExpand,
   onToggleSelect,
 }: TreeRowProps) {
+  const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
   const {
     attributes,
@@ -183,7 +183,9 @@ function TreeRow({
           )}
           <div className="categoryTreeText">
             <span className="categoryTreeName">{category.name}</span>
-            <span className="categoryTreeSlug">{category.slug || "No slug"}</span>
+            <span className="categoryTreeSlug">
+              {category.slug || t("categoryTree.noSlug")}
+            </span>
           </div>
         </div>
 
@@ -192,7 +194,7 @@ function TreeRow({
           <button
             type="button"
             className={isDragging ? "categoryTreeDragHandle dragging" : "categoryTreeDragHandle"}
-            aria-label={`Reorder ${category.name}`}
+            aria-label={t("categoryTree.reorder", { name: category.name })}
             {...attributes}
             {...listeners}
             onClick={(event) => event.stopPropagation()}
@@ -222,7 +224,10 @@ export function CategoryTree({
   onClearSelection,
   onDragEnd,
 }: CategoryTreeProps) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const { t } = useTranslation();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
   const searchActive = searchQuery.trim().length > 0;
   const filteredTree = useMemo(
     () => filterCategoryTree(categories, searchQuery),
@@ -231,7 +236,11 @@ export function CategoryTree({
   const visibleTree = useMemo(() => {
     if (searchActive) return flattenCategories(filteredTree);
 
-    const visit = (nodes: Category[], depth = 0, path: string[] = []): FlatCategory[] =>
+    const visit = (
+      nodes: Category[],
+      depth = 0,
+      path: string[] = []
+    ): FlatCategory[] =>
       nodes.flatMap((node) => {
         const nextPath = [...path, node.id];
         const flatNode: FlatCategory = {
@@ -241,10 +250,9 @@ export function CategoryTree({
           childCount: node.children.length,
         };
 
-        const children =
-          expandedIds.includes(node.id)
-            ? visit(node.children, depth + 1, nextPath)
-            : [];
+        const children = expandedIds.includes(node.id)
+          ? visit(node.children, depth + 1, nextPath)
+          : [];
 
         return [flatNode, ...children];
       });
@@ -270,11 +278,9 @@ export function CategoryTree({
     <section className="card categoriesTreePanel">
       <div className="categoriesTreeHeader">
         <div>
-          <p className="pageEyebrow">Categories</p>
-          <h2 className="sectionTitle">Category Tree</h2>
-          <p className="sectionDescription">
-            Search quickly, select in bulk, and drag categories into a cleaner hierarchy.
-          </p>
+          <p className="pageEyebrow">{t("categoriesPage.eyebrow")}</p>
+          <h2 className="sectionTitle">{t("categoryTree.title")}</h2>
+          <p className="sectionDescription">{t("categoryTree.description")}</p>
         </div>
       </div>
 
@@ -286,22 +292,28 @@ export function CategoryTree({
           <input
             type="search"
             className="authInput categoriesSearchInput"
-            placeholder="Search categories, slugs, or branches..."
+            placeholder={t("categoryTree.searchPlaceholder")}
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
           />
         </label>
         <div className="categoriesTreeStats">
-          <span className="inlineBadge">{visibleTree.length} visible</span>
-          <span className="inlineBadge">{activeVisibleCount} active</span>
-          <span className="inlineBadge">{selectedIds.length} selected</span>
+          <span className="inlineBadge">
+            {t("categoryTree.visible", { count: visibleTree.length })}
+          </span>
+          <span className="inlineBadge">
+            {t("categoryTree.active", { count: activeVisibleCount })}
+          </span>
+          <span className="inlineBadge">
+            {t("categoryTree.selected", { count: selectedIds.length })}
+          </span>
         </div>
         <div className="categoriesTreeActions">
           <button type="button" className="verificationActionButton subtle" onClick={onExpandAll}>
-            Expand All
+            {t("categoryTree.expandAll")}
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={onCollapseAll}>
-            Collapse All
+            {t("categoryTree.collapseAll")}
           </button>
         </div>
         <div className="categoriesTreeBulkBar">
@@ -315,16 +327,16 @@ export function CategoryTree({
                   : onClearSelection()
               }
             />
-            <span>Select visible</span>
+            <span>{t("categoryTree.selectVisible")}</span>
           </label>
-          {searchActive ? <span className="categoriesTreeHint">Search keeps matching branches expanded.</span> : null}
+          {searchActive ? (
+            <span className="categoriesTreeHint">{t("categoryTree.searchHint")}</span>
+          ) : null}
         </div>
       </div>
 
       {visibleTree.length === 0 ? (
-        <div className="categoriesEmptyState">
-          No categories found. Create your first category to start building the tree.
-        </div>
+        <div className="categoriesEmptyState">{t("categoryTree.empty")}</div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={rowIds} strategy={verticalListSortingStrategy}>
@@ -349,3 +361,4 @@ export function CategoryTree({
     </section>
   );
 }
+

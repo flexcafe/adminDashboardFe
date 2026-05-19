@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
@@ -123,13 +124,6 @@ const normalizeSubmission = (
   };
 };
 
-const formatDateTime = (value: string) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-};
-
 const statusClass = (status: FacebookSubmissionStatus) => {
   if (status === "REJECTED") return "rejected";
   if (status === "APPROVED") return "completed";
@@ -137,6 +131,7 @@ const statusClass = (status: FacebookSubmissionStatus) => {
 };
 
 export function FacebookFollowPage() {
+  const { i18n, t } = useTranslation();
   const httpClient = container.resolve<HttpClient>("httpClient");
   const [submissions, setSubmissions] = useState<FacebookSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,6 +140,13 @@ export function FacebookFollowPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState("--");
+
+  const formatDateTime = (value: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString(i18n.language);
+  };
 
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
@@ -175,12 +177,12 @@ export function FacebookFollowPage() {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to load Facebook follow submissions."
+          : t("facebookFollowPage.loadError")
       );
     } finally {
       setIsLoading(false);
     }
-  }, [httpClient]);
+  }, [httpClient, t]);
 
   useEffect(() => {
     void loadSubmissions();
@@ -204,13 +206,17 @@ export function FacebookFollowPage() {
         );
       }
 
-      showToast("Saved!");
+      showToast(t("facebookFollowPage.saved"));
       await loadSubmissions();
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : `Failed to ${action} Facebook submission.`
+          : t(
+              action === "approve"
+                ? "facebookFollowPage.approveError"
+                : "facebookFollowPage.rejectError"
+            )
       );
     } finally {
       setSavingKey(null);
@@ -245,10 +251,10 @@ export function FacebookFollowPage() {
     <section className="page verificationPage">
       <div className="pageHeader">
         <div>
-          <p className="pageEyebrow">Facebook Follow</p>
-          <h1 className="pageTitle">Facebook Follow Verification</h1>
+          <p className="pageEyebrow">{t("facebookFollowPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("facebookFollowPage.title")}</h1>
           <p className="pageDescription">
-            Review proof submissions, validate real follows, and keep the manual approval queue organized in one place.
+            {t("facebookFollowPage.description")}
           </p>
         </div>
         <div className="pageHeaderActions">
@@ -260,26 +266,26 @@ export function FacebookFollowPage() {
             }}
             disabled={isLoading || !!savingKey}
           >
-            {isLoading ? "Refreshing..." : "Refresh"}
+            {isLoading ? t("facebookFollowPage.refreshing") : t("common.refresh")}
           </button>
         </div>
       </div>
 
       <div className="verificationSummaryGrid">
         <div className="metricCard verificationSummaryCard verificationSummaryCardYellow">
-          <div className="metricLabel">Pending Review</div>
+          <div className="metricLabel">{t("facebookFollowPage.pendingReview")}</div>
           <div className="metricValue">{pendingCount}</div>
-          <div className="metricMeta">Submissions waiting for manual approval</div>
+          <div className="metricMeta">{t("facebookFollowPage.pendingReviewMeta")}</div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardGreen">
-          <div className="metricLabel">Approved</div>
+          <div className="metricLabel">{t("facebookFollowPage.approved")}</div>
           <div className="metricValue">{approvedCount}</div>
-          <div className="metricMeta">Users already awarded for Facebook follow</div>
+          <div className="metricMeta">{t("facebookFollowPage.approvedMeta")}</div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardBlue">
-          <div className="metricLabel">Rejected</div>
+          <div className="metricLabel">{t("facebookFollowPage.rejected")}</div>
           <div className="metricValue">{rejectedCount}</div>
-          <div className="metricMeta">Proofs that did not pass review requirements</div>
+          <div className="metricMeta">{t("facebookFollowPage.rejectedMeta")}</div>
         </div>
       </div>
 
@@ -287,9 +293,9 @@ export function FacebookFollowPage() {
         <section>
           <div className="verificationSearchRow facebookFollowToolbar">
             <div>
-              <h2 className="sectionTitle">Submission Queue</h2>
+              <h2 className="sectionTitle">{t("facebookFollowPage.queueTitle")}</h2>
               <p className="sectionDescription">
-                Search by reseller, contact, or Facebook name to quickly review follow submissions and take action.
+                {t("facebookFollowPage.queueDescription")}
               </p>
             </div>
             <div className="verificationSearchField">
@@ -299,7 +305,7 @@ export function FacebookFollowPage() {
               <input
                 type="search"
                 className="authInput verificationSearchInput"
-                placeholder="Search submissions..."
+                placeholder={t("facebookFollowPage.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
               />
@@ -312,20 +318,20 @@ export function FacebookFollowPage() {
             <table className="verificationTable">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Contact</th>
-                  <th>Facebook</th>
-                  <th>Proof</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th>Action</th>
+                  <th>{t("facebookFollowPage.user")}</th>
+                  <th>{t("facebookFollowPage.contact")}</th>
+                  <th>{t("facebookFollowPage.facebook")}</th>
+                  <th>{t("facebookFollowPage.proof")}</th>
+                  <th>{t("facebookFollowPage.status")}</th>
+                  <th>{t("facebookFollowPage.submitted")}</th>
+                  <th>{t("facebookFollowPage.action")}</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
                     <td colSpan={7}>
-                      <div className="verificationEmptyState">Loading submissions...</div>
+                      <div className="verificationEmptyState">{t("facebookFollowPage.loading")}</div>
                     </td>
                   </tr>
                 ) : filteredSubmissions.length === 0 ? (
@@ -333,8 +339,8 @@ export function FacebookFollowPage() {
                     <td colSpan={7}>
                       <div className="verificationEmptyState">
                         {searchQuery.trim()
-                          ? "No submissions match your search."
-                          : "No Facebook follow submissions found."}
+                          ? t("facebookFollowPage.emptySearch")
+                          : t("facebookFollowPage.emptyDefault")}
                       </div>
                     </td>
                   </tr>
@@ -343,7 +349,7 @@ export function FacebookFollowPage() {
                     <tr key={item.id}>
                       <td>
                         <div className="verificationUserName">{item.userName}</div>
-                        {item.userId ? <div className="muted">User ID: {item.userId}</div> : null}
+                        {item.userId ? <div className="muted">{t("facebookFollowPage.userId", { id: item.userId })}</div> : null}
                       </td>
                       <td>{item.contact}</td>
                       <td>
@@ -355,10 +361,10 @@ export function FacebookFollowPage() {
                             rel="noreferrer"
                             className="facebookFollowLink"
                           >
-                            Open profile
+                            {t("facebookFollowPage.openProfile")}
                           </a>
                         ) : (
-                          <span className="muted">No profile link</span>
+                          <span className="muted">{t("facebookFollowPage.noProfileLink")}</span>
                         )}
                       </td>
                       <td>
@@ -369,10 +375,10 @@ export function FacebookFollowPage() {
                             rel="noreferrer"
                             className="facebookFollowLink"
                           >
-                            View proof
+                            {t("facebookFollowPage.viewProof")}
                           </a>
                         ) : (
-                          <span className="muted">No proof file</span>
+                          <span className="muted">{t("facebookFollowPage.noProofFile")}</span>
                         )}
                       </td>
                       <td>
@@ -390,7 +396,7 @@ export function FacebookFollowPage() {
                               disabled={!!savingKey}
                               onClick={() => runAction("approve", item.id)}
                             >
-                              {savingKey === `approve-${item.id}` ? "..." : "Approve"}
+                              {savingKey === `approve-${item.id}` ? "..." : t("facebookFollowPage.approve")}
                             </button>
                             <button
                               type="button"
@@ -398,11 +404,11 @@ export function FacebookFollowPage() {
                               disabled={!!savingKey}
                               onClick={() => runAction("reject", item.id)}
                             >
-                              {savingKey === `reject-${item.id}` ? "..." : "Reject"}
+                              {savingKey === `reject-${item.id}` ? "..." : t("facebookFollowPage.reject")}
                             </button>
                           </div>
                         ) : (
-                          <span className="muted">No action</span>
+                          <span className="muted">{t("facebookFollowPage.noAction")}</span>
                         )}
                       </td>
                     </tr>
@@ -414,7 +420,7 @@ export function FacebookFollowPage() {
         </section>
       </div>
 
-      <p className="rewardsLastUpdated">Last updated: today at {lastUpdated}</p>
+      <p className="rewardsLastUpdated">{t("facebookFollowPage.lastUpdated", { time: lastUpdated })}</p>
       {toastMessage ? <div className="rewardsToast">{toastMessage}</div> : null}
     </section>
   );

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Category, CategoryPayload } from "./categoriesApi";
 
 type CategoryFormModalProps = {
@@ -64,6 +65,7 @@ export function CategoryFormModal({
   onClose,
   onSubmit,
 }: CategoryFormModalProps) {
+  const { t } = useTranslation();
   const [formState, setFormState] = useState<FormState>(() =>
     createInitialState(initialCategory, parentId)
   );
@@ -87,20 +89,20 @@ export function CategoryFormModal({
   const validate = () => {
     const nextErrors: FormErrors = {};
     if (!formState.name.trim()) {
-      nextErrors.name = "Name is required.";
+      nextErrors.name = t("categoryForm.nameRequired");
     }
     if (!slugify(formState.slug || formState.name)) {
-      nextErrors.slug = "Slug is required.";
+      nextErrors.slug = t("categoryForm.slugRequired");
     }
     const orderNumber = Number(formState.sortOrder);
     if (!Number.isInteger(orderNumber) || orderNumber < 1) {
-      nextErrors.sortOrder = "Display order must be a positive number.";
+      nextErrors.sortOrder = t("categoryForm.sortOrderRequired");
     }
     if (!formState.iconFile && formState.icon.trim()) {
       try {
         new URL(formState.icon.trim());
       } catch {
-        nextErrors.icon = "Enter a valid icon/image URL.";
+        nextErrors.icon = t("categoryForm.invalidIconUrl");
       }
     }
 
@@ -134,16 +136,16 @@ export function CategoryFormModal({
       <div className="sliderModal categoriesModal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
         <div className="sliderModalHeader">
           <div>
-            <p className="pageEyebrow">Categories</p>
+            <p className="pageEyebrow">{t("categoryForm.eyebrow")}</p>
             <h2 className="sectionTitle">
-              {mode === "create" ? "Create Category" : "Edit Category"}
+              {mode === "create"
+                ? t("categoryForm.createTitle")
+                : t("categoryForm.editTitle")}
             </h2>
-            <p className="sectionDescription">
-              Build your category hierarchy, control parent relationships, and keep storefront navigation organized.
-            </p>
+            <p className="sectionDescription">{t("categoryForm.description")}</p>
           </div>
           <button type="button" className="sliderModalClose" onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
         </div>
 
@@ -152,7 +154,7 @@ export function CategoryFormModal({
 
           <div className="sliderFormGrid">
             <label className="sliderFormField">
-              <span className="authLabel">Name*</span>
+              <span className="authLabel">{t("categoryForm.name")}</span>
               <input
                 className="authInput"
                 value={formState.name}
@@ -170,7 +172,7 @@ export function CategoryFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Slug</span>
+              <span className="authLabel">{t("categoryForm.slug")}</span>
               <input
                 className="authInput"
                 value={formState.slug}
@@ -187,7 +189,7 @@ export function CategoryFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Parent Category</span>
+              <span className="authLabel">{t("categoryForm.parentCategory")}</span>
               <select
                 className="authInput"
                 value={formState.parentId}
@@ -198,7 +200,7 @@ export function CategoryFormModal({
                   }))
                 }
               >
-                <option value="">Root category</option>
+                <option value="">{t("categoryForm.rootCategory")}</option>
                 {parentSelectOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.name}
@@ -208,7 +210,7 @@ export function CategoryFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Display Order</span>
+              <span className="authLabel">{t("categoryForm.displayOrder")}</span>
               <input
                 className="authInput"
                 type="number"
@@ -227,7 +229,7 @@ export function CategoryFormModal({
 
             <div className="categoryFormIconRow">
               <label className="sliderFormField categoryFormIconField">
-                <span className="authLabel">Category Icon</span>
+                <span className="authLabel">{t("categoryForm.categoryIcon")}</span>
                 <input
                   className="authInput"
                   type="file"
@@ -243,27 +245,35 @@ export function CategoryFormModal({
                 />
                 {formState.iconFile ? (
                   <span className="sectionDescription">
-                    Selected file: {formState.iconFile.name}
+                    {t("categoryForm.selectedFile", {
+                      name: formState.iconFile.name,
+                    })}
                   </span>
                 ) : formState.icon ? (
                   <span className="sectionDescription">
-                    Current icon: {formState.icon}
+                    {t("categoryForm.currentIcon", { value: formState.icon })}
                   </span>
                 ) : (
                   <span className="sectionDescription">
-                    Upload PNG, JPEG, WebP, or SVG. The admin API expects the file in the `icon` field.
+                    {t("categoryForm.iconHelp")}
                   </span>
                 )}
                 {errors.icon ? <span className="authError">{errors.icon}</span> : null}
               </label>
 
               <div className="sliderFormField categoryFormPreviewField">
-                <span className="authLabel">Icon Preview</span>
+                <span className="authLabel">{t("categoryForm.iconPreview")}</span>
                 <div className="categoryFormPreviewBox">
                   {previewUrl ? (
-                    <img className="categoryFormPreviewImage" src={previewUrl} alt="Category preview" />
+                    <img
+                      className="categoryFormPreviewImage"
+                      src={previewUrl}
+                      alt={t("categoryForm.previewAlt")}
+                    />
                   ) : (
-                    <span className="categoryFormPreviewEmpty">No image</span>
+                    <span className="categoryFormPreviewEmpty">
+                      {t("categoryForm.noImage")}
+                    </span>
                   )}
                 </div>
               </div>
@@ -272,10 +282,14 @@ export function CategoryFormModal({
 
           <div className="sliderModalActions">
             <button type="button" className="verificationActionButton subtle" onClick={onClose} disabled={isSaving}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button type="submit" className="verificationActionButton" disabled={isSaving}>
-              {isSaving ? "Saving..." : mode === "create" ? "Create Category" : "Save Category"}
+              {isSaving
+                ? t("categoryForm.saving")
+                : mode === "create"
+                  ? t("categoriesPage.createCategory")
+                  : t("categoryForm.saveCategory")}
             </button>
           </div>
         </form>

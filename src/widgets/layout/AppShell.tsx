@@ -1,5 +1,7 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
@@ -20,6 +22,16 @@ function CategoriesIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 10h10" />
+      <path d="M7 14h6" />
+      <path d="M5 19.5V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H10l-5 3.5Z" />
     </svg>
   );
 }
@@ -76,7 +88,15 @@ function GridIcon() {
   );
 }
 
+function resolveUiLocale(language: string) {
+  if (language === "ko") return "ko-KR";
+  if (language === "zh-CN") return "zh-CN";
+  if (language === "my") return "my-MM";
+  return "en-US";
+}
+
 export function AppShell() {
+  const { i18n, t } = useTranslation();
   const { user, logout } = useAuth();
   const {
     notifications,
@@ -90,8 +110,18 @@ export function AppShell() {
   } = useAdminNotifications();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const storedValue = window.localStorage.getItem("adminSidebarExpanded");
+    return storedValue === null ? true : storedValue === "true";
+  });
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("adminSidebarExpanded", String(isSidebarExpanded));
+  }, [isSidebarExpanded]);
 
   useEffect(() => {
     if (!isNotificationsOpen) return;
@@ -125,7 +155,7 @@ export function AppShell() {
   const formatNotificationDate = (value: string) => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString();
+    return date.toLocaleString(resolveUiLocale(i18n.language));
   };
 
   const handleNotificationClick = (notificationId?: string) => {
@@ -139,78 +169,87 @@ export function AppShell() {
   };
 
   return (
-    <div className="appShell">
+    <div className={`appShell ${isSidebarExpanded ? "appShellSidebarExpanded" : "appShellSidebarCollapsed"}`}>
       <aside className="sidebar">
         <div className="sidebarHeader">
           <img className="brandLogo" src={flexUsedLogo} alt="Flex Used Market logo" />
           <div className="brandText">
             <div className="brandTitle">Flex</div>
-            <div className="brandSubtitle">Used Market Admin</div>
+            <div className="brandSubtitle">{t("shell.brandSubtitle")}</div>
           </div>
         </div>
 
-        <div className="navSectionLabel">Main menu</div>
+        <div className="navSectionLabel">{t("shell.mainMenu")}</div>
         <nav className="nav">
-          <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+          <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <DashboardIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">Verification</span>
-              <span className="navItemMeta">Manage pending ownership checks</span>
+              <span className="navItemTitle">{t("shell.verificationTitle")}</span>
+              <span className="navItemMeta">{t("shell.verificationMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/categories" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+          <NavLink to="/categories" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <CategoriesIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">Categories</span>
-              <span className="navItemMeta">Build and manage category hierarchy</span>
+              <span className="navItemTitle">{t("shell.categoriesTitle")}</span>
+              <span className="navItemMeta">{t("shell.categoriesMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/points" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+          <NavLink to="/admin-chat" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <span className="navItemIcon">
+              <ChatIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">{t("shell.adminChatTitle")}</span>
+              <span className="navItemMeta">{t("shell.adminChatMeta")}</span>
+            </span>
+          </NavLink>
+          <NavLink to="/points" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <PointsIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">Rewards</span>
-              <span className="navItemMeta">Points, ranks, and withdrawal control</span>
+              <span className="navItemTitle">{t("shell.rewardsTitle")}</span>
+              <span className="navItemMeta">{t("shell.rewardsMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/facebook-follow" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+          <NavLink to="/facebook-follow" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <FacebookIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">Facebook Follow</span>
-              <span className="navItemMeta">Review manual follow proof submissions</span>
+              <span className="navItemTitle">{t("shell.facebookFollowTitle")}</span>
+              <span className="navItemMeta">{t("shell.facebookFollowMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/slider-ads" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+          <NavLink to="/slider-ads" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <SliderIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">Slider Ads</span>
-              <span className="navItemMeta">Create, reorder, and preview homepage banners</span>
+              <span className="navItemTitle">{t("shell.sliderAdsTitle")}</span>
+              <span className="navItemMeta">{t("shell.sliderAdsMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/notifications" className={({ isActive }) => (isActive ? 'navItem active' : 'navItem')}>
+          <NavLink to="/notifications" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <NotificationsNavIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">Notifications</span>
-              <span className="navItemMeta">View all admin notification records</span>
+              <span className="navItemTitle">{t("shell.notificationsNavTitle")}</span>
+              <span className="navItemMeta">{t("shell.notificationsMeta")}</span>
             </span>
           </NavLink>
         </nav>
 
-        <div className="navSectionLabel">Workspace</div>
+        <div className="navSectionLabel">{t("shell.workspace")}</div>
         <div className="sidebarInfoCard">
-          <div className="sidebarInfoTitle">Operations hub</div>
-          <div className="sidebarInfoText">Track verifications, payouts, and reseller rewards.</div>
+          <div className="sidebarInfoTitle">{t("shell.operationsHub")}</div>
+          <div className="sidebarInfoText">{t("shell.operationsHubText")}</div>
         </div>
       </aside>
 
@@ -218,19 +257,26 @@ export function AppShell() {
         <header className="topbar">
           <div className="topbarLeft">
             <div>
-              <div className="topbarEyebrow">Flex Used Admin</div>
-              <div className="topbarSubtext">Operations workspace for catalog, rewards, and marketplace administration.</div>
+              <div className="topbarEyebrow">{t("shell.topbarTitle")}</div>
+              <div className="topbarSubtext">{t("shell.topbarSubtitle")}</div>
             </div>
           </div>
           <div className="topbarRight">
-            <button className="topbarIconButton" type="button" aria-label="Quick actions">
+            <button
+              className={`topbarIconButton sidebarToggleButton ${isSidebarExpanded ? "isActive" : ""}`}
+              type="button"
+              aria-label={t("shell.mainMenu")}
+              aria-pressed={isSidebarExpanded}
+              onClick={() => setIsSidebarExpanded((prev) => !prev)}
+            >
               <GridIcon />
             </button>
+            <LanguageSwitcher />
             <div className="notificationsWrap" ref={notificationsRef}>
               <button
                 className="topbarIconButton notificationsTrigger"
                 type="button"
-                aria-label="Notifications"
+                aria-label={t("shell.notificationsNavTitle")}
                 aria-expanded={isNotificationsOpen}
                 onClick={handleToggleNotifications}
               >
@@ -244,14 +290,14 @@ export function AppShell() {
               {isNotificationsOpen ? (
                 <div className="notificationsPanel">
                   <div className="notificationsPanelHeader">
-                      <div>
-                        <div className="sectionTitle">Admin Notifications</div>
-                        <p className="sectionDescription">
-                          {isRealtimeConnected
-                            ? "Realtime connection active"
-                            : "Showing the latest fetched notifications"}
-                        </p>
-                      </div>
+                    <div>
+                      <div className="sectionTitle">{t("shell.notificationsTitle")}</div>
+                      <p className="sectionDescription">
+                        {isRealtimeConnected
+                          ? t("shell.notificationsLive")
+                          : t("shell.notificationsLatest")}
+                      </p>
+                    </div>
                     <button
                       type="button"
                       className="verificationActionButton subtle"
@@ -260,7 +306,7 @@ export function AppShell() {
                       }}
                       disabled={isNotificationsLoading}
                     >
-                      {isNotificationsLoading ? "Refreshing..." : "Refresh"}
+                      {isNotificationsLoading ? `${t("common.refresh")}...` : t("common.refresh")}
                     </button>
                   </div>
 
@@ -273,7 +319,7 @@ export function AppShell() {
                   <div className="notificationsList">
                     {notifications.length === 0 ? (
                       <div className="notificationsEmptyState">
-                        No admin notifications yet.
+                        {t("shell.notificationsEmpty")}
                       </div>
                     ) : (
                       notifications.slice(0, 8).map((item) => (
@@ -315,7 +361,7 @@ export function AppShell() {
                         navigate("/notifications");
                       }}
                     >
-                      Open Notification Center
+                      {t("shell.openNotificationCenter")}
                     </button>
                   </div>
                 </div>
@@ -323,12 +369,12 @@ export function AppShell() {
             </div>
             <ThemeToggle />
             <div className="topbarIdentity">
-              <span className="topbarRole">Signed in as</span>
+              <span className="topbarRole">{t("shell.signedInAs")}</span>
               <span className="topbarUser">{currentUserName}</span>
-              <span className="topbarRole">Administrator</span>
+              <span className="topbarRole">{t("shell.administrator")}</span>
             </div>
             <button className="btn topbarLogout" type="button" onClick={handleLogout}>
-              Logout
+              {t("shell.logout")}
             </button>
           </div>
         </header>
@@ -339,4 +385,3 @@ export function AppShell() {
     </div>
   );
 }
-

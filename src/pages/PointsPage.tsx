@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
@@ -145,15 +146,6 @@ const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   return [];
 };
 
-const formatMMK = (value: number) => `${value.toLocaleString()} MMK`;
-
-const formatDate = (value: string) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString();
-};
-
 const statusClass = (status: WithdrawalStatus) => {
   if (status === "PENDING") return "pending";
   if (status === "REJECTED") return "rejected";
@@ -166,6 +158,7 @@ const normalizeRankConfigs = (items: RankConfig[]) => {
 };
 
 export function PointsPage() {
+  const { i18n, t } = useTranslation();
   const httpClient = container.resolve<HttpClient>("httpClient");
   const [activeTab, setActiveTab] = useState<"config" | "withdrawals">("config");
   const [starConfigs, setStarConfigs] = useState<StarConfig[]>([]);
@@ -180,6 +173,16 @@ export function PointsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("--");
   const [pageError, setPageError] = useState<string | null>(null);
+
+  const formatMMK = (value: number) =>
+    `${value.toLocaleString(i18n.language)} MMK`;
+
+  const formatDate = (value: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+    return date.toLocaleDateString(i18n.language);
+  };
 
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
@@ -297,16 +300,16 @@ export function PointsPage() {
       ]);
       const failedLoads = results.filter((result) => result.status === "rejected");
       if (failedLoads.length > 0) {
-        setPageError("Some rewards data could not be loaded. Please refresh and try again.");
+        setPageError(t("rewardsPage.partialLoadError"));
       }
       setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     } finally {
       setIsLoading(false);
     }
-  }, [loadRankConfigs, loadResellers, loadStarConfigs, loadWithdrawals]);
+  }, [loadRankConfigs, loadResellers, loadStarConfigs, loadWithdrawals, t]);
 
   useEffect(() => {
-    loadAll();
+    void loadAll();
   }, [loadAll]);
 
   const saveStarConfigs = async () => {
@@ -319,10 +322,10 @@ export function PointsPage() {
           pointsAwarded: item.pointsAwarded,
         })),
       });
-      showToast("Saved!");
+      showToast(t("rewardsPage.saved"));
       await loadStarConfigs();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : "Failed to save star point settings.");
+      setPageError(error instanceof Error ? error.message : t("rewardsPage.saveStarError"));
     } finally {
       setSavingKey(null);
     }
@@ -338,10 +341,10 @@ export function PointsPage() {
           pointsAwarded: item.pointsAwarded,
         })),
       });
-      showToast("Saved!");
+      showToast(t("rewardsPage.saved"));
       await loadStarConfigs();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : "Failed to save this star point row.");
+      setPageError(error instanceof Error ? error.message : t("rewardsPage.saveStarRowError"));
     } finally {
       setSavingKey(null);
     }
@@ -358,10 +361,10 @@ export function PointsPage() {
           maxPoints: item.maxPoints,
         })),
       });
-      showToast("Saved!");
+      showToast(t("rewardsPage.saved"));
       await loadRankConfigs();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : "Failed to save rank settings.");
+      setPageError(error instanceof Error ? error.message : t("rewardsPage.saveRankError"));
     } finally {
       setSavingKey(null);
     }
@@ -378,10 +381,10 @@ export function PointsPage() {
           maxPoints: item.maxPoints,
         })),
       });
-      showToast("Saved!");
+      showToast(t("rewardsPage.saved"));
       await loadRankConfigs();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : "Failed to save this rank row.");
+      setPageError(error instanceof Error ? error.message : t("rewardsPage.saveRankRowError"));
     } finally {
       setSavingKey(null);
     }
@@ -405,7 +408,7 @@ export function PointsPage() {
       } else {
         const kbzTransferRef = draft.kbzTransferRef.trim();
         if (!kbzTransferRef) {
-          setPageError("KBZPay transfer reference is required before marking a withdrawal as paid.");
+          setPageError(t("rewardsPage.kbzTransferRequired"));
           return;
         }
         await httpClient.post<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.MARK_PAID(withdrawalId), {
@@ -413,14 +416,16 @@ export function PointsPage() {
         });
       }
 
-      showToast("Saved!");
+      showToast(t("rewardsPage.saved"));
       await loadWithdrawals();
     } catch (error) {
-      setPageError(
-        error instanceof Error
-          ? error.message
-          : `Failed to ${action === "mark-paid" ? "mark withdrawal as paid" : `${action} withdrawal`}.`
-      );
+      const fallbackKey =
+        action === "mark-paid"
+          ? "rewardsPage.markPaidError"
+          : action === "approve"
+            ? "rewardsPage.approveError"
+            : "rewardsPage.rejectError";
+      setPageError(error instanceof Error ? error.message : t(fallbackKey));
     } finally {
       setSavingKey(null);
     }
@@ -469,10 +474,10 @@ export function PointsPage() {
         )
       );
       setSelectedWithdrawalIds([]);
-      showToast("Saved!");
+      showToast(t("rewardsPage.saved"));
       await loadWithdrawals();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : "Failed to approve selected withdrawals.");
+      setPageError(error instanceof Error ? error.message : t("rewardsPage.approveSelectedError"));
     } finally {
       setSavingKey(null);
     }
@@ -482,11 +487,9 @@ export function PointsPage() {
     <section className="page rewardsPage">
       <div className="pageHeader rewardsHeader">
         <div>
-          <p className="pageEyebrow">Rewards</p>
-          <h1 className="pageTitle">Rewards Control Center</h1>
-          <p className="pageDescription">
-            Manage review point rules, rank thresholds, and the documented withdrawal flow in one workspace.
-          </p>
+          <p className="pageEyebrow">{t("rewardsPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("rewardsPage.title")}</h1>
+          <p className="pageDescription">{t("rewardsPage.description")}</p>
         </div>
       </div>
 
@@ -495,33 +498,33 @@ export function PointsPage() {
           <div className="rewardsSummaryIcon rewardsSummaryIconIndigo">
             <CoinsIcon />
           </div>
-          <div className="metricLabel">Total Points Distributed</div>
-          <div className="metricValue">{totalPointsDistributed.toLocaleString()}</div>
-          <div className="metricMeta">Approved and transferred reward points</div>
+          <div className="metricLabel">{t("rewardsPage.totalPointsDistributed")}</div>
+          <div className="metricValue">{totalPointsDistributed.toLocaleString(i18n.language)}</div>
+          <div className="metricMeta">{t("rewardsPage.totalPointsDistributedMeta")}</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
           <div className="rewardsSummaryIcon rewardsSummaryIconAmber">
             <AwardIcon />
           </div>
-          <div className="metricLabel">Active Rewards</div>
+          <div className="metricLabel">{t("rewardsPage.activeRewards")}</div>
           <div className="metricValue">{activeRewards}</div>
-          <div className="metricMeta">Rank tiers configured for resellers</div>
+          <div className="metricMeta">{t("rewardsPage.activeRewardsMeta")}</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
           <div className="rewardsSummaryIcon rewardsSummaryIconRose">
             <WalletIcon />
           </div>
-          <div className="metricLabel">Pending Withdrawals</div>
+          <div className="metricLabel">{t("rewardsPage.pendingWithdrawals")}</div>
           <div className="metricValue">{pendingWithdrawals}</div>
-          <div className="metricMeta">Withdrawal requests needing admin action</div>
+          <div className="metricMeta">{t("rewardsPage.pendingWithdrawalsMeta")}</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
           <div className="rewardsSummaryIcon rewardsSummaryIconSky">
             <UsersIcon />
           </div>
-          <div className="metricLabel">Total Resellers</div>
+          <div className="metricLabel">{t("rewardsPage.totalResellers")}</div>
           <div className="metricValue">{totalResellers}</div>
-          <div className="metricMeta">Staff users participating in the program</div>
+          <div className="metricMeta">{t("rewardsPage.totalResellersMeta")}</div>
         </div>
       </div>
 
@@ -534,14 +537,14 @@ export function PointsPage() {
             className={activeTab === "config" ? "rewardsTab active" : "rewardsTab"}
             onClick={() => setActiveTab("config")}
           >
-            Rewards Configuration
+            {t("rewardsPage.configTab")}
           </button>
           <button
             type="button"
             className={activeTab === "withdrawals" ? "rewardsTab active" : "rewardsTab"}
             onClick={() => setActiveTab("withdrawals")}
           >
-            Withdrawal Requests
+            {t("rewardsPage.withdrawalsTab")}
           </button>
         </div>
 
@@ -557,16 +560,16 @@ export function PointsPage() {
           <div className="rewardsContentStack">
             <section className="rewardsSectionCard">
               <div className="rewardsSectionHead">
-                <h2 className="sectionTitle">Star Points Configuration</h2>
-                <p className="sectionDescription">Configure `starCount` 1 to 5 with the `pointsAwarded` values used for future reviews.</p>
+                <h2 className="sectionTitle">{t("rewardsPage.starConfigTitle")}</h2>
+                <p className="sectionDescription">{t("rewardsPage.starConfigDescription")}</p>
               </div>
               <div className="rewardsTableWrap">
                 <table className="rewardsTable">
                   <thead>
                     <tr>
-                      <th>Star Count</th>
-                      <th>Points Awarded</th>
-                      <th>Action</th>
+                      <th>{t("rewardsPage.starCount")}</th>
+                      <th>{t("rewardsPage.pointsAwarded")}</th>
+                      <th>{t("rewardsPage.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -597,7 +600,7 @@ export function PointsPage() {
                             disabled={!!savingKey}
                             onClick={() => saveSingleStarRow(index)}
                           >
-                            {savingKey === `star-${index}` ? "Saving..." : "Save"}
+                            {savingKey === `star-${index}` ? t("categoryForm.saving") : t("common.save")}
                           </button>
                         </td>
                       </tr>
@@ -607,26 +610,24 @@ export function PointsPage() {
               </div>
               <div className="rewardsActions">
                 <button className="rewardsBtn primary" type="button" disabled={!!savingKey} onClick={saveStarConfigs}>
-                  {savingKey === "star-all" ? "Saving..." : "Save All Changes"}
+                  {savingKey === "star-all" ? t("categoryForm.saving") : t("rewardsPage.saveAllChanges")}
                 </button>
               </div>
             </section>
 
             <section className="rewardsSectionCard">
               <div className="rewardsSectionHead">
-                <h2 className="sectionTitle">Rank Configuration</h2>
-                <p className="sectionDescription">
-                  Match the API thresholds for `NEWBIE`, `BRONZE`, `SILVER`, `GOLD`, and `VIP`. Highest tier can keep `maxPoints` empty.
-                </p>
+                <h2 className="sectionTitle">{t("rewardsPage.rankConfigTitle")}</h2>
+                <p className="sectionDescription">{t("rewardsPage.rankConfigDescription")}</p>
               </div>
               <div className="rewardsTableWrap">
                 <table className="rewardsTable">
                   <thead>
                     <tr>
-                      <th>Tier</th>
-                      <th>Min Points</th>
-                      <th>Max Points</th>
-                      <th>Action</th>
+                      <th>{t("rewardsPage.tier")}</th>
+                      <th>{t("rewardsPage.minPoints")}</th>
+                      <th>{t("rewardsPage.maxPoints")}</th>
+                      <th>{t("rewardsPage.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -656,7 +657,7 @@ export function PointsPage() {
                             type="number"
                             min={0}
                             value={row.maxPoints ?? ""}
-                            placeholder={row.tier === "VIP" ? "No limit" : "Max points"}
+                            placeholder={row.tier === "VIP" ? t("rewardsPage.noLimit") : t("rewardsPage.maxPointsPlaceholder")}
                             onChange={(e) =>
                               setRankConfigs((prev) =>
                                 prev.map((item, itemIndex) =>
@@ -678,7 +679,7 @@ export function PointsPage() {
                             disabled={!!savingKey}
                             onClick={() => saveSingleRankRow(index)}
                           >
-                            {savingKey === `rank-${index}` ? "Saving..." : "Save"}
+                            {savingKey === `rank-${index}` ? t("categoryForm.saving") : t("common.save")}
                           </button>
                         </td>
                       </tr>
@@ -688,7 +689,7 @@ export function PointsPage() {
               </div>
               <div className="rewardsActions">
                 <button className="rewardsBtn primary" type="button" disabled={!!savingKey} onClick={saveRankConfigs}>
-                  {savingKey === "rank-all" ? "Saving..." : "Save All Changes"}
+                  {savingKey === "rank-all" ? t("categoryForm.saving") : t("rewardsPage.saveAllChanges")}
                 </button>
               </div>
             </section>
@@ -699,10 +700,8 @@ export function PointsPage() {
           <section className="rewardsSectionCard">
             <div className="rewardsSectionHead">
               <div>
-                <h2 className="sectionTitle">Withdrawal Management</h2>
-                <p className="sectionDescription">
-                  Follow the documented flow: review `PENDING`, approve or reject with `adminNote`, then mark `APPROVED` requests as paid with `kbzTransferRef`.
-                </p>
+                <h2 className="sectionTitle">{t("rewardsPage.withdrawalManagementTitle")}</h2>
+                <p className="sectionDescription">{t("rewardsPage.withdrawalManagementDescription")}</p>
               </div>
               <select
                 className="authInput"
@@ -711,7 +710,7 @@ export function PointsPage() {
               >
                 {WITHDRAWAL_FILTERS.map((status) => (
                   <option key={status} value={status}>
-                    {status === "ALL" ? "All statuses" : status}
+                    {status === "ALL" ? t("rewardsPage.allStatuses") : status}
                   </option>
                 ))}
               </select>
@@ -731,21 +730,21 @@ export function PointsPage() {
                         }
                       />
                     </th>
-                    <th>Reseller</th>
-                    <th>Contact</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Admin Note</th>
-                    <th>Transfer Ref</th>
-                    <th>Date</th>
-                    <th>Action</th>
+                    <th>{t("rewardsPage.reseller")}</th>
+                    <th>{t("rewardsPage.contact")}</th>
+                    <th>{t("rewardsPage.amount")}</th>
+                    <th>{t("rewardsPage.status")}</th>
+                    <th>{t("rewardsPage.adminNote")}</th>
+                    <th>{t("rewardsPage.transferRef")}</th>
+                    <th>{t("rewardsPage.date")}</th>
+                    <th>{t("rewardsPage.action")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {withdrawals.length === 0 ? (
                     <tr>
                       <td colSpan={9}>
-                        <div className="verificationEmptyState">No data available.</div>
+                        <div className="verificationEmptyState">{t("rewardsPage.noData")}</div>
                       </td>
                     </tr>
                   ) : withdrawals.map((item) => {
@@ -775,7 +774,7 @@ export function PointsPage() {
                           <input
                             className="authInput"
                             type="text"
-                            placeholder="Optional admin note"
+                            placeholder={t("rewardsPage.optionalAdminNote")}
                             value={draft.adminNote}
                             onChange={(e) => updateWithdrawalDraft(item.id, { adminNote: e.target.value })}
                           />
@@ -784,7 +783,7 @@ export function PointsPage() {
                           <input
                             className="authInput"
                             type="text"
-                            placeholder={item.status === "APPROVED" ? "Required for mark paid" : "Transfer reference"}
+                            placeholder={item.status === "APPROVED" ? t("rewardsPage.requiredForMarkPaid") : t("rewardsPage.transferReference")}
                             value={draft.kbzTransferRef}
                             onChange={(e) => updateWithdrawalDraft(item.id, { kbzTransferRef: e.target.value })}
                           />
@@ -799,7 +798,7 @@ export function PointsPage() {
                                 disabled={!!savingKey}
                                 onClick={() => runWithdrawalAction("approve", item.id)}
                               >
-                                {savingKey === `approve-${item.id}` ? "..." : "Approve"}
+                                {savingKey === `approve-${item.id}` ? "..." : t("rewardsPage.approve")}
                               </button>
                               <button
                                 type="button"
@@ -807,7 +806,7 @@ export function PointsPage() {
                                 disabled={!!savingKey}
                                 onClick={() => runWithdrawalAction("reject", item.id)}
                               >
-                                {savingKey === `reject-${item.id}` ? "..." : "Reject"}
+                                {savingKey === `reject-${item.id}` ? "..." : t("rewardsPage.reject")}
                               </button>
                             </div>
                           ) : item.status === "APPROVED" ? (
@@ -818,11 +817,11 @@ export function PointsPage() {
                                 disabled={!!savingKey}
                                 onClick={() => runWithdrawalAction("mark-paid", item.id)}
                               >
-                                {savingKey === `mark-paid-${item.id}` ? "..." : "Mark Paid"}
+                                {savingKey === `mark-paid-${item.id}` ? "..." : t("rewardsPage.markPaid")}
                               </button>
                             </div>
                           ) : (
-                            <span className="muted">No action</span>
+                            <span className="muted">{t("rewardsPage.noAction")}</span>
                           )}
                         </td>
                       </tr>
@@ -838,14 +837,14 @@ export function PointsPage() {
                 disabled={!!savingKey || selectedPendingIds.length === 0}
                 onClick={processSelectedApprovals}
               >
-                {savingKey === "bulk-approve" ? "Processing..." : "Approve Selected"}
+                {savingKey === "bulk-approve" ? t("rewardsPage.processing") : t("rewardsPage.approveSelected")}
               </button>
             </div>
           </section>
         ) : null}
       </div>
 
-      <p className="rewardsLastUpdated">Last updated: today at {lastUpdated}</p>
+      <p className="rewardsLastUpdated">{t("rewardsPage.lastUpdated", { time: lastUpdated })}</p>
       {toastMessage ? <div className="rewardsToast">{toastMessage}</div> : null}
     </section>
   );

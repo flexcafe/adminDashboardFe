@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type {
   VerificationListTab,
@@ -26,42 +27,6 @@ type VerificationListProps = {
   onRefresh: () => void;
 };
 
-const formatDate = (value: string) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString();
-};
-
-const TAB_LABELS: Record<VerificationListTab, string> = {
-  registered: "Registered Accounts",
-  requested: "Verification Requested",
-  moneyCheck: "Money Check",
-  verified: "Verified Users",
-};
-
-const EMPTY_LABELS: Record<VerificationListTab, string> = {
-  registered: "No data available.",
-  requested: "No verification requests yet.",
-  moneyCheck: "No money check requests yet.",
-  verified: "No data available.",
-};
-
-const getStatusBadgeClassName = (status: VerificationRecord["status"]) => {
-  switch (status) {
-    case "REGISTERED":
-      return "verificationStatusBadge registered";
-    case "VERIFICATION_REQUESTED":
-      return "verificationStatusBadge requested";
-    case "MONEY_CHECK":
-      return "verificationStatusBadge requested";
-    case "VERIFIED":
-      return "verificationStatusBadge verified";
-    default:
-      return "verificationStatusBadge";
-  }
-};
-
 export function VerificationList({
   activeTab,
   onTabChange,
@@ -73,6 +38,7 @@ export function VerificationList({
   error,
   onRefresh,
 }: VerificationListProps) {
+  const { i18n, t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const itemsByTab: Record<VerificationListTab, VerificationRecord[]> = {
     registered: registeredAccounts,
@@ -90,15 +56,50 @@ export function VerificationList({
   }, [baseItems, searchQuery]);
   const totalActionable = verificationRequested.length + moneyCheckRequests.length;
 
+  const formatDate = (value: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+    return date.toLocaleDateString(i18n.language);
+  };
+
+  const tabLabels: Record<VerificationListTab, string> = {
+    registered: t("verificationPage.registeredAccounts"),
+    requested: t("verificationPage.verificationRequested"),
+    moneyCheck: t("verificationPage.moneyCheck"),
+    verified: t("verificationPage.verifiedUsers"),
+  };
+
+  const emptyLabels: Record<VerificationListTab, string> = {
+    registered: t("verificationPage.emptyRegistered"),
+    requested: t("verificationPage.emptyRequested"),
+    moneyCheck: t("verificationPage.emptyMoneyCheck"),
+    verified: t("verificationPage.emptyVerified"),
+  };
+
+  const getStatusBadgeClassName = (status: VerificationRecord["status"]) => {
+    switch (status) {
+      case "REGISTERED":
+        return "verificationStatusBadge registered";
+      case "VERIFICATION_REQUESTED":
+        return "verificationStatusBadge requested";
+      case "MONEY_CHECK":
+        return "verificationStatusBadge requested";
+      case "VERIFIED":
+        return "verificationStatusBadge verified";
+      default:
+        return "verificationStatusBadge";
+    }
+  };
+
   return (
     <section className="page verificationPage">
       <div className="pageHeader">
         <div>
-          <p className="pageEyebrow">Verification</p>
-          <h1 className="pageTitle">KBZPay Ownership Verification</h1>
+          <p className="pageEyebrow">{t("verificationPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("verificationPage.title")}</h1>
           <p className="pageDescription">
-            Track registered KBZPay accounts, send transfer instructions, and
-            verify completed submissions from one admin queue.
+            {t("verificationPage.description")}
           </p>
         </div>
         <div className="pageHeaderActions">
@@ -108,32 +109,30 @@ export function VerificationList({
             onClick={onRefresh}
             disabled={isLoading}
           >
-            {isLoading ? "Refreshing..." : "Refresh"}
+            {isLoading ? t("verificationPage.refreshing") : t("common.refresh")}
           </button>
         </div>
       </div>
 
       <div className="verificationSummaryGrid">
         <div className="metricCard verificationSummaryCard verificationSummaryCardBlue">
-          <div className="metricLabel">Awaiting Action</div>
+          <div className="metricLabel">{t("verificationPage.awaitingAction")}</div>
           <div className="metricValue">{totalActionable}</div>
           <div className="metricMeta">
-            {isLoading
-              ? "Syncing KBZPay queues..."
-              : "Needs instruction or verification"}
+            {isLoading ? t("verificationPage.syncing") : t("verificationPage.needsAction")}
           </div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardYellow">
-          <div className="metricLabel">Registered</div>
+          <div className="metricLabel">{t("verificationPage.registered")}</div>
           <div className="metricValue verificationMetricCompact">
             {registeredAccounts.length}
           </div>
-          <div className="metricMeta">Accounts with no verification request yet</div>
+          <div className="metricMeta">{t("verificationPage.registeredMeta")}</div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardGreen">
-          <div className="metricLabel">Verified</div>
+          <div className="metricLabel">{t("verificationPage.verified")}</div>
           <div className="metricValue">{verifiedUsers.length}</div>
-          <div className="metricMeta">Completed KBZPay ownership checks</div>
+          <div className="metricMeta">{t("verificationPage.verifiedMeta")}</div>
         </div>
       </div>
 
@@ -141,11 +140,9 @@ export function VerificationList({
         <div
           className="verificationTabs"
           role="tablist"
-          aria-label="Verification sections"
+          aria-label={t("verificationPage.sectionsLabel")}
         >
-          {(
-            Object.keys(TAB_LABELS) as VerificationListTab[]
-          ).map((tab) => (
+          {(Object.keys(tabLabels) as VerificationListTab[]).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -156,7 +153,7 @@ export function VerificationList({
               }
               onClick={() => onTabChange(tab)}
             >
-              <span className="verificationTabLabel">{TAB_LABELS[tab]}</span>
+              <span className="verificationTabLabel">{tabLabels[tab]}</span>
               <span className="verificationTabCount">
                 {itemsByTab[tab].length}
               </span>
@@ -173,7 +170,7 @@ export function VerificationList({
               <input
                 type="search"
                 className="authInput verificationSearchInput"
-                placeholder="Search by name or phone..."
+                placeholder={t("verificationPage.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
               />
@@ -182,11 +179,11 @@ export function VerificationList({
           <table className="verificationTable">
             <thead>
               <tr>
-                <th>User Name</th>
-                <th>Phone Number</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th className="verificationActionCell">Action</th>
+                <th>{t("verificationPage.userName")}</th>
+                <th>{t("verificationPage.phoneNumber")}</th>
+                <th>{t("verificationPage.status")}</th>
+                <th>{t("verificationPage.date")}</th>
+                <th className="verificationActionCell">{t("verificationPage.action")}</th>
               </tr>
             </thead>
             <tbody>
@@ -194,7 +191,7 @@ export function VerificationList({
                 <tr>
                   <td colSpan={5}>
                     <div className="verificationEmptyState">
-                      {searchQuery.trim() ? "No users found." : EMPTY_LABELS[activeTab]}
+                      {searchQuery.trim() ? t("verificationPage.emptySearch") : emptyLabels[activeTab]}
                     </div>
                   </td>
                 </tr>
@@ -218,7 +215,7 @@ export function VerificationList({
                         to={`/dashboard/${item.userId}`}
                         className="verificationActionButton subtle"
                       >
-                        View Details
+                        {t("verificationPage.viewDetails")}
                       </Link>
                     </td>
                   </tr>

@@ -15,6 +15,7 @@ export type Category = {
   parentId: string | null;
   sortOrder: number;
   isActive: boolean;
+  isVisible: boolean;
   description: string;
   iconUrl: string;
   imageUrl: string;
@@ -32,6 +33,8 @@ export type CategoryPayload = {
   slug?: string;
   parentId?: string | null;
   sortOrder?: number;
+  isActive?: boolean;
+  isVisible?: boolean;
   icon?: string;
   iconFile?: File | null;
   description?: string;
@@ -157,6 +160,10 @@ const normalizeCategory = (item: Record<string, unknown>): Category | null => {
     sortOrder: toNumber(item.sortOrder || item.displayOrder || item.order),
     isActive:
       item.isActive === undefined ? true : toBoolean(item.isActive),
+    isVisible:
+      item.isVisible === undefined && item.visible === undefined
+        ? true
+        : toBoolean(item.isVisible ?? item.visible),
     description: toText(item.description),
     iconUrl:
       toText(item.icon) ||
@@ -229,7 +236,15 @@ const buildCategoryPayload = (payload: CategoryPayload) => {
   if (payload.slug !== undefined) next.slug = payload.slug.trim();
   if (payload.parentId !== undefined) next.parentId = payload.parentId || null;
   if (payload.sortOrder !== undefined) next.sortOrder = payload.sortOrder;
+  if (payload.isActive !== undefined) next.isActive = payload.isActive;
+  if (payload.isVisible !== undefined) next.isVisible = payload.isVisible;
   if (payload.icon !== undefined) next.icon = payload.icon.trim();
+  if (payload.description !== undefined) next.description = payload.description.trim();
+  if (payload.metaTitle !== undefined) next.metaTitle = payload.metaTitle.trim();
+  if (payload.metaDescription !== undefined) {
+    next.metaDescription = payload.metaDescription.trim();
+  }
+  if (payload.metaKeywords !== undefined) next.metaKeywords = payload.metaKeywords;
   return next;
 };
 
@@ -241,6 +256,12 @@ const buildCategoryFormData = (payload: CategoryPayload) => {
   if (payload.sortOrder !== undefined) {
     formData.append("sortOrder", String(payload.sortOrder));
   }
+  if (payload.isActive !== undefined) {
+    formData.append("isActive", String(payload.isActive));
+  }
+  if (payload.isVisible !== undefined) {
+    formData.append("isVisible", String(payload.isVisible));
+  }
   if (payload.parentId !== undefined && payload.parentId) {
     formData.append("parentId", payload.parentId);
   }
@@ -248,6 +269,18 @@ const buildCategoryFormData = (payload: CategoryPayload) => {
     formData.append("icon", payload.iconFile);
   } else if (payload.icon !== undefined && payload.icon.trim()) {
     formData.append("icon", payload.icon.trim());
+  }
+  if (payload.description !== undefined) {
+    formData.append("description", payload.description.trim());
+  }
+  if (payload.metaTitle !== undefined) {
+    formData.append("metaTitle", payload.metaTitle.trim());
+  }
+  if (payload.metaDescription !== undefined) {
+    formData.append("metaDescription", payload.metaDescription.trim());
+  }
+  if (payload.metaKeywords !== undefined) {
+    formData.append("metaKeywords", payload.metaKeywords.join(","));
   }
 
   return formData;

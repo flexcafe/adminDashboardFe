@@ -1,9 +1,11 @@
 import { FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import flexUsedLogo from "@/assets/flex-used-logo.png";
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { login, user, isAuthenticated, isLoading, error } = useAuth();
@@ -27,7 +29,7 @@ export function LoginPage() {
       navigate(from || "/dashboard", { replace: true });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Login failed. Please try again.";
+        err instanceof Error ? err.message : t("login.errorFallback");
       setLocalError(message);
     }
   };
@@ -57,49 +59,45 @@ export function LoginPage() {
             </div>
           </div>
         </div>
-        <h1 className="authTitle">Admin Login</h1>
-        <p className="authSubtitle">
-          Sign in to the Flex Used Market dashboard with your phone/email and password.
-        </p>
+        <h1 className="authTitle">{t("login.title")}</h1>
+        <p className="authSubtitle">{t("login.subtitle")}</p>
 
         <form className="authForm" onSubmit={handleSubmit}>
           <label className="authLabel" htmlFor="identifier">
-            Phone or Email
+            {t("login.identifierLabel")}
           </label>
           <input
             id="identifier"
             className="authInput"
             type="text"
             autoComplete="username"
-            placeholder="Enter your phone or email"
+            placeholder={t("login.identifierPlaceholder")}
             value={identifier}
             onChange={(event) => setIdentifier(event.target.value)}
             required
           />
 
           <label className="authLabel" htmlFor="password">
-            Password
+            {t("login.passwordLabel")}
           </label>
           <input
             id="password"
             className="authInput"
             type="password"
             autoComplete="current-password"
-            placeholder="Enter your password"
+            placeholder={t("login.passwordPlaceholder")}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
           />
 
-          {(localError || error) && (
-            <p className="authError">{localError || error}</p>
-          )}
+          {(localError || error) && <p className="authError">{localError || error}</p>}
 
           <button className="btn authSubmit" type="submit" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign in"}
+            {isLoading ? t("login.submitting") : t("login.submit")}
           </button>
         </form>
-        </div>
+      </div>
     </section>
   );
 }

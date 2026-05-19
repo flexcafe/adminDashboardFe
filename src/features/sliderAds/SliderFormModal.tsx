@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { SliderAd, SliderAdPayload, SliderAdStatus } from "./sliderApi";
 
 type SliderFormModalProps = {
@@ -54,6 +55,7 @@ export function SliderFormModal({
   onClose,
   onSubmit,
 }: SliderFormModalProps) {
+  const { t } = useTranslation();
   const [formState, setFormState] = useState<FormState>(() =>
     createInitialState(initialData)
   );
@@ -86,35 +88,35 @@ export function SliderFormModal({
     const nextErrors: FormErrors = {};
 
     if (!formState.title.trim()) {
-      nextErrors.title = "Title is required.";
+      nextErrors.title = t("sliderForm.titleRequired");
     }
 
     if (!formState.linkUrl.trim()) {
-      nextErrors.linkUrl = "Link URL is required.";
+      nextErrors.linkUrl = t("sliderForm.linkRequired");
     }
 
     if (mode === "create" && !formState.file) {
-      nextErrors.file = "Image is required for new slider ads.";
+      nextErrors.file = t("sliderForm.imageRequired");
     }
 
     if (formState.linkUrl.trim()) {
       try {
         new URL(formState.linkUrl.trim());
       } catch {
-        nextErrors.linkUrl = "Enter a valid URL including https://";
+        nextErrors.linkUrl = t("sliderForm.linkInvalid");
       }
     }
 
     const orderNumber = Number(formState.sortOrder);
     if (!Number.isInteger(orderNumber) || orderNumber < 1) {
-      nextErrors.sortOrder = "Order must be a positive number.";
+      nextErrors.sortOrder = t("sliderForm.orderInvalid");
     }
 
     if (formState.startsAt && formState.endsAt) {
       const starts = new Date(formState.startsAt);
       const ends = new Date(formState.endsAt);
       if (starts.getTime() > ends.getTime()) {
-        nextErrors.endsAt = "End date must be after start date.";
+        nextErrors.endsAt = t("sliderForm.dateInvalid");
       }
     }
 
@@ -148,16 +150,16 @@ export function SliderFormModal({
       >
         <div className="sliderModalHeader">
           <div>
-            <p className="pageEyebrow">Slider Ads</p>
+            <p className="pageEyebrow">{t("sliderForm.eyebrow")}</p>
             <h2 id="slider-modal-title" className="sectionTitle">
-              {mode === "create" ? "Create New Slider Ad" : "Edit Slider Ad"}
+              {mode === "create"
+                ? t("sliderForm.createTitle")
+                : t("sliderForm.editTitle")}
             </h2>
-            <p className="sectionDescription">
-              Upload artwork, set the display order, and control whether the ad appears in the live slider.
-            </p>
+            <p className="sectionDescription">{t("sliderForm.description")}</p>
           </div>
           <button type="button" className="sliderModalClose" onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
         </div>
 
@@ -167,7 +169,7 @@ export function SliderFormModal({
           ) : null}
           <div className="sliderFormGrid">
             <label className="sliderFormField">
-              <span className="authLabel">Title</span>
+              <span className="authLabel">{t("sliderForm.title")}</span>
               <input
                 className="authInput"
                 type="text"
@@ -181,13 +183,13 @@ export function SliderFormModal({
                 onInput={() =>
                   setErrors((current) => ({ ...current, title: undefined }))
                 }
-                placeholder="Homepage campaign headline"
+                placeholder={t("sliderForm.titlePlaceholder")}
               />
               {errors.title ? <span className="authError">{errors.title}</span> : null}
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Link URL</span>
+              <span className="authLabel">{t("sliderForm.linkUrl")}</span>
               <input
                 className="authInput"
                 type="url"
@@ -201,7 +203,7 @@ export function SliderFormModal({
                 onInput={() =>
                   setErrors((current) => ({ ...current, linkUrl: undefined }))
                 }
-                placeholder="https://example.com/promo"
+                placeholder={t("sliderForm.linkPlaceholder")}
               />
               {errors.linkUrl || backendLinkUrlError ? (
                 <span className="authError">
@@ -211,7 +213,7 @@ export function SliderFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Order</span>
+              <span className="authLabel">{t("sliderForm.order")}</span>
               <input
                 className="authInput"
                 type="number"
@@ -231,7 +233,7 @@ export function SliderFormModal({
             </label>
 
             <label className="sliderFormField sliderToggleField">
-              <span className="authLabel">Status</span>
+              <span className="authLabel">{t("sliderForm.status")}</span>
               <button
                 type="button"
                 className={
@@ -248,13 +250,15 @@ export function SliderFormModal({
               >
                 <span className="sliderToggleKnob" />
                 <span className="sliderToggleLabel">
-                  {formState.status === "ACTIVE" ? "Active" : "Inactive"}
+                  {formState.status === "ACTIVE"
+                    ? t("sliderForm.active")
+                    : t("sliderForm.inactive")}
                 </span>
               </button>
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Starts At</span>
+              <span className="authLabel">{t("sliderForm.startsAt")}</span>
               <input
                 className="authInput"
                 type="datetime-local"
@@ -272,7 +276,7 @@ export function SliderFormModal({
             </label>
 
             <label className="sliderFormField">
-              <span className="authLabel">Ends At</span>
+              <span className="authLabel">{t("sliderForm.endsAt")}</span>
               <input
                 className="authInput"
                 type="datetime-local"
@@ -293,7 +297,7 @@ export function SliderFormModal({
 
           <div className="sliderUploadPanel">
             <label className="sliderUploadField">
-              <span className="authLabel">Slider Image</span>
+              <span className="authLabel">{t("sliderForm.image")}</span>
               <input
                 className="authInput"
                 type="file"
@@ -310,8 +314,8 @@ export function SliderFormModal({
               />
               <span className="sectionDescription">
                 {mode === "create"
-                  ? "Upload a landscape image for the homepage slider."
-                  : "Choose a new image only if you want to replace the current one."}
+                  ? t("sliderForm.createImageHelp")
+                  : t("sliderForm.editImageHelp")}
               </span>
               {errors.file ? <span className="authError">{errors.file}</span> : null}
             </label>
@@ -321,11 +325,11 @@ export function SliderFormModal({
                 <img
                   className="sliderUploadPreviewImage"
                   src={resolvedPreviewUrl}
-                  alt={formState.title || "Slider preview"}
+                  alt={formState.title || t("sliderForm.previewAlt")}
                 />
               ) : (
                 <div className="sliderUploadPreviewEmpty">
-                  Image preview will appear here before you save.
+                  {t("sliderForm.previewEmpty")}
                 </div>
               )}
             </div>
@@ -338,7 +342,7 @@ export function SliderFormModal({
               onClick={onClose}
               disabled={isSaving}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -347,11 +351,11 @@ export function SliderFormModal({
             >
               {isSaving
                 ? mode === "create"
-                  ? "Creating..."
-                  : "Saving..."
+                  ? t("sliderForm.creating")
+                  : t("sliderForm.saving")
                 : mode === "create"
-                  ? "Create Slider Ad"
-                  : "Save Changes"}
+                  ? t("sliderAdsPage.create")
+                  : t("sliderForm.saveChanges")}
             </button>
           </div>
         </form>

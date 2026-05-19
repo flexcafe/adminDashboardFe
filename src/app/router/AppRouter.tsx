@@ -14,6 +14,11 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   }))
 );
+const AdminChatPage = lazy(() =>
+  import("../../pages/AdminChatPage").then((module) => ({
+    default: module.AdminChatPage,
+  }))
+);
 const CategoriesPage = lazy(() =>
   import("../../pages/CategoriesPage").then((module) => ({
     default: module.CategoriesPage,
@@ -103,6 +108,7 @@ export function AppRouter() {
                 <Route index element={<DashboardPage />} />
                 <Route path=":userId" element={<UserVerificationDetailPage />} />
               </Route>
+              <Route path="/admin-chat" element={<AdminChatPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/slider-ads" element={<SliderAdsPage />} />
               <Route path="/facebook-follow" element={<FacebookFollowPage />} />

@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
-import type { SliderAd } from "./sliderApi";
+import { useTranslation } from "react-i18next";
+import {
+  isSliderAdCurrentlyActive,
+  type SliderAd,
+} from "./sliderApi";
 
 type SliderPreviewProps = {
   items: SliderAd[];
 };
 
-const formatDisplayDate = (value: string) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
-};
-
 export function SliderPreview({ items }: SliderPreviewProps) {
+  const { i18n, t } = useTranslation();
   const activeItems = useMemo(
-    () => items.filter((item) => item.status === "ACTIVE"),
+    () => items.filter((item) => isSliderAdCurrentlyActive(item)),
     [items]
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const normalizedActiveIndex =
     activeItems.length > 0 ? activeIndex % activeItems.length : 0;
+
+  const formatDisplayDate = (value: string) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString(i18n.language);
+  };
 
   useEffect(() => {
     if (activeItems.length <= 1) return undefined;
@@ -34,10 +39,8 @@ export function SliderPreview({ items }: SliderPreviewProps) {
   if (activeItems.length === 0) {
     return (
       <div className="sliderPreviewEmpty">
-        <div className="sliderPreviewEmptyTitle">No active slider ads</div>
-        <p className="sliderPreviewEmptyText">
-          Active ads will appear here as a live carousel preview once enabled.
-        </p>
+        <div className="sliderPreviewEmptyTitle">{t("sliderPreview.emptyTitle")}</div>
+        <p className="sliderPreviewEmptyText">{t("sliderPreview.emptyText")}</p>
       </div>
     );
   }
@@ -55,7 +58,7 @@ export function SliderPreview({ items }: SliderPreviewProps) {
               alt={activeItem.title}
             />
           ) : (
-            <div className="sliderPreviewPlaceholder">No image available</div>
+            <div className="sliderPreviewPlaceholder">{t("sliderPreview.noImage")}</div>
           )}
           <div className="sliderPreviewOverlay">
             <span className="sliderPreviewOrder">#{activeItem.sortOrder}</span>
@@ -64,15 +67,19 @@ export function SliderPreview({ items }: SliderPreviewProps) {
               {activeItem.linkUrl ? (
                 <p className="sliderPreviewMeta">{activeItem.linkUrl}</p>
               ) : (
-                <p className="sliderPreviewMeta">No link URL provided</p>
+                <p className="sliderPreviewMeta">{t("sliderPreview.noLink")}</p>
               )}
               {activeItem.startsAt || activeItem.endsAt ? (
                 <p className="sliderPreviewDates">
                   {activeItem.startsAt
-                    ? `Starts ${formatDisplayDate(activeItem.startsAt)}`
-                    : "Starts anytime"}
+                    ? t("sliderPreview.starts", {
+                        date: formatDisplayDate(activeItem.startsAt),
+                      })
+                    : t("sliderPreview.startsAnytime")}
                   {activeItem.endsAt
-                    ? ` | Ends ${formatDisplayDate(activeItem.endsAt)}`
+                    ? ` | ${t("sliderPreview.ends", {
+                        date: formatDisplayDate(activeItem.endsAt),
+                      })}`
                     : ""}
                 </p>
               ) : null}
@@ -84,7 +91,7 @@ export function SliderPreview({ items }: SliderPreviewProps) {
       <div
         className="sliderPreviewDots"
         role="tablist"
-        aria-label="Slider preview slides"
+        aria-label={t("sliderPreview.slidesLabel")}
       >
         {activeItems.map((item, index) => (
           <button

@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAdminNotifications, type AdminNotification } from "@/features/adminNotifications/AdminNotificationsContext";
+import {
+  useAdminNotifications,
+  type AdminNotification,
+} from "@/features/adminNotifications/AdminNotificationsContext";
 
-const formatDateTime = (value: string) => {
+const formatDateTime = (value: string, locale: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 };
 
 const getNotificationRoute = (item: AdminNotification): string | null => {
@@ -15,6 +19,7 @@ const getNotificationRoute = (item: AdminNotification): string | null => {
 };
 
 export function NotificationsPage() {
+  const { i18n, t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -28,7 +33,9 @@ export function NotificationsPage() {
   } = useAdminNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const highlightId = (location.state as { highlightNotificationId?: string } | null)?.highlightNotificationId;
+  const highlightId = (
+    location.state as { highlightNotificationId?: string } | null
+  )?.highlightNotificationId;
 
   const filteredNotifications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -57,11 +64,9 @@ export function NotificationsPage() {
     <section className="page notificationsPage">
       <div className="pageHeader">
         <div>
-          <p className="pageEyebrow">Notifications</p>
-          <h1 className="pageTitle">Admin Notifications</h1>
-          <p className="pageDescription">
-            Review the full admin notification history and open the related verification work when needed.
-          </p>
+          <p className="pageEyebrow">{t("notificationsPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("notificationsPage.title")}</h1>
+          <p className="pageDescription">{t("notificationsPage.description")}</p>
         </div>
         <div className="pageHeaderActions">
           <button
@@ -72,27 +77,37 @@ export function NotificationsPage() {
             }}
             disabled={isLoading}
           >
-            {isLoading ? "Refreshing..." : "Refresh"}
+            {isLoading ? t("notificationsPage.refreshing") : t("common.refresh")}
           </button>
         </div>
       </div>
 
       <div className="notificationsSummaryGrid">
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardBlue">
-          <div className="metricLabel">Total Notifications</div>
+          <div className="metricLabel">
+            {t("notificationsPage.totalNotifications")}
+          </div>
           <div className="metricValue">{notifications.length}</div>
-          <div className="metricMeta">All fetched admin notification records</div>
+          <div className="metricMeta">{t("notificationsPage.totalMeta")}</div>
         </div>
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardAmber">
-          <div className="metricLabel">Needs Review</div>
+          <div className="metricLabel">{t("notificationsPage.needsReview")}</div>
           <div className="metricValue">{unreadCount}</div>
-          <div className="metricMeta">Items still unread before opening this notifications page</div>
+          <div className="metricMeta">
+            {t("notificationsPage.needsReviewMeta")}
+          </div>
         </div>
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardGreen">
-          <div className="metricLabel">Connection</div>
-          <div className="metricValue">{isRealtimeConnected ? "Live" : "Sync"}</div>
+          <div className="metricLabel">{t("notificationsPage.connection")}</div>
+          <div className="metricValue">
+            {isRealtimeConnected
+              ? t("notificationsPage.connectionLive")
+              : t("notificationsPage.connectionSync")}
+          </div>
           <div className="metricMeta">
-            {isRealtimeConnected ? "Realtime notification stream connected" : "Showing the latest fetched notifications"}
+            {isRealtimeConnected
+              ? t("notificationsPage.connectionLiveMeta")
+              : t("notificationsPage.connectionSyncMeta")}
           </div>
         </div>
       </div>
@@ -100,16 +115,18 @@ export function NotificationsPage() {
       <div className="card notificationsPagePanel">
         <div className="notificationsPageToolbar">
           <div>
-            <div className="sectionTitle">Notification Records</div>
+            <div className="sectionTitle">
+              {t("notificationsPage.recordsTitle")}
+            </div>
             <p className="sectionDescription">
-              Search by title, message, or type to quickly find a specific admin notification record.
+              {t("notificationsPage.recordsDescription")}
             </p>
           </div>
           <div className="notificationsPageSearchField">
             <input
               type="search"
               className="authInput"
-              placeholder="Search notifications..."
+              placeholder={t("notificationsPage.searchPlaceholder")}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
@@ -121,7 +138,9 @@ export function NotificationsPage() {
         <div className="notificationsPageList">
           {filteredNotifications.length === 0 ? (
             <div className="notificationsPageEmpty">
-              {searchQuery.trim() ? "No notifications match your search." : "No admin notifications yet."}
+              {searchQuery.trim()
+                ? t("notificationsPage.emptySearch")
+                : t("notificationsPage.emptyDefault")}
             </div>
           ) : (
             filteredNotifications.map((item) => {
@@ -133,11 +152,17 @@ export function NotificationsPage() {
                     if (el) itemRefs.current.set(item.id, el);
                     else itemRefs.current.delete(item.id);
                   }}
-                  className={item.isRead ? "notificationsPageItem" : "notificationsPageItem unread"}
+                  className={
+                    item.isRead
+                      ? "notificationsPageItem"
+                      : "notificationsPageItem unread"
+                  }
                 >
                   <div className="notificationsPageItemTop">
                     <span className="inlineBadge">{item.type}</span>
-                    <span className="notificationsTimestamp">{formatDateTime(item.createdAt)}</span>
+                    <span className="notificationsTimestamp">
+                      {formatDateTime(item.createdAt, i18n.language)}
+                    </span>
                   </div>
                   <div className="notificationsTitle">{item.title}</div>
                   <p className="notificationsMessage">{item.message}</p>
@@ -151,7 +176,7 @@ export function NotificationsPage() {
                           navigate(detailsRoute);
                         }}
                       >
-                        View Details
+                        {t("notificationsPage.viewDetails")}
                       </button>
                     ) : null}
                   </div>

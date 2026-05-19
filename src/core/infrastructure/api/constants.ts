@@ -39,6 +39,18 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/admin/dashboard/notifications",
   },
 
+  DASHBOARD_ADMIN_CHAT: {
+    AWAITING_INSTRUCTION:
+      "/api/v1/admin/dashboard/chats/safe-payments/awaiting-instruction",
+    PENDING: "/api/v1/admin/dashboard/chats/safe-payments/pending",
+    SEND_INSTRUCTION: (transactionId: string) =>
+      `/api/v1/admin/dashboard/chats/safe-payments/${transactionId}/send-instruction`,
+    RECEIVED: (transactionId: string) =>
+      `/api/v1/admin/dashboard/chats/safe-payments/${transactionId}/received`,
+    TRANSFERRED: (transactionId: string) =>
+      `/api/v1/admin/dashboard/chats/safe-payments/${transactionId}/transferred`,
+  },
+
   PUSHER: {
     CLIENT_AUTH: "/api/v1/client/pusher/auth",
     ADMIN_AUTH: "/api/v1/admin/dashboard/pusher/auth",

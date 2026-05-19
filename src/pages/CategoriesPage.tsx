@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CategoryDetails } from "@/features/categories/CategoryDetails";
 import { CategoryFormModal } from "@/features/categories/CategoryFormModal";
 import { CategoryTree } from "@/features/categories/CategoryTree";
@@ -91,6 +92,7 @@ const buildCsv = (categories: Category[]) => {
 };
 
 export function CategoriesPage() {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -157,13 +159,13 @@ export function CategoriesPage() {
         );
       } catch (error) {
         setPageError(
-          error instanceof Error ? error.message : "Failed to load categories."
+          error instanceof Error ? error.message : t("categoriesPage.loadError")
         );
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -191,7 +193,7 @@ export function CategoriesPage() {
           setPageError(
             error instanceof Error
               ? error.message
-              : "Failed to load category details."
+              : t("categoriesPage.detailsLoadError")
           );
         }
       } finally {
@@ -206,7 +208,7 @@ export function CategoriesPage() {
     return () => {
       isActive = false;
     };
-  }, [selectedId]);
+  }, [selectedId, t]);
 
   const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
   const filteredTree = useMemo(
@@ -243,18 +245,28 @@ export function CategoriesPage() {
                   ? String((response.data as { _id: string })._id)
                   : null
             : null;
-        showToast("Category created.");
-        setFormState({ isOpen: false, mode: "create", category: null, parentId: null });
+        showToast(t("categoriesPage.createdToast"));
+        setFormState({
+          isOpen: false,
+          mode: "create",
+          category: null,
+          parentId: null,
+        });
         await loadCategories(createdId);
       } else if (formState.category) {
         await updateCategory(formState.category.id, payload);
-        showToast("Category updated.");
-        setFormState({ isOpen: false, mode: "create", category: null, parentId: null });
+        showToast(t("categoriesPage.updatedToast"));
+        setFormState({
+          isOpen: false,
+          mode: "create",
+          category: null,
+          parentId: null,
+        });
         await loadCategories(formState.category.id);
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Failed to save category.";
+        error instanceof Error ? error.message : t("categoriesPage.saveError");
       setPageError(message);
       setModalError(message);
     } finally {
@@ -267,7 +279,7 @@ export function CategoriesPage() {
       setIsSaving(true);
       setPageError(null);
       await deleteCategory(categoryId);
-      showToast("Category deactivated.");
+      showToast(t("categoriesPage.deactivatedToast"));
       setDeleteTarget(null);
       if (selectedId === categoryId) {
         setSelectedCategory(null);
@@ -277,7 +289,7 @@ export function CategoriesPage() {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to deactivate category."
+          : t("categoriesPage.deactivateError")
       );
     } finally {
       setIsSaving(false);
@@ -297,12 +309,18 @@ export function CategoriesPage() {
 
     const descendantIds = collectDescendantIds(draggedCategory);
     const previousCategories = categories;
+    const sourceParentId = draggedCategory.parentId;
+    const sourceSiblingGroup =
+      sourceParentId === null
+        ? categories
+        : findCategoryById(categories, sourceParentId)?.children || [];
+    const sourceIndex = sourceSiblingGroup.findIndex((item) => item.id === movedId);
 
     let nextCategories = categories;
     if (overId.startsWith("child:")) {
       const parentId = overId.replace("child:", "");
       if (parentId === movedId || descendantIds.includes(parentId)) {
-        setPageError("A category cannot be moved into itself or its own descendant.");
+        setPageError(t("categoriesPage.selfMoveError"));
         return;
       }
       const parent = findCategoryById(categories, parentId);
@@ -317,7 +335,13 @@ export function CategoriesPage() {
         target.parentId === null
           ? categories
           : findCategoryById(categories, target.parentId)?.children || [];
-      const insertIndex = siblingGroup.findIndex((item) => item.id === targetId);
+      const targetIndex = siblingGroup.findIndex((item) => item.id === targetId);
+      const insertIndex =
+        sourceParentId === target.parentId &&
+        sourceIndex >= 0 &&
+        targetIndex > sourceIndex
+          ? targetIndex - 1
+          : targetIndex;
       nextCategories = moveCategoryTree(
         categories,
         movedId,
@@ -332,14 +356,12 @@ export function CategoriesPage() {
       setIsSaving(true);
       setPageError(null);
       await persistCategoryTree(nextCategories);
-      showToast("Category order updated.");
+      showToast(t("categoriesPage.reorderToast"));
       await loadCategories(selectedId);
     } catch (error) {
       setCategories(previousCategories);
       setPageError(
-        error instanceof Error
-          ? error.message
-          : "Failed to move category."
+        error instanceof Error ? error.message : t("categoriesPage.moveError")
       );
     } finally {
       setIsSaving(false);
@@ -388,14 +410,14 @@ export function CategoriesPage() {
         await deleteCategory(category.id);
       }
 
-      showToast("Selected categories deactivated.");
+      showToast(t("categoriesPage.batchDeactivatedToast"));
       setSelectedIds([]);
       await loadCategories(selectedId);
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to deactivate selected categories."
+          : t("categoriesPage.batchDeactivateError")
       );
     } finally {
       setIsSaving(false);
@@ -410,16 +432,14 @@ export function CategoriesPage() {
     );
 
     if (hasNestedSelection) {
-      setPageError(
-        "Batch move does not support selecting a category together with one of its descendants."
-      );
+      setPageError(t("categoriesPage.batchNestedError"));
       return;
     }
 
     const nextParentId = batchMoveParentId === "__root__" ? null : batchMoveParentId;
 
     if (nextParentId && !availableCategoryIds.has(nextParentId)) {
-      setPageError("Choose a valid destination category for the batch move.");
+      setPageError(t("categoriesPage.invalidDestinationError"));
       return;
     }
 
@@ -443,7 +463,7 @@ export function CategoriesPage() {
           })
         )
       );
-      showToast("Selected categories moved.");
+      showToast(t("categoriesPage.batchMovedToast"));
       setSelectedIds([]);
       setBatchMoveParentId("__root__");
       await loadCategories(selectedId);
@@ -451,7 +471,7 @@ export function CategoriesPage() {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to move selected categories."
+          : t("categoriesPage.batchMoveError")
       );
     } finally {
       setIsSaving(false);
@@ -462,11 +482,9 @@ export function CategoriesPage() {
     <section className="page categoriesPage">
       <div className="pageHeader">
         <div>
-          <p className="pageEyebrow">Categories</p>
-          <h1 className="pageTitle">Category Management</h1>
-          <p className="pageDescription">
-            Manage category hierarchy, reorder navigation, and review category metadata in one workspace.
-          </p>
+          <p className="pageEyebrow">{t("categoriesPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("categoriesPage.title")}</h1>
+          <p className="pageDescription">{t("categoriesPage.description")}</p>
         </div>
         <div className="pageHeaderActions">
           <button
@@ -477,26 +495,31 @@ export function CategoriesPage() {
             }}
             disabled={isLoading || isSaving}
           >
-            {isLoading ? "Refreshing..." : "Refresh"}
+            {isLoading ? t("categoriesPage.refreshing") : t("common.refresh")}
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={() => exportCategories("json")}>
             <DownloadIcon />
-            <span>Export JSON</span>
+            <span>{t("categoriesPage.exportJson")}</span>
           </button>
           <button type="button" className="verificationActionButton subtle" onClick={() => exportCategories("csv")}>
             <DownloadIcon />
-            <span>Export CSV</span>
+            <span>{t("categoriesPage.exportCsv")}</span>
           </button>
           <button
             type="button"
             className="verificationActionButton"
             onClick={() => {
               setModalError(null);
-              setFormState({ isOpen: true, mode: "create", category: null, parentId: null });
+              setFormState({
+                isOpen: true,
+                mode: "create",
+                category: null,
+                parentId: null,
+              });
             }}
           >
             <PlusIcon />
-            <span>Create Category</span>
+            <span>{t("categoriesPage.createCategory")}</span>
           </button>
         </div>
       </div>
@@ -506,25 +529,27 @@ export function CategoriesPage() {
           <div className="rewardsSummaryIcon rewardsSummaryIconIndigo">
             <BatchIcon />
           </div>
-          <div className="metricLabel">Total Categories</div>
+          <div className="metricLabel">{t("categoriesPage.totalCategories")}</div>
           <div className="metricValue">{flatCategories.length}</div>
-          <div className="metricMeta">All root and child categories in the hierarchy</div>
+          <div className="metricMeta">
+            {t("categoriesPage.totalCategoriesMeta")}
+          </div>
         </div>
         <div className="metricCard rewardsSummaryCard">
           <div className="rewardsSummaryIcon rewardsSummaryIconRose">
             <BatchIcon />
           </div>
-          <div className="metricLabel">Inactive</div>
+          <div className="metricLabel">{t("categoriesPage.inactive")}</div>
           <div className="metricValue">{inactiveCount}</div>
-          <div className="metricMeta">Soft-deleted categories shown with grayed styling</div>
+          <div className="metricMeta">{t("categoriesPage.inactiveMeta")}</div>
         </div>
         <div className="metricCard rewardsSummaryCard">
           <div className="rewardsSummaryIcon rewardsSummaryIconSky">
             <LayersIcon />
           </div>
-          <div className="metricLabel">Root Groups</div>
+          <div className="metricLabel">{t("categoriesPage.rootGroups")}</div>
           <div className="metricValue">{rootCount}</div>
-          <div className="metricMeta">Top-level navigation groups visible in the category tree</div>
+          <div className="metricMeta">{t("categoriesPage.rootGroupsMeta")}</div>
         </div>
       </div>
 
@@ -532,20 +557,22 @@ export function CategoriesPage() {
         <div className="card categoriesBatchPanel">
           <div className="categoriesBatchHeader">
             <div>
-              <div className="sectionTitle">Batch Actions</div>
+              <div className="sectionTitle">{t("categoriesPage.batchActions")}</div>
               <p className="sectionDescription">
-                {selectedIds.length} categories selected. Use batch deactivate or move selected categories under a new parent.
+                {t("categoriesPage.batchDescription", {
+                  count: selectedIds.length,
+                })}
               </p>
             </div>
             <div className="categoriesBatchActions">
               <label className="categoriesBatchSelect">
-                <span className="authLabel">Destination</span>
+                <span className="authLabel">{t("categoriesPage.destination")}</span>
                 <select
                   className="authInput"
                   value={batchMoveParentId}
                   onChange={(event) => setBatchMoveParentId(event.target.value)}
                 >
-                  <option value="__root__">Move to root</option>
+                  <option value="__root__">{t("categoriesPage.moveToRoot")}</option>
                   {batchParentOptions.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -561,7 +588,7 @@ export function CategoriesPage() {
                   void handleBatchMove();
                 }}
               >
-                Move Selected
+                {t("categoriesPage.moveSelected")}
               </button>
               <button
                 type="button"
@@ -571,7 +598,7 @@ export function CategoriesPage() {
                   void handleBatchDeactivate();
                 }}
               >
-                Deactivate Selected
+                {t("categoriesPage.deactivateSelected")}
               </button>
             </div>
           </div>
@@ -641,7 +668,9 @@ export function CategoriesPage() {
         />
       </div>
 
-      <p className="rewardsLastUpdated">Last updated: today at {lastUpdated}</p>
+      <p className="rewardsLastUpdated">
+        {t("categoriesPage.lastUpdated", { time: lastUpdated })}
+      </p>
       {toastMessage ? <div className="rewardsToast">{toastMessage}</div> : null}
 
       <CategoryFormModal
@@ -660,7 +689,12 @@ export function CategoriesPage() {
         submitError={modalError}
         onClose={() => {
           setModalError(null);
-          setFormState({ isOpen: false, mode: "create", category: null, parentId: null });
+          setFormState({
+            isOpen: false,
+            mode: "create",
+            category: null,
+            parentId: null,
+          });
         }}
         onSubmit={handleFormSubmit}
       />
