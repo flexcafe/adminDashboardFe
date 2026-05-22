@@ -1,3 +1,4 @@
+import { CheckCircle, Facebook, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import container from "@/core/infrastructure/di/container";
@@ -266,23 +267,32 @@ export function FacebookFollowPage() {
             }}
             disabled={isLoading || !!savingKey}
           >
-            {isLoading ? t("facebookFollowPage.refreshing") : t("common.refresh")}
+            <span>{isLoading ? t("facebookFollowPage.refreshing") : t("common.refresh")}</span>
           </button>
         </div>
       </div>
 
       <div className="verificationSummaryGrid">
         <div className="metricCard verificationSummaryCard verificationSummaryCardYellow">
+          <div className="rewardsSummaryIcon rewardsSummaryIconFacebook">
+            <Facebook size={18} />
+          </div>
           <div className="metricLabel">{t("facebookFollowPage.pendingReview")}</div>
           <div className="metricValue">{pendingCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.pendingReviewMeta")}</div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardGreen">
+          <div className="rewardsSummaryIcon rewardsSummaryIconEmerald">
+            <Users size={18} />
+          </div>
           <div className="metricLabel">{t("facebookFollowPage.approved")}</div>
           <div className="metricValue">{approvedCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.approvedMeta")}</div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardBlue">
+          <div className="rewardsSummaryIcon rewardsSummaryIconRed">
+            <CheckCircle size={18} />
+          </div>
           <div className="metricLabel">{t("facebookFollowPage.rejected")}</div>
           <div className="metricValue">{rejectedCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.rejectedMeta")}</div>

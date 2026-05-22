@@ -50,12 +50,7 @@ export class ApiAuthRepository {
     password: string
   ): Promise<{ user: User; token: string }> {
     try {
-      const loginPayload: Record<string, string> = { password };
-      if (identifier.includes("@")) {
-        loginPayload.email = identifier;
-      } else {
-        loginPayload.phone = identifier;
-      }
+      const loginPayload = this.buildLoginPayload(identifier, password);
 
       const response = await this.httpClient.post<ApiResponse<LoginResponse>>(
         API_ENDPOINTS.AUTH.LOGIN,
@@ -67,26 +62,15 @@ export class ApiAuthRepository {
         throw new Error("Login response did not include a token");
       }
 
-      // Store token in secure cookie
-      tokenCookies.setToken(token);
-
-      // Get CSRF token after successful login
-      try {
-        await this.httpClient.refreshCsrfToken();
-      } catch {
-        // Don't fail login if CSRF token fetch fails
+      const responseUser = this.extractUser(response);
+      if (!responseUser) {
+        throw new Error("Login response did not include a user");
       }
 
-      // Resolve user from response and normalize with JWT payload.
-      // Some backend responses omit role; JWT still carries authoritative role.
-      const responseUser = this.extractUser(response);
-      const tokenUser = this.buildUserFromToken(token, identifier);
-      const user = responseUser
-        ? this.mergeUsers(this.mapApiResponseToUser(responseUser), tokenUser)
-        : tokenUser;
+      const user = this.mapApiResponseToUser(responseUser);
 
-      // Store user in secure cookie
-      tokenCookies.setUser(JSON.stringify(user));
+      this.persistAuthenticatedSession(token, user);
+
       return { user, token };
     } catch (error: unknown) {
       console.error("Error during login:", error);
@@ -100,6 +84,27 @@ export class ApiAuthRepository {
       }
       throw new Error("Invalid credentials");
     }
+  }
+
+  private buildLoginPayload(
+    identifier: string,
+    password: string
+  ): Record<string, string> {
+    if (identifier.includes("@")) {
+      return { email: identifier, password };
+    }
+
+    return { phone: identifier, password };
+  }
+
+  private persistAuthenticatedSession(token: string, user: User): void {
+    sessionStorage.setItem("wms_token", token);
+    sessionStorage.setItem("wms_user", JSON.stringify(user));
+
+    // Keep existing tokenCookies integration so the current app auth restore
+    // flow continues to work without wider repository changes.
+    tokenCookies.setToken(token);
+    tokenCookies.setUser(JSON.stringify(user));
   }
 
   /**
@@ -212,8 +217,14 @@ export class ApiAuthRepository {
       root.data && typeof root.data === "object"
         ? (root.data as Record<string, unknown>)
         : null;
+    const nestedData =
+      data?.data && typeof data.data === "object"
+        ? (data.data as Record<string, unknown>)
+        : null;
 
     const candidate =
+      nestedData?.user ??
+      nestedData?.admin ??
       data?.user ??
       data?.admin ??
       root.user ??
@@ -225,78 +236,8 @@ export class ApiAuthRepository {
     return null;
   }
 
-  private buildUserFromToken(token: string, identifier: string): User {
-    const payload = this.parseJwtPayload(token);
-    const role = this.normalizeRole(payload?.role || payload?.userRole);
-    const email =
-      typeof payload?.email === "string"
-        ? payload.email
-        : identifier.includes("@")
-          ? identifier
-          : "";
-    const phone =
-      typeof payload?.phone === "string"
-        ? payload.phone
-        : !identifier.includes("@")
-          ? identifier
-          : "";
-    const now = new Date();
-    const profileImageUrl =
-      typeof payload?.profileImageUrl === "string"
-        ? payload.profileImageUrl
-        : undefined;
-
-    return new User({
-      id: String(payload?.id || payload?.sub || ""),
-      name: String(payload?.name || payload?.username || "Admin"),
-      email,
-      phone,
-      role,
-      profileImageUrl: this.convertToFullUrl(profileImageUrl),
-      createdDate: now,
-      updatedDate: now,
-    });
-  }
-
-  private parseJwtPayload(token: string): Record<string, unknown> | null {
-    try {
-      const parts = token.split(".");
-      if (parts.length < 2) return null;
-
-      const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-      const padded = normalized.padEnd(
-        normalized.length + ((4 - (normalized.length % 4)) % 4),
-        "="
-      );
-      const payloadJson = atob(padded);
-      return JSON.parse(payloadJson) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  }
-
   private normalizeRole(rawRole: unknown): "ADMIN" | "STAFF" {
-    const value = String(rawRole || "").toUpperCase();
-    return value.includes("ADMIN") ? "ADMIN" : "STAFF";
-  }
-
-  private mergeUsers(apiUser: User, tokenUser: User): User {
-    return new User({
-      id: apiUser.id || tokenUser.id,
-      name: apiUser.name || tokenUser.name,
-      email: apiUser.email || tokenUser.email,
-      phone: apiUser.phone || tokenUser.phone,
-      role: this.resolveRole(apiUser.role, tokenUser.role),
-      profileImageUrl: apiUser.profileImageUrl || tokenUser.profileImageUrl,
-      createdDate: apiUser.createdDate || tokenUser.createdDate,
-      updatedDate: apiUser.updatedDate || tokenUser.updatedDate,
-    });
-  }
-
-  private resolveRole(
-    apiRole: "ADMIN" | "STAFF",
-    tokenRole: "ADMIN" | "STAFF"
-  ): "ADMIN" | "STAFF" {
-    return apiRole === "ADMIN" || tokenRole === "ADMIN" ? "ADMIN" : "STAFF";
+    const value = String(rawRole || "").trim().toUpperCase();
+    return value === "ADMIN" ? "ADMIN" : "STAFF";
   }
 }

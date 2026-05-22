@@ -123,13 +123,6 @@
   color: #A0A0A0;
 }
 
-[data-theme="dark"] .verificationSummaryCardBlue,
-[data-theme="dark"] .verificationSummaryCardGreen,
-[data-theme="dark"] .verificationSummaryCardYellow {
-  background: #141618 !important;
-  color: #EAEAEA;
-}
-
 [data-theme="dark"] .verificationSummaryCardBlue {
   border-top: 3px solid #6f86b4;
 }

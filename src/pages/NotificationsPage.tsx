@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, BellRing, MailCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   useAdminNotifications,
-  type AdminNotification,
 } from "@/features/adminNotifications/AdminNotificationsContext";
 
 const formatDateTime = (value: string, locale: string) => {
@@ -12,15 +12,8 @@ const formatDateTime = (value: string, locale: string) => {
   return date.toLocaleString(locale);
 };
 
-const getNotificationRoute = (item: AdminNotification): string | null => {
-  if (item.routePath) return item.routePath;
-  if (item.userId) return `/dashboard/${item.userId}`;
-  return null;
-};
-
 export function NotificationsPage() {
   const { i18n, t } = useTranslation();
-  const navigate = useNavigate();
   const location = useLocation();
   const {
     notifications,
@@ -29,9 +22,12 @@ export function NotificationsPage() {
     error,
     isRealtimeConnected,
     markNotificationsRead,
+    markAllNotificationsReadAsync,
     refreshNotifications,
   } = useAdminNotifications();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMarkAllConfirmOpen, setIsMarkAllConfirmOpen] = useState(false);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
   const highlightId = (
     location.state as { highlightNotificationId?: string } | null
@@ -60,6 +56,13 @@ export function NotificationsPage() {
     return () => clearTimeout(timer);
   }, [highlightId, filteredNotifications]);
 
+  const handleMarkAllAsRead = useCallback(async () => {
+    setIsMarkingAll(true);
+    await markAllNotificationsReadAsync();
+    setIsMarkingAll(false);
+    setIsMarkAllConfirmOpen(false);
+  }, [markAllNotificationsReadAsync]);
+
   return (
     <section className="page notificationsPage">
       <div className="pageHeader">
@@ -69,6 +72,16 @@ export function NotificationsPage() {
           <p className="pageDescription">{t("notificationsPage.description")}</p>
         </div>
         <div className="pageHeaderActions">
+          {unreadCount > 0 ? (
+            <button
+              type="button"
+              className="verificationActionButton subtle"
+              onClick={() => setIsMarkAllConfirmOpen(true)}
+              disabled={isLoading || isMarkingAll}
+            >
+              <span>{t("notificationsPage.markAllAsRead")}</span>
+            </button>
+          ) : null}
           <button
             type="button"
             className="verificationActionButton"
@@ -77,13 +90,16 @@ export function NotificationsPage() {
             }}
             disabled={isLoading}
           >
-            {isLoading ? t("notificationsPage.refreshing") : t("common.refresh")}
+            <span>{isLoading ? t("notificationsPage.refreshing") : t("common.refresh")}</span>
           </button>
         </div>
       </div>
 
       <div className="notificationsSummaryGrid">
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardBlue">
+          <div className="rewardsSummaryIcon rewardsSummaryIconBlue">
+            <Bell size={18} />
+          </div>
           <div className="metricLabel">
             {t("notificationsPage.totalNotifications")}
           </div>
@@ -91,6 +107,9 @@ export function NotificationsPage() {
           <div className="metricMeta">{t("notificationsPage.totalMeta")}</div>
         </div>
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardAmber">
+          <div className="rewardsSummaryIcon rewardsSummaryIconAmber">
+            <BellRing size={18} />
+          </div>
           <div className="metricLabel">{t("notificationsPage.needsReview")}</div>
           <div className="metricValue">{unreadCount}</div>
           <div className="metricMeta">
@@ -98,6 +117,9 @@ export function NotificationsPage() {
           </div>
         </div>
         <div className="metricCard notificationsSummaryCard notificationsSummaryCardGreen">
+          <div className="rewardsSummaryIcon rewardsSummaryIconEmerald">
+            <MailCheck size={18} />
+          </div>
           <div className="metricLabel">{t("notificationsPage.connection")}</div>
           <div className="metricValue">
             {isRealtimeConnected
@@ -143,49 +165,88 @@ export function NotificationsPage() {
                 : t("notificationsPage.emptyDefault")}
             </div>
           ) : (
-            filteredNotifications.map((item) => {
-              const detailsRoute = getNotificationRoute(item);
-              return (
-                <article
-                  key={item.id}
-                  ref={(el) => {
-                    if (el) itemRefs.current.set(item.id, el);
-                    else itemRefs.current.delete(item.id);
-                  }}
-                  className={
-                    item.isRead
-                      ? "notificationsPageItem"
-                      : "notificationsPageItem unread"
-                  }
-                >
-                  <div className="notificationsPageItemTop">
-                    <span className="inlineBadge">{item.type}</span>
+            filteredNotifications.map((item) => (
+              <article
+                key={item.id}
+                ref={(el) => {
+                  if (el) itemRefs.current.set(item.id, el);
+                  else itemRefs.current.delete(item.id);
+                }}
+                className={
+                  item.isRead
+                    ? "notificationsPageItem"
+                    : "notificationsPageItem unread"
+                }
+              >
+                <div className="notificationsPageItemRow">
+                  <div className="notificationsPageItemBody">
+                    <div className="notificationsPageItemTop">
+                      <span className="inlineBadge">{item.type}</span>
+                    </div>
+                    <div className="notificationsTitle">{item.title}</div>
+                    <p className="notificationsMessage">{item.message}</p>
+                  </div>
+                  <div className="notificationsPageItemSide">
                     <span className="notificationsTimestamp">
                       {formatDateTime(item.createdAt, i18n.language)}
                     </span>
-                  </div>
-                  <div className="notificationsTitle">{item.title}</div>
-                  <p className="notificationsMessage">{item.message}</p>
-                  <div className="notificationsPageItemActions">
-                    {detailsRoute ? (
+                    {!item.isRead ? (
                       <button
                         type="button"
-                        className="verificationActionButton"
-                        onClick={() => {
-                          markNotificationsRead([item.id]);
-                          navigate(detailsRoute);
-                        }}
+                        className="verificationActionButton subtle notificationsMarkReadBtn"
+                        onClick={() => markNotificationsRead([item.id])}
                       >
-                        {t("notificationsPage.viewDetails")}
+                        {t("notificationsPage.markAsRead")}
                       </button>
                     ) : null}
                   </div>
-                </article>
-              );
-            })
+                </div>
+              </article>
+            ))
           )}
         </div>
       </div>
+
+      {isMarkAllConfirmOpen ? (
+        <div className="sliderModalOverlay" role="presentation" onClick={() => setIsMarkAllConfirmOpen(false)}>
+          <div
+            className="sliderConfirmDialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mark-all-read-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="mark-all-read-title" className="sectionTitle">
+              {t("notificationsPage.markAllReadTitle")}
+            </h2>
+            <p className="sectionDescription">
+              {t("notificationsPage.markAllReadDescription")}
+            </p>
+            <div className="sliderModalActions">
+              <button
+                type="button"
+                className="verificationActionButton subtle"
+                onClick={() => setIsMarkAllConfirmOpen(false)}
+                disabled={isMarkingAll}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                className="verificationActionButton"
+                onClick={() => {
+                  void handleMarkAllAsRead();
+                }}
+                disabled={isMarkingAll}
+              >
+                {isMarkingAll
+                  ? t("notificationsPage.markingAll")
+                  : t("notificationsPage.confirmMarkAll")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

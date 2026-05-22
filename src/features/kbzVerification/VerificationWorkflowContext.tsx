@@ -124,10 +124,15 @@ const normalizeVerificationRecord = (
       toText(item.contact),
     createdAt:
       toText(item.createdAt) ||
+      toText(item.verifyRequestedAt) ||
       toText(item.requestedAt) ||
       toText(item.registeredAt) ||
       toText(item.date) ||
-      new Date().toISOString(),
+      toText(item.created_at) ||
+      toText(item.verify_requested_at) ||
+      toText(item.requested_at) ||
+      toText(item.registered_at) ||
+      "",
     status,
     adminPhoneForTransfer:
       toText(item.adminPhoneForTransfer) || toText(item.transferPhone),
@@ -139,6 +144,8 @@ const normalizeVerificationRecord = (
       toText(item.updatedAt) ||
       toText(item.verifiedAt) ||
       toText(item.checkedAt) ||
+      toText(item.verifyRequestedAt) ||
+      toText(item.adminInstructionSentAt) ||
       toText(item.requestedAt),
     ...statusMeta[status],
   };

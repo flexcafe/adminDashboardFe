@@ -41,6 +41,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     document.documentElement.setAttribute("data-theme", theme);
     document.documentElement.style.colorScheme = theme;
 
+    // Toggle Tailwind `dark` class for components using dark: prefix
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
     if (followSystemTheme) {
       window.localStorage.removeItem(THEME_STORAGE_KEY);
       return;

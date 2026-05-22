@@ -78,38 +78,11 @@ export class HttpClient {
           return config;
         }
 
-        // Get CSRF token if not available (required for all other POST/PUT/DELETE/PATCH)
-        if (!this.csrfSupported) {
-          return config;
-        }
-
-        if (!this.csrfToken && token) {
-          try {
-            const response = await axios.get(
-              `${this.baseUrl}${API_ENDPOINTS.CSRF.TOKEN}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-                withCredentials: true,
-              }
-            );
-            this.csrfToken = response.data.token;
-            if (this.csrfToken) {
-              tokenCookies.setCsrfToken(this.csrfToken);
-            }
-          } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
-              this.csrfSupported = false;
-              tokenCookies.removeCsrfToken();
-            } else {
-              console.error("Failed to get CSRF token:", error);
-            }
-            this.csrfToken = null;
-            // Don't throw here, let the request proceed and handle the error in response interceptor
-          }
-        }
-
-        // Add CSRF token to headers for all non-GET requests (except login)
-        if (this.csrfToken) {
+        // Reuse an existing CSRF token if one was already established during
+        // login or a previous session, but do not auto-fetch a new token here.
+        // This prevents admin actions from triggering a fresh /csrf/token call
+        // every time the first protected request is made.
+        if (this.csrfSupported && this.csrfToken) {
           config.headers["X-CSRF-Token"] = this.csrfToken;
         }
 

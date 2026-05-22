@@ -1,3 +1,4 @@
+import { Clock, Eye, MessageSquare } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminChat } from "@/features/adminChat/AdminChatContext";
@@ -245,16 +246,25 @@ export function AdminChatWorkspace() {
 
       <div className="adminChatSummaryGrid">
         <div className="metricCard adminChatSummaryCard adminChatSummaryCardGold">
+          <div className="rewardsSummaryIcon rewardsSummaryIconBlue">
+            <MessageSquare size={18} />
+          </div>
           <div className="metricLabel">{t("adminChatPage.awaitingAction")}</div>
           <div className="metricValue">{totalActionable}</div>
           <div className="metricMeta">{t("adminChatPage.awaitingActionMeta")}</div>
         </div>
         <div className="metricCard adminChatSummaryCard adminChatSummaryCardSky">
+          <div className="rewardsSummaryIcon rewardsSummaryIconOrange">
+            <Clock size={18} />
+          </div>
           <div className="metricLabel">{t("adminChatPage.awaitingInstruction")}</div>
           <div className="metricValue">{queueStats.awaitingInstruction}</div>
           <div className="metricMeta">{t("adminChatPage.awaitingInstructionMeta")}</div>
         </div>
         <div className="metricCard adminChatSummaryCard adminChatSummaryCardMint">
+          <div className="rewardsSummaryIcon rewardsSummaryIconSlate">
+            <Eye size={18} />
+          </div>
           <div className="metricLabel">{t("adminChatPage.pending")}</div>
           <div className="metricValue">{queueStats.pending}</div>
           <div className="metricMeta">{t("adminChatPage.pendingMeta")}</div>

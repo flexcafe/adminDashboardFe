@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
 
   DASHBOARD_NOTIFICATIONS: {
     LIST: "/api/v1/admin/dashboard/notifications",
+    MARK_ALL_READ: "/api/v1/admin/dashboard/notifications/mark-all-read",
   },
 
   DASHBOARD_ADMIN_CHAT: {

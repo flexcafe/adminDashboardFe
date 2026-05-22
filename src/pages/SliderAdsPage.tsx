@@ -8,6 +8,7 @@ import {
   getEffectiveSliderAdStatus,
   isSliderAdCurrentlyActive,
   listSliderAds,
+  type EffectiveStatus,
   type SliderAd,
   type SliderAdPayload,
   updateSliderAd,
@@ -57,8 +58,11 @@ function ArrowDownIcon() {
   );
 }
 
-const getStatusBadgeClassName = (status: SliderAd["status"]) =>
-  status === "ACTIVE" ? "rewardsBadge completed" : "rewardsBadge rejected";
+const getStatusBadgeClassName = (status: EffectiveStatus) => {
+  if (status === "ACTIVE") return "rewardsBadge completed";
+  if (status === "EXPIRED") return "rewardsBadge expired";
+  return "rewardsBadge rejected";
+};
 
 const moveItem = <T,>(list: T[], from: number, to: number) => {
   const next = [...list];
@@ -433,7 +437,9 @@ export function SliderAdsPage() {
                       </td>
                       <td>
                         <span className={getStatusBadgeClassName(effectiveStatus)}>
-                          {effectiveStatus}
+                          {effectiveStatus === "EXPIRED"
+                            ? t("sliderAdsPage.expired")
+                            : effectiveStatus}
                         </span>
                       </td>
                       <td>{formatDateTime(item.createdAt)}</td>

@@ -1,3 +1,4 @@
+import { AlertCircle, ShieldCheck, UserCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -116,6 +117,9 @@ export function VerificationList({
 
       <div className="verificationSummaryGrid">
         <div className="metricCard verificationSummaryCard verificationSummaryCardBlue">
+          <div className="rewardsSummaryIcon rewardsSummaryIconBlue">
+            <AlertCircle size={18} />
+          </div>
           <div className="metricLabel">{t("verificationPage.awaitingAction")}</div>
           <div className="metricValue">{totalActionable}</div>
           <div className="metricMeta">
@@ -123,6 +127,9 @@ export function VerificationList({
           </div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardYellow">
+          <div className="rewardsSummaryIcon rewardsSummaryIconAmber">
+            <UserCheck size={18} />
+          </div>
           <div className="metricLabel">{t("verificationPage.registered")}</div>
           <div className="metricValue verificationMetricCompact">
             {registeredAccounts.length}
@@ -130,6 +137,9 @@ export function VerificationList({
           <div className="metricMeta">{t("verificationPage.registeredMeta")}</div>
         </div>
         <div className="metricCard verificationSummaryCard verificationSummaryCardGreen">
+          <div className="rewardsSummaryIcon rewardsSummaryIconEmerald">
+            <ShieldCheck size={18} />
+          </div>
           <div className="metricLabel">{t("verificationPage.verified")}</div>
           <div className="metricValue">{verifiedUsers.length}</div>
           <div className="metricMeta">{t("verificationPage.verifiedMeta")}</div>

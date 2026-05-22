@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { SliderAd, SliderAdPayload, SliderAdStatus } from "./sliderApi";
+import {
+  isSliderAdExpired,
+  type SliderAd,
+  type SliderAdPayload,
+  type SliderAdStatus,
+} from "./sliderApi";
 
 type SliderFormModalProps = {
   isOpen: boolean;
@@ -81,6 +86,15 @@ export function SliderFormModal({
     submitError && submitError.toLowerCase().includes("linkurl")
       ? submitError
       : null;
+
+  // Derive the effective expiration state from the form's endsAt value so the
+  // status toggle stays consistent with the list view badge. When the slider
+  // is expired the toggle is disabled and shows "Expired (Inactive)".
+  const isExpired = useMemo(() => {
+    if (mode !== "edit") return false;
+    const effectiveEndsAt = formState.endsAt || initialData?.endsAt || "";
+    return isSliderAdExpired({ endsAt: effectiveEndsAt });
+  }, [formState.endsAt, initialData?.endsAt, mode]);
 
   if (!isOpen) return null;
 
@@ -237,10 +251,13 @@ export function SliderFormModal({
               <button
                 type="button"
                 className={
-                  formState.status === "ACTIVE"
-                    ? "sliderToggle active"
-                    : "sliderToggle"
+                  isExpired
+                    ? "sliderToggle expired"
+                    : formState.status === "ACTIVE"
+                      ? "sliderToggle active"
+                      : "sliderToggle"
                 }
+                disabled={isExpired}
                 onClick={() =>
                   setFormState((current) => ({
                     ...current,
@@ -250,9 +267,11 @@ export function SliderFormModal({
               >
                 <span className="sliderToggleKnob" />
                 <span className="sliderToggleLabel">
-                  {formState.status === "ACTIVE"
-                    ? t("sliderForm.active")
-                    : t("sliderForm.inactive")}
+                  {isExpired
+                    ? t("sliderForm.expired")
+                    : formState.status === "ACTIVE"
+                      ? t("sliderForm.active")
+                      : t("sliderForm.inactive")}
                 </span>
               </button>
             </label>

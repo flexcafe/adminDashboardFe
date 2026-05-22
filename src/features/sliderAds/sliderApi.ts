@@ -57,9 +57,28 @@ export const isSliderAdCurrentlyActive = (
   return true;
 };
 
+/**
+ * Returns true when the slider's `endsAt` date is in the past, regardless of
+ * the manual status toggle. This allows the Admin UI to display an explicit
+ * "Expired (Inactive)" badge and helps the client app filter out stale banners.
+ */
+export const isSliderAdExpired = (
+  slider: Pick<SliderAd, "endsAt">,
+  now = new Date()
+): boolean => {
+  const endsAt = parseSliderDate(slider.endsAt);
+  return endsAt !== null && endsAt.getTime() <= now.getTime();
+};
+
+export type EffectiveStatus = SliderAdStatus | "EXPIRED";
+
 export const getEffectiveSliderAdStatus = (
-  slider: Pick<SliderAd, "status" | "startsAt" | "endsAt">
-): SliderAdStatus => (isSliderAdCurrentlyActive(slider) ? "ACTIVE" : "INACTIVE");
+  slider: Pick<SliderAd, "status" | "startsAt" | "endsAt">,
+  now = new Date()
+): EffectiveStatus => {
+  if (isSliderAdExpired(slider, now)) return "EXPIRED";
+  return isSliderAdCurrentlyActive(slider, now) ? "ACTIVE" : "INACTIVE";
+};
 
 type ApiResponse<T> = {
   success?: boolean;
@@ -287,6 +306,10 @@ const buildFormData = (payload: SliderAdPayload) => {
 
 export async function listSliderAds(): Promise<SliderAd[]> {
   try {
+    // The backend should filter out expired banners (endsAt < NOW()) so the
+    // Client Mobile App's home page never displays stale promotions. The
+    // frontend also enforces expiration via isSliderAdCurrentlyActive() /
+    // getEffectiveSliderAdStatus() in the admin UI and SliderPreview.
     const response = await sliderApiClient.get<ApiResponse<unknown>>(
       API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE
     );

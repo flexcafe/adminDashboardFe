@@ -49,6 +49,9 @@ type AdminNotificationsContextValue = {
   refreshNotifications: () => Promise<void>;
   markNotificationsRead: (notificationIds: string[]) => void;
   markAllNotificationsRead: () => void;
+  /** Sends a POST request to the backend to mark all notifications as read,
+   *  then flushes the local unread state to zero. */
+  markAllNotificationsReadAsync: () => Promise<void>;
 };
 
 const AdminNotificationsContext =
@@ -256,8 +259,12 @@ export function AdminNotificationsProvider({
     try {
       setIsLoading(true);
       setError(null);
+      // Use ?status=unread filter on initial/login fetch to prevent legacy
+      // read notifications from appearing as new alerts. Real-time Pusher
+      // events (below) still capture ALL fresh incoming notifications during
+      // the active session regardless of this filter.
       const response = await httpClient.get<ApiResponse<unknown>>(
-        API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.LIST
+        `${API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.LIST}?status=unread`
       );
 
       const normalized = toRecordArray(response?.data)
@@ -410,6 +417,28 @@ export function AdminNotificationsProvider({
     });
   }, [currentUserId]);
 
+  const markAllNotificationsReadAsync = useCallback(async () => {
+    try {
+      setError(null);
+      await httpClient.post<ApiResponse<unknown>>(
+        API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.MARK_ALL_READ
+      );
+      // Flush local state: mark every notification as read and clear the
+      // stored read-ids set since the backend has acknowledged the bulk action.
+      setNotifications((current) =>
+        current.map((item) => ({ ...item, isRead: true }))
+      );
+      readNotificationIdsRef.current = new Set<string>();
+      writeStoredNotificationIds(readNotificationIdsRef.current, currentUserId);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to mark all notifications as read."
+      );
+    }
+  }, [httpClient, currentUserId]);
+
   const value = useMemo<AdminNotificationsContextValue>(
     () => ({
       notifications,
@@ -421,6 +450,7 @@ export function AdminNotificationsProvider({
       refreshNotifications,
       markNotificationsRead,
       markAllNotificationsRead,
+      markAllNotificationsReadAsync,
     }),
     [
       error,
@@ -428,6 +458,7 @@ export function AdminNotificationsProvider({
       isRealtimeConnected,
       lastNotificationAt,
       markAllNotificationsRead,
+      markAllNotificationsReadAsync,
       markNotificationsRead,
       notifications,
       refreshNotifications,
