@@ -34,7 +34,6 @@ export type AdminChatRecord = {
   adminNote: string;
   paymentReference: string;
   stage: AdminChatStage;
-  stageLabel: string;
   canSendInstruction: boolean;
   canMarkReceived: boolean;
   canMarkTransferred: boolean;

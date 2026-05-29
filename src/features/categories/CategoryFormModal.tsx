@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category, CategoryPayload } from "./categoriesApi";
 
@@ -22,10 +22,6 @@ type FormState = {
   sortOrder: string;
   icon: string;
   iconFile: File | null;
-  description: string;
-  metaTitle: string;
-  metaDescription: string;
-  metaKeywords: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -47,10 +43,6 @@ const createInitialState = (
   sortOrder: String(initialCategory?.sortOrder ?? 1),
   icon: initialCategory?.iconUrl || "",
   iconFile: null,
-  description: initialCategory?.description || "",
-  metaTitle: initialCategory?.metaTitle || "",
-  metaDescription: initialCategory?.metaDescription || "",
-  metaKeywords: initialCategory?.metaKeywords.join(", ") || "",
 });
 
 export function CategoryFormModal({
@@ -71,12 +63,17 @@ export function CategoryFormModal({
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [slugTouched, setSlugTouched] = useState(Boolean(initialCategory?.slug));
-  const previewUrl = useMemo(() => {
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
     if (formState.iconFile) {
-      return URL.createObjectURL(formState.iconFile);
+      const objectUrl = URL.createObjectURL(formState.iconFile);
+      setPreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
     }
 
-    return formState.icon.trim() || "";
+    setPreviewUrl(formState.icon.trim() || "");
+    return;
   }, [formState.icon, formState.iconFile]);
 
   const parentSelectOptions = useMemo(
@@ -121,13 +118,6 @@ export function CategoryFormModal({
       sortOrder: Number(formState.sortOrder),
       icon: formState.icon,
       iconFile: formState.iconFile,
-      description: formState.description,
-      metaTitle: formState.metaTitle,
-      metaDescription: formState.metaDescription,
-      metaKeywords: formState.metaKeywords
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
     });
   };
 

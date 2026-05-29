@@ -384,4 +384,32 @@
     "myanmar": "မြန်မာ",
     "switchLanguage": "ဘာသာစကား ပြောင်းရန်"
   }
+,
+  "dynamic": {
+    "general": {
+      "type": "အထွေထွေ",
+      "title": "Admin အသိပေးချက်",
+      "message": "admin update အသစ်တစ်ခု ရောက်ရှိလာပါသည်။"
+    },
+    "kbzpay_verification_requested": {
+      "type": "အတည်ပြုခြင်း",
+      "title": "KBZPay verification request ရောက်ရှိလာသည်",
+      "message": "{{nickname}} က KBZPay verification တောင်းဆိုထားသည်။"
+    },
+    "facebook_follow_submission": {
+      "type": "Facebook Follow",
+      "title": "Facebook follow submission အသစ် ရောက်ရှိလာသည်",
+      "message": "{{nickname}} က Facebook follow proof တင်သွင်းထားသည်။"
+    },
+    "safe_payment_pending": {
+      "type": "Safe Payment",
+      "title": "Safe payment ကို review လုပ်ရန် စောင့်နေသည်",
+      "message": "Transaction {{transactionId}} သည် admin review ကို စောင့်နေသည်။"
+    },
+    "withdrawal_pending": {
+      "type": "Withdrawal",
+      "title": "Withdrawal request စောင့်နေသည်",
+      "message": "{{nickname}} က {{amount}} အတွက် withdrawal request တင်သွင်းထားသည်။"
+    }
+  }
 }

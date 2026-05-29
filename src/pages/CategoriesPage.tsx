@@ -59,16 +59,38 @@ function LayersIcon() {
   );
 }
 
-const persistCategoryTree = async (nextTree: Category[]) => {
-  const flat = flattenCategories(nextTree);
+const getReorderChanges = (previousTree: Category[], nextTree: Category[]) => {
+  const previousFlat = flattenCategories(previousTree);
+  const nextFlat = flattenCategories(nextTree);
+  const previousById = new Map(
+    previousFlat.map((category) => [
+      category.id,
+      { parentId: category.parentId, sortOrder: category.sortOrder },
+    ])
+  );
+
+  return nextFlat.filter((category) => {
+    const previous = previousById.get(category.id);
+    if (!previous) return true;
+    return (
+      previous.parentId !== category.parentId ||
+      previous.sortOrder !== category.sortOrder
+    );
+  });
+};
+
+const persistReorderedCategories = async (
+  previousTree: Category[],
+  nextTree: Category[]
+) => {
+  const changedCategories = getReorderChanges(previousTree, nextTree);
+  if (changedCategories.length === 0) return;
+
   await Promise.all(
-    flat.map((category) =>
+    changedCategories.map((category) =>
       updateCategory(category.id, {
-        name: category.name,
-        slug: category.slug,
         parentId: category.parentId,
         sortOrder: category.sortOrder,
-        icon: category.iconUrl,
       })
     )
   );
@@ -355,7 +377,7 @@ export function CategoriesPage() {
     try {
       setIsSaving(true);
       setPageError(null);
-      await persistCategoryTree(nextCategories);
+      await persistReorderedCategories(previousCategories, nextCategories);
       showToast(t("categoriesPage.reorderToast"));
       await loadCategories(selectedId);
     } catch (error) {
@@ -455,11 +477,8 @@ export function CategoriesPage() {
       await Promise.all(
         selectedBatchCategories.map((category, index) =>
           updateCategory(category.id, {
-            name: category.name,
-            slug: category.slug,
             parentId: nextParentId,
             sortOrder: destinationSiblingCount + index + 1,
-            icon: category.iconUrl,
           })
         )
       );

@@ -11,8 +11,8 @@ export function DashboardPage() {
     verificationRequested,
     moneyCheckRequests,
     verifiedUsers,
-    isLoading,
-    error,
+    isLoading: isVerificationLoading,
+    error: verificationError,
     refreshRequests,
   } = useVerificationWorkflow();
   const [activeTab, setActiveTab] = useState<VerificationListTab>("requested");
@@ -23,18 +23,20 @@ export function DashboardPage() {
   }, [lastNotificationAt, refreshRequests]);
 
   return (
-    <VerificationList
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      registeredAccounts={registeredAccounts}
-      verificationRequested={verificationRequested}
-      moneyCheckRequests={moneyCheckRequests}
-      verifiedUsers={verifiedUsers}
-      isLoading={isLoading}
-      error={error}
-      onRefresh={() => {
-        void refreshRequests();
-      }}
-    />
+    <div className="dashboardPage">
+      <VerificationList
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        registeredAccounts={registeredAccounts}
+        verificationRequested={verificationRequested}
+        moneyCheckRequests={moneyCheckRequests}
+        verifiedUsers={verifiedUsers}
+        isLoading={isVerificationLoading}
+        error={verificationError}
+        onRefresh={() => {
+          void refreshRequests();
+        }}
+      />
+    </div>
   );
 }

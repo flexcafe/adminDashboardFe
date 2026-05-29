@@ -14,6 +14,10 @@ import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { tokenCookies } from "@/lib/cookies";
+import {
+  normalizeDynamicEventKey,
+  type DynamicTranslationParams,
+} from "@/lib/i18n/dynamic";
 import { PUSHER_CHANNELS, PUSHER_CONFIG, PUSHER_EVENTS } from "@/config/pusher";
 
 type ApiResponse<T> = {
@@ -30,6 +34,7 @@ type PusherAuthorizationResponse = {
 
 export type AdminNotification = {
   id: string;
+  eventKey: string;
   title: string;
   message: string;
   type: string;
@@ -37,6 +42,8 @@ export type AdminNotification = {
   isRead: boolean;
   userId?: string;
   routePath?: string;
+  metadata?: DynamicTranslationParams;
+  payload?: DynamicTranslationParams;
 };
 
 type AdminNotificationsContextValue = {
@@ -76,6 +83,11 @@ const toBoolean = (value: unknown): boolean => {
   return false;
 };
 
+const toObject = (value: unknown): DynamicTranslationParams | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return value as DynamicTranslationParams;
+};
+
 const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {
     return value.filter(
@@ -111,6 +123,16 @@ const normalizeNotification = (item: Record<string, unknown>): AdminNotification
     toText(item.targetUserId) ||
     toText(item.relatedUserId) ||
     toText(item.referenceId);
+  const metadata =
+    toObject(item.metadata) ||
+    toObject(item.meta) ||
+    toObject(item.variables) ||
+    toObject(item.context);
+  const payload =
+    toObject(item.payload) ||
+    toObject(item.data) ||
+    toObject(item.details) ||
+    toObject(item.notificationData);
   const title =
     toText(item.title) ||
     toText(item.subject) ||
@@ -127,6 +149,14 @@ const normalizeNotification = (item: Record<string, unknown>): AdminNotification
     toText(item.category) ||
     toText(item.event) ||
     "GENERAL";
+  const eventKey =
+    normalizeDynamicEventKey(item.eventKey) ||
+    normalizeDynamicEventKey(item.event_key) ||
+    normalizeDynamicEventKey(item.notificationKey) ||
+    normalizeDynamicEventKey(item.notification_key) ||
+    normalizeDynamicEventKey(item.type) ||
+    normalizeDynamicEventKey(item.category) ||
+    normalizeDynamicEventKey(item.event);
   const explicitRoutePath =
     toText(item.routePath) ||
     toText(item.path) ||
@@ -145,6 +175,7 @@ const normalizeNotification = (item: Record<string, unknown>): AdminNotification
 
   return {
     id,
+    eventKey,
     title,
     message,
     type,
@@ -158,6 +189,8 @@ const normalizeNotification = (item: Record<string, unknown>): AdminNotification
       toBoolean(item.read) ||
       toBoolean(item.is_seen),
     userId: userId || undefined,
+    metadata,
+    payload,
     routePath:
       explicitRoutePath ||
       (isFacebookFollowNotification
@@ -288,7 +321,8 @@ export function AdminNotificationsProvider({
 
   useEffect(() => {
     void refreshNotifications();
-  }, [refreshNotifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!PUSHER_CONFIG.key || !PUSHER_CONFIG.adminNotificationsEnabled) return;
@@ -372,13 +406,13 @@ export function AdminNotificationsProvider({
   useEffect(() => {
     const refreshIfActive = () => {
       if (document.visibilityState !== "visible") return;
-      void refreshNotifications();
+      void refreshNotificationsRef.current();
     };
 
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       if (isRealtimeConnected) return;
-      void refreshNotifications();
+      void refreshNotificationsRef.current();
     }, NOTIFICATIONS_REFRESH_INTERVAL_MS);
 
     window.addEventListener("focus", refreshIfActive);
@@ -389,7 +423,7 @@ export function AdminNotificationsProvider({
       window.removeEventListener("focus", refreshIfActive);
       document.removeEventListener("visibilitychange", refreshIfActive);
     };
-  }, [isRealtimeConnected, refreshNotifications]);
+  }, [isRealtimeConnected]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,

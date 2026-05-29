@@ -65,6 +65,23 @@ function getTimelineStepState(
   return "idle";
 }
 
+function getStageLabel(stage: AdminChatRecord["stage"], t: (key: string) => string) {
+  switch (stage) {
+    case "SAFE_PAYMENT_AWAITING_INSTRUCTION":
+      return t("adminChatPage.awaitingInstruction");
+    case "SAFE_PAYMENT_INSTRUCTION_SENT":
+      return t("adminChatPage.stepInstruction");
+    case "SAFE_PAYMENT_PENDING":
+      return t("adminChatPage.pending");
+    case "SAFE_PAYMENT_RECEIVED":
+      return t("adminChatPage.stepReceived");
+    case "COMPLETED":
+      return t("adminChatPage.stepTransferred");
+    default:
+      return t("adminChatPage.pending");
+  }
+}
+
 export function AdminChatWorkspace() {
   const { i18n, t } = useTranslation();
   const {
@@ -97,6 +114,35 @@ export function AdminChatWorkspace() {
   );
 
   const currentItems = itemsByTab[activeTab];
+
+  const roomParticipantIndex = useMemo(() => {
+    const index = new Map<string, string>();
+
+    for (const item of [...awaitingInstruction, ...pending]) {
+      if (item.chatRoomId && item.buyerId && item.buyerName) {
+        index.set(`${item.chatRoomId}:${item.buyerId}`, item.buyerName);
+      }
+
+      if (item.chatRoomId && item.sellerId && item.sellerName) {
+        index.set(`${item.chatRoomId}:${item.sellerId}`, item.sellerName);
+      }
+    }
+
+    return index;
+  }, [awaitingInstruction, pending]);
+
+  const resolveNickname = (
+    roomId: string,
+    userId: string,
+    fallbackId: string
+  ) => {
+    if (roomId && userId) {
+      const nickname = roomParticipantIndex.get(`${roomId}:${userId}`);
+      if (nickname) return nickname;
+    }
+
+    return fallbackId ? fallbackId.substring(0, 6) : "";
+  };
 
   const filteredItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -328,103 +374,64 @@ export function AdminChatWorkspace() {
                   : t("adminChatPage.emptyDefault")}
               </div>
             ) : (
-              filteredItems.map((item) => (
-                <button
-                  key={item.transactionId}
-                  type="button"
-                  className={
-                    selectedRecord?.transactionId === item.transactionId
-                      ? "adminChatListCard active"
-                      : "adminChatListCard"
-                  }
-                  onClick={() => setSelectedId(item.transactionId)}
-                >
-                  <div className="adminChatListTop">
-                    <span className="inlineBadge">{item.stageLabel}</span>
-                    <span className="adminChatTimestamp">
-                      {formatDate(item.updatedAt || item.createdAt, i18n.language)}
-                    </span>
-                  </div>
-                  <div className="adminChatListTitle">
-                    {item.listingTitle || t("adminChatPage.untitledListing")}
-                  </div>
-                  <div className="adminChatListMeta">
-                    <span>{item.buyerName || t("adminChatPage.unknownBuyer")}</span>
-                    <span>{item.sellerName || t("adminChatPage.unknownSeller")}</span>
-                  </div>
-                  <div className="adminChatListAmount">
-                    {item.amountLabel
-                      ? `${item.amountLabel} ${item.currency}`.trim()
-                      : t("adminChatPage.amountPending")}
-                  </div>
-                </button>
-              ))
+              filteredItems.map((item) => {
+                const listingFallback = item.listingId
+                  ? `Listing #${item.listingId.slice(0, 6)}`
+                  : t("adminChatPage.untitledListing");
+                const buyerDisplay =
+                  item.buyerName ||
+                  resolveNickname(
+                    item.chatRoomId,
+                    item.buyerId,
+                    item.buyerId
+                  ) ||
+                  t("adminChatPage.unknownBuyer");
+                const sellerDisplay =
+                  item.sellerName ||
+                  resolveNickname(
+                    item.chatRoomId,
+                    item.sellerId,
+                    item.sellerId
+                  ) ||
+                  t("adminChatPage.unknownSeller");
+
+                return (
+                  <button
+                    key={item.transactionId}
+                    type="button"
+                    className={
+                      selectedRecord?.transactionId === item.transactionId
+                        ? "adminChatListCard active"
+                        : "adminChatListCard"
+                    }
+                    onClick={() => setSelectedId(item.transactionId)}
+                  >
+                    <div className="adminChatListTop">
+                      <span className="inlineBadge">{getStageLabel(item.stage, t)}</span>
+                      <span className="adminChatTimestamp">
+                        {formatDate(item.updatedAt || item.createdAt, i18n.language)}
+                      </span>
+                    </div>
+                    <div className="adminChatListTitle">
+                      {item.listingTitle || listingFallback}
+                    </div>
+                    <div className="adminChatListMeta">
+                      <span>{buyerDisplay}</span>
+                      <span>{sellerDisplay}</span>
+                    </div>
+                    <div className="adminChatListAmount">
+                      {item.amountLabel
+                        ? `${item.amountLabel} ${item.currency}`.trim()
+                        : <span className="adminChatPriceWarning">{t("adminChatPage.amountPending")}</span>}
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
 
-        <div className="adminChatDetailStack">
-          <div className="card adminChatFlowCard">
-            <div className="adminChatPanelHeader">
-              <div>
-                <div className="sectionTitle">{t("adminChatPage.flowTitle")}</div>
-                <p className="sectionDescription">
-                  {t("adminChatPage.flowDescription")}
-                </p>
-              </div>
-            </div>
-
-            <div className="adminChatFlowSteps">
-              {[
-                {
-                  key: "request",
-                  title: t("adminChatPage.stepRequest"),
-                  text: t("adminChatPage.stepRequestText"),
-                },
-                {
-                  key: "instruction",
-                  title: t("adminChatPage.stepInstruction"),
-                  text: t("adminChatPage.stepInstructionText"),
-                },
-                {
-                  key: "pending",
-                  title: t("adminChatPage.stepPending"),
-                  text: t("adminChatPage.stepPendingText"),
-                },
-                {
-                  key: "received",
-                  title: t("adminChatPage.stepReceived"),
-                  text: t("adminChatPage.stepReceivedText"),
-                },
-                {
-                  key: "transferred",
-                  title: t("adminChatPage.stepTransferred"),
-                  text: t("adminChatPage.stepTransferredText"),
-                },
-              ].map((step, index) => (
-                <div
-                  key={step.key}
-                  className={`adminChatFlowStep ${getTimelineStepState(
-                    selectedRecord,
-                    step.key as
-                      | "request"
-                      | "instruction"
-                      | "pending"
-                      | "received"
-                      | "transferred"
-                  )}`}
-                >
-                  <div className="adminChatFlowStepNumber">{index + 1}</div>
-                  <div>
-                    <div className="adminChatFlowStepTitle">{step.title}</div>
-                    <div className="adminChatFlowStepText">{step.text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card adminChatDetailCard">
+        <div className="card adminChatDetailCard">
             <div className="adminChatPanelHeader">
               <div>
                 <div className="sectionTitle">{t("adminChatPage.detailTitle")}</div>
@@ -438,10 +445,55 @@ export function AdminChatWorkspace() {
               <div className="adminChatEmptyState">{t("adminChatPage.emptyDefault")}</div>
             ) : (
               <>
+                <div className="adminChatMiniFlow" aria-label={t("adminChatPage.flowTitle")}>
+                  {[
+                    {
+                      key: "request",
+                      title: t("adminChatPage.stepRequest"),
+                    },
+                    {
+                      key: "instruction",
+                      title: t("adminChatPage.stepInstruction"),
+                    },
+                    {
+                      key: "pending",
+                      title: t("adminChatPage.stepPending"),
+                    },
+                    {
+                      key: "received",
+                      title: t("adminChatPage.stepReceived"),
+                    },
+                    {
+                      key: "transferred",
+                      title: t("adminChatPage.stepTransferred"),
+                    },
+                  ].map((step, index) => (
+                    <div
+                      key={step.key}
+                      className={`adminChatMiniFlowStep ${getTimelineStepState(
+                        selectedRecord,
+                        step.key as
+                          | "request"
+                          | "instruction"
+                          | "pending"
+                          | "received"
+                          | "transferred"
+                      )}`}
+                    >
+                      <span className="adminChatMiniFlowIndex">{index + 1}</span>
+                      <span className="adminChatMiniFlowText">{step.title}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="adminChatHero">
                   <div>
                     <div className="adminChatHeroTitle">
-                      {selectedRecord.listingTitle || t("adminChatPage.untitledListing")}
+                      {selectedRecord.listingTitle || (
+                        selectedRecord.listingId
+                          ? `Listing #${selectedRecord.listingId.slice(0, 6)}`
+                          : t("adminChatPage.untitledListing")
+                      )}
                     </div>
                     <div className="adminChatHeroMeta">
                       {t("adminChatPage.transactionId", {
@@ -450,7 +502,7 @@ export function AdminChatWorkspace() {
                     </div>
                   </div>
                   <span className="verificationHeroBadge">
-                    {selectedRecord.stageLabel}
+                    {getStageLabel(selectedRecord.stage, t)}
                   </span>
                 </div>
 
@@ -458,7 +510,15 @@ export function AdminChatWorkspace() {
                   <div className="detailItem">
                     <div className="detailLabel">{t("adminChatPage.buyer")}</div>
                     <div className="detailValue">
-                      {selectedRecord.buyerName || t("adminChatPage.unknownBuyer")}
+                      {selectedRecord.buyerName || (
+                        selectedRecord.buyerId
+                          ? resolveNickname(
+                              selectedRecord.chatRoomId,
+                              selectedRecord.buyerId,
+                              selectedRecord.buyerId
+                            )
+                          : t("adminChatPage.unknownBuyer")
+                      )}
                     </div>
                     <div className="detailMeta">
                       {selectedRecord.buyerPhone || selectedRecord.buyerKbzPayPhone || "-"}
@@ -467,7 +527,15 @@ export function AdminChatWorkspace() {
                   <div className="detailItem">
                     <div className="detailLabel">{t("adminChatPage.seller")}</div>
                     <div className="detailValue">
-                      {selectedRecord.sellerName || t("adminChatPage.unknownSeller")}
+                      {selectedRecord.sellerName || (
+                        selectedRecord.sellerId
+                          ? resolveNickname(
+                              selectedRecord.chatRoomId,
+                              selectedRecord.sellerId,
+                              selectedRecord.sellerId
+                            )
+                          : t("adminChatPage.unknownSeller")
+                      )}
                     </div>
                     <div className="detailMeta">
                       {selectedRecord.sellerPhone || "-"}
@@ -478,7 +546,7 @@ export function AdminChatWorkspace() {
                     <div className="detailValue">
                       {selectedRecord.amountLabel
                         ? `${selectedRecord.amountLabel} ${selectedRecord.currency}`.trim()
-                        : t("adminChatPage.amountPending")}
+                        : <span className="adminChatPriceWarning">{t("adminChatPage.amountPending")}</span>}
                     </div>
                     <div className="detailMeta">
                       {t("adminChatPage.createdAt", {
@@ -542,7 +610,7 @@ export function AdminChatWorkspace() {
                           rows={4}
                         />
                       </label>
-                      <div className="verificationButtonRow">
+                      <div className="verificationButtonRow adminChatActionButtons">
                         <button
                           type="button"
                           className="verificationActionButton"
@@ -573,7 +641,7 @@ export function AdminChatWorkspace() {
                           rows={4}
                         />
                       </label>
-                      <div className="verificationButtonRow">
+                      <div className="verificationButtonRow adminChatActionButtons">
                         {selectedRecord.canMarkReceived ? (
                           <button
                             type="button"
@@ -615,7 +683,6 @@ export function AdminChatWorkspace() {
                 </div>
               </>
             )}
-          </div>
         </div>
       </div>
 

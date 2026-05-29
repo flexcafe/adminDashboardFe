@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSuggestions } from "@/features/suggestions/SuggestionsContext";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
+import { translateDynamicField } from "@/lib/i18n/dynamic";
 import flexUsedLogo from "@/assets/flex-used-logo.png";
 
 function DashboardIcon() {
@@ -52,6 +54,25 @@ function FacebookIcon() {
   );
 }
 
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3a4 4 0 0 0-4 4v1.4c0 .7-.2 1.39-.58 1.98L6 12.5h12l-1.42-2.12A3.6 3.6 0 0 1 16 8.4V7a4 4 0 0 0-4-4Z" />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function FraudIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 9v4" />
+      <path d="M10.36 3.76a2 2 0 0 1 3.28 0l7.54 12.6A2 2 0 0 1 19.54 19H4.46a2 2 0 0 1-1.64-3.06l7.54-12.6Z" />
+      <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 function SliderIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -76,6 +97,16 @@ function BellIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 17H5.5a1.5 1.5 0 0 1-1.2-2.4l1.2-1.6V9a6.5 6.5 0 1 1 13 0v4l1.2 1.6a1.5 1.5 0 0 1-1.2 2.4H18" />
       <path d="M9.5 20a2.5 2.5 0 0 0 5 0" />
+    </svg>
+  );
+}
+
+function LightbulbIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
     </svg>
   );
 }
@@ -108,6 +139,7 @@ export function AppShell() {
     markAllNotificationsRead,
     markNotificationsRead,
   } = useAdminNotifications();
+  const { pendingCount: suggestionsPendingCount } = useSuggestions();
   const navigate = useNavigate();
   const currentUserName = user?.name || "Admin";
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
@@ -158,6 +190,28 @@ export function AppShell() {
     return date.toLocaleString(resolveUiLocale(i18n.language));
   };
 
+  const localizedNotifications = useMemo(() => {
+    return notifications.map((item) => ({
+      ...item,
+      localizedType: translateDynamicField(i18n, t, {
+        eventKey: item.eventKey,
+        rawType: item.type,
+        rawTitle: item.title,
+        rawMessage: item.message,
+        metadata: item.metadata,
+        payload: item.payload,
+      }, "type"),
+      localizedTitle: translateDynamicField(i18n, t, {
+        eventKey: item.eventKey,
+        rawType: item.type,
+        rawTitle: item.title,
+        rawMessage: item.message,
+        metadata: item.metadata,
+        payload: item.payload,
+      }, "title"),
+    }));
+  }, [i18n, notifications, t]);
+
   const handleNotificationClick = (notificationId?: string) => {
     setIsNotificationsOpen(false);
     if (notificationId) {
@@ -181,6 +235,17 @@ export function AppShell() {
 
         <div className="navSectionLabel">{t("shell.mainMenu")}</div>
         <nav className="nav">
+          {/* 1. Fraud Reports */}
+          <NavLink to="/fraud-reports" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <span className="navItemIcon">
+              <FraudIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">{t("shell.fraudReportsTitle")}</span>
+              <span className="navItemMeta">{t("shell.fraudReportsMeta")}</span>
+            </span>
+          </NavLink>
+          {/* 2. Verification */}
           <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <DashboardIcon />
@@ -190,15 +255,22 @@ export function AppShell() {
               <span className="navItemMeta">{t("shell.verificationMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/categories" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+          {/* 3. Suggestions */}
+          <NavLink to="/suggestions" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
-              <CategoriesIcon />
+              <LightbulbIcon />
             </span>
             <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.categoriesTitle")}</span>
-              <span className="navItemMeta">{t("shell.categoriesMeta")}</span>
+              <span className="navItemTitle">
+                {t("shell.suggestionsTitle")}
+                {suggestionsPendingCount > 0 && (
+                  <span className="navItemBadge">{suggestionsPendingCount}</span>
+                )}
+              </span>
+              <span className="navItemMeta">{t("shell.suggestionsMeta")}</span>
             </span>
           </NavLink>
+          {/* 4. Admin Chat */}
           <NavLink to="/admin-chat" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <ChatIcon />
@@ -208,24 +280,7 @@ export function AppShell() {
               <span className="navItemMeta">{t("shell.adminChatMeta")}</span>
             </span>
           </NavLink>
-          <NavLink to="/points" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <PointsIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.rewardsTitle")}</span>
-              <span className="navItemMeta">{t("shell.rewardsMeta")}</span>
-            </span>
-          </NavLink>
-          <NavLink to="/facebook-follow" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <FacebookIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.facebookFollowTitle")}</span>
-              <span className="navItemMeta">{t("shell.facebookFollowMeta")}</span>
-            </span>
-          </NavLink>
+          {/* 5. Slider Ads */}
           <NavLink to="/slider-ads" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <SliderIcon />
@@ -235,6 +290,17 @@ export function AppShell() {
               <span className="navItemMeta">{t("shell.sliderAdsMeta")}</span>
             </span>
           </NavLink>
+          {/* 6. Categories */}
+          <NavLink to="/categories" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <span className="navItemIcon">
+              <CategoriesIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">{t("shell.categoriesTitle")}</span>
+              <span className="navItemMeta">{t("shell.categoriesMeta")}</span>
+            </span>
+          </NavLink>
+          {/* 7. Notifications */}
           <NavLink to="/notifications" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
             <span className="navItemIcon">
               <NotificationsNavIcon />
@@ -242,6 +308,36 @@ export function AppShell() {
             <span className="navItemBody">
               <span className="navItemTitle">{t("shell.notificationsNavTitle")}</span>
               <span className="navItemMeta">{t("shell.notificationsMeta")}</span>
+            </span>
+          </NavLink>
+          {/* 8. Rewards */}
+          <NavLink to="/points" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <span className="navItemIcon">
+              <PointsIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">{t("shell.rewardsTitle")}</span>
+              <span className="navItemMeta">{t("shell.rewardsMeta")}</span>
+            </span>
+          </NavLink>
+          {/* 9. Admin Roles */}
+          <NavLink to="/admin-roles" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <span className="navItemIcon">
+              <ShieldIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">{t("shell.adminRolesTitle")}</span>
+              <span className="navItemMeta">{t("shell.adminRolesMeta")}</span>
+            </span>
+          </NavLink>
+          {/* Facebook Follow */}
+          <NavLink to="/facebook-follow" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <span className="navItemIcon">
+              <FacebookIcon />
+            </span>
+            <span className="navItemBody">
+              <span className="navItemTitle">{t("shell.facebookFollowTitle")}</span>
+              <span className="navItemMeta">{t("shell.facebookFollowMeta")}</span>
             </span>
           </NavLink>
         </nav>
@@ -322,7 +418,7 @@ export function AppShell() {
                         {t("shell.notificationsEmpty")}
                       </div>
                     ) : (
-                      notifications.slice(0, 8).map((item) => (
+                      localizedNotifications.slice(0, 8).map((item) => (
                         <article
                           key={item.id}
                           className={
@@ -341,12 +437,12 @@ export function AppShell() {
                           }}
                         >
                           <div className="notificationsItemTop">
-                            <span className="inlineBadge">{item.type}</span>
+                            <span className="inlineBadge">{item.localizedType}</span>
                             <span className="notificationsTimestamp">
                               {formatNotificationDate(item.createdAt)}
                             </span>
                           </div>
-                          <div className="notificationsTitle">{item.title}</div>
+                          <div className="notificationsTitle">{item.localizedTitle}</div>
                         </article>
                       ))
                     )}

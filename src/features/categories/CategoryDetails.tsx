@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category } from "./categoriesApi";
 
@@ -23,6 +23,11 @@ export function CategoryDetails({
 }: CategoryDetailsProps) {
   const { i18n, t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
+  const mediaUrl = (category?.iconUrl || category?.imageUrl || "").trim();
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [category?.id, mediaUrl]);
 
   const formatDateTime = (value: string) => {
     if (!value) return "-";
@@ -50,7 +55,7 @@ export function CategoryDetails({
   return (
     <section className="card categoriesDetailsPanel">
       <div className="categoriesDetailsHero">
-        {category.iconUrl || category.imageUrl ? (
+        {mediaUrl ? (
           <div className="categoriesDetailsMedia">
             {imageFailed ? (
               <div className="categoriesDetailsImageFallback">
@@ -59,7 +64,7 @@ export function CategoryDetails({
             ) : (
               <img
                 className="categoriesDetailsImage"
-                src={(category.iconUrl || category.imageUrl).trim()}
+                src={mediaUrl}
                 alt={t("categoryDetails.categoryImageAlt", {
                   name: category.name,
                 })}
@@ -171,29 +176,6 @@ export function CategoryDetails({
       <div className="categoriesDetailsSection">
         <div className="sectionHeader">
           <div>
-            <div className="sectionTitle">{t("categoryDetails.descriptionTitle")}</div>
-            <p className="sectionDescription">
-              {t("categoryDetails.descriptionHelp")}
-            </p>
-          </div>
-        </div>
-        <div className="categoriesDetailsDescription">
-          <label className="sliderFormField">
-            <span className="authLabel">
-              {t("categoryDetails.descriptionLabel")}
-            </span>
-            <textarea
-              className="authInput categoriesTextarea"
-              value={category.description || ""}
-              readOnly
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="categoriesDetailsSection">
-        <div className="sectionHeader">
-          <div>
             <div className="sectionTitle">{t("categoryDetails.auditInformation")}</div>
             <p className="sectionDescription">
               {t("categoryDetails.auditInformationDescription")}
@@ -210,43 +192,6 @@ export function CategoryDetails({
             <span className="detailValue">{formatDateTime(category.updatedAt)}</span>
           </div>
         </div>
-      </div>
-
-      <div className="categoriesSeoPanel">
-        <div className="sectionHeader">
-          <div>
-            <div className="sectionTitle">{t("categoryDetails.seoMeta")}</div>
-            <p className="sectionDescription">
-              {t("categoryDetails.seoMetaDescription")}
-            </p>
-          </div>
-        </div>
-        <div className="categoriesDetailsGrid">
-          <label className="sliderFormField">
-            <span className="authLabel">{t("categoryDetails.metaTitle")}</span>
-            <input className="authInput" value={category.metaTitle || ""} readOnly />
-          </label>
-          <label className="sliderFormField">
-            <span className="authLabel">
-              {t("categoryDetails.metaKeywords")}
-            </span>
-            <input
-              className="authInput"
-              value={category.metaKeywords.join(", ")}
-              readOnly
-            />
-          </label>
-        </div>
-        <label className="sliderFormField">
-          <span className="authLabel">
-            {t("categoryDetails.metaDescription")}
-          </span>
-          <textarea
-            className="authInput categoriesTextarea"
-            value={category.metaDescription || ""}
-            readOnly
-          />
-        </label>
       </div>
     </section>
   );

@@ -18,16 +18,23 @@ const resources = {
     },
   },
   ko: {
-    translation: koTranslations,
+    translation: {
+      ...enAdminTranslations,
+      ...koTranslations,
+    },
   },
   my: {
     translation: {
+      ...enAdminTranslations,
       ...myTranslations,
       ...myAdminTranslations,
     },
   },
   "zh-CN": {
-    translation: zhCnTranslations,
+    translation: {
+      ...enAdminTranslations,
+      ...zhCnTranslations,
+    },
   },
 };
 

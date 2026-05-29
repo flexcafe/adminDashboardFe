@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 import {
   useAdminNotifications,
 } from "@/features/adminNotifications/AdminNotificationsContext";
+import { translateDynamicField } from "@/lib/i18n/dynamic";
 
 const formatDateTime = (value: string, locale: string) => {
   const date = new Date(value);
@@ -33,13 +34,45 @@ export function NotificationsPage() {
     location.state as { highlightNotificationId?: string } | null
   )?.highlightNotificationId;
 
+  const localizedNotifications = useMemo(() => {
+    return notifications.map((item) => ({
+      ...item,
+      localizedType: translateDynamicField(i18n, t, {
+        eventKey: item.eventKey,
+        rawType: item.type,
+        rawTitle: item.title,
+        rawMessage: item.message,
+        metadata: item.metadata,
+        payload: item.payload,
+      }, "type"),
+      localizedTitle: translateDynamicField(i18n, t, {
+        eventKey: item.eventKey,
+        rawType: item.type,
+        rawTitle: item.title,
+        rawMessage: item.message,
+        metadata: item.metadata,
+        payload: item.payload,
+      }, "title"),
+      localizedMessage: translateDynamicField(i18n, t, {
+        eventKey: item.eventKey,
+        rawType: item.type,
+        rawTitle: item.title,
+        rawMessage: item.message,
+        metadata: item.metadata,
+        payload: item.payload,
+      }, "message"),
+    }));
+  }, [i18n, notifications, t]);
+
   const filteredNotifications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return notifications;
-    return notifications.filter((item) =>
-      `${item.title} ${item.message} ${item.type}`.toLowerCase().includes(query)
+    if (!query) return localizedNotifications;
+    return localizedNotifications.filter((item) =>
+      `${item.localizedTitle} ${item.localizedMessage} ${item.localizedType}`
+        .toLowerCase()
+        .includes(query)
     );
-  }, [notifications, searchQuery]);
+  }, [localizedNotifications, searchQuery]);
 
   useEffect(() => {
     if (!highlightId) return;
@@ -181,10 +214,10 @@ export function NotificationsPage() {
                 <div className="notificationsPageItemRow">
                   <div className="notificationsPageItemBody">
                     <div className="notificationsPageItemTop">
-                      <span className="inlineBadge">{item.type}</span>
+                      <span className="inlineBadge">{item.localizedType}</span>
                     </div>
-                    <div className="notificationsTitle">{item.title}</div>
-                    <p className="notificationsMessage">{item.message}</p>
+                    <div className="notificationsTitle">{item.localizedTitle}</div>
+                    <p className="notificationsMessage">{item.localizedMessage}</p>
                   </div>
                   <div className="notificationsPageItemSide">
                     <span className="notificationsTimestamp">

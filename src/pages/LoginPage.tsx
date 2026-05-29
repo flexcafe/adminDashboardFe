@@ -17,7 +17,7 @@ export function LoginPage() {
     ?.pathname;
 
   if (isAuthenticated && user) {
-    return <Navigate to={from || "/dashboard"} replace />;
+    return <Navigate to={from || "/fraud-reports"} replace />;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -26,7 +26,7 @@ export function LoginPage() {
 
     try {
       await login(identifier.trim(), password);
-      navigate(from || "/dashboard", { replace: true });
+      navigate(from || "/fraud-reports", { replace: true });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : t("login.errorFallback");

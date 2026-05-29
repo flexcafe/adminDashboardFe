@@ -1206,6 +1206,42 @@ button, input, select, textarea { font: inherit; }
 
 .muted { color: var(--muted); }
 
+.fraudIdRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fraudTruncatedId {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.fraudCopyIdBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.fraudCopyIdBtn:hover {
+  color: var(--brand-strong);
+  background: var(--surface-soft);
+}
+
+.fraudCopyIdBtn:active {
+  transform: scale(0.92);
+}
+
 .statsGrid,
 .grid,
 .detailStrip,
@@ -1267,6 +1303,211 @@ button, input, select, textarea { font: inherit; }
 .card {
   border-radius: var(--radius-lg);
   padding: 22px;
+}
+
+.fraudReportsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fraudConfirmForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.fraudFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fraudFormLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fraudFormTextarea {
+  resize: vertical;
+  min-height: 72px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fraudFormCharCount {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.fraudFormCheckboxField {
+  flex-direction: row;
+  align-items: center;
+}
+
+.fraudFormCheckboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.fraudFormCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* ── Admin Roles – Permissions Grid ─────────────────────────────── */
+
+.adminRolesPermissionsSection {
+  margin-top: 4px;
+}
+
+.adminRolesPermissionsSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.adminRolesPermissionsCount {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.adminRolesPermissionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .adminRolesPermissionsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adminRolesPermissionGroup {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.adminRolesPermissionGroupTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.adminRolesPermissionItems {
+  display: flex;
+  flex-direction: column;
+}
+
+.adminRolesPermissionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.adminRolesPermissionItem:last-child {
+  border-bottom: none;
+}
+
+.adminRolesPermissionItem:hover {
+  background: var(--hover);
+}
+
+.adminRolesPermissionItem.checked {
+  background: var(--primary-ghost);
+}
+
+.adminRolesPermissionCheckbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.adminRolesPermissionCheckboxVisual {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  color: transparent;
+}
+
+.adminRolesPermissionItem.checked .adminRolesPermissionCheckboxVisual {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.adminRolesPermissionCheckboxVisual svg {
+  width: 12px;
+  height: 12px;
+}
+
+.adminRolesPermissionLabel {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] .adminRolesPermissionGroup {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .adminRolesPermissionGroupTitle {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .adminRolesPermissionItem {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .adminRolesPermissionItem:hover {
+  background: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .adminRolesPermissionItem.checked {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .adminRolesPermissionCheckboxVisual {
+  border-color: #475569;
 }
 
 .sectionCard { margin-top: 0; }
@@ -2308,6 +2549,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  padding-bottom: 4px;
 }
 
 .sliderPreviewPanelContent > .sliderSectionHead {
@@ -2457,6 +2699,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .sliderAdsTableWrap {
   overflow-x: auto;
+  margin-top: 10px;
 }
 
 .sliderRow.dragging {
@@ -2910,8 +3153,8 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .categoriesLayout {
   display: grid;
-  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+  gap: 14px;
   align-items: start;
 }
 
@@ -2919,14 +3162,14 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .categoriesDetailsPanel,
 .categoriesBatchPanel {
   display: grid;
-  gap: 16px;
-  border-radius: 24px;
+  gap: 14px;
+  border-radius: 14px;
 }
 
 .categoriesTreePanel {
   position: sticky;
   top: 92px;
-  padding: 20px;
+  padding: 16px;
 }
 
 .categoriesTreeHeader,
@@ -3010,24 +3253,23 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 18px;
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-radius: 12px;
+  background: #ffffff;
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .categoryTreeRow:hover {
-  transform: translateY(-1px);
-  border-color: #1A1C1E;
-  box-shadow: var(--shadow-md);
+  border-color: #94a3b8;
+  box-shadow: var(--shadow-sm);
 }
 
 .categoryTreeRow.active {
-  border-color: #1A1C1E;
-  background: linear-gradient(180deg, rgba(26, 28, 30, 0.08), #ffffff);
-  box-shadow: 0 10px 24px rgba(26, 28, 30, 0.12);
+  border-color: #d4b14d;
+  background: #fffdf6;
+  box-shadow: 0 0 0 2px rgba(212, 177, 77, 0.15);
 }
 
 .categoryTreeRow.inactive {
@@ -3188,7 +3430,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .categoriesBatchPanel,
 .categoriesDetailsPanel {
-  padding: 20px;
+  padding: 16px;
 }
 
 .categoriesBatchHeader {
@@ -3208,12 +3450,12 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .categoriesDetailsHero {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   align-items: flex-start;
-  padding: 18px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #f8fafc, var(--verification-accent-soft));
-  border: 1px solid var(--verification-accent-ghost);
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
 }
 
 .categoriesDetailsMedia {
@@ -3258,7 +3500,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 .categoriesDetailsTitle {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .categoriesStatusPill {
@@ -3280,11 +3522,11 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .categoriesOverviewGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .categoriesOverviewCard {
-  min-height: 92px;
+  min-height: 76px;
 }
 
 .categoriesBreadcrumbItem,
@@ -3299,7 +3541,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .categoriesMetaGrid,
 .categoriesSeoGrid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .categoriesDetailsGrid,
@@ -3307,7 +3549,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .categoriesSeoGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .categoriesDetailsDescription,
@@ -3375,13 +3617,13 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 [data-theme="dark"] .categoryTreeRow {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(22, 34, 49, 0.96));
+  background: #162231;
   border-color: #334155;
 }
 
 [data-theme="dark"] .categoryTreeRow.active {
-  background: linear-gradient(180deg, rgba(26, 28, 30, 0.9), rgba(35, 38, 41, 0.96));
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(240, 195, 109, 0.14);
+  border-color: #f0c36d;
 }
 
 [data-theme="dark"] .categoryTreeExpandButton,
@@ -3430,8 +3672,8 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 [data-theme="dark"] .categoriesDetailsHero {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.88), rgba(49, 46, 129, 0.28));
-  border-color: rgba(99, 102, 241, 0.24);
+  background: #1a2433;
+  border-color: #334155;
 }
 
 [data-theme="dark"] .categoriesStatusPill {
@@ -3871,6 +4113,12 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   color: #fff;
 }
 
+.verificationActionButton.success {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
 .verificationDetailHeader {
   align-items: flex-start;
 }
@@ -4226,6 +4474,12 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   color: #f9fafb;
 }
 
+[data-theme="dark"] .verificationActionButton.success {
+  background: #065f46;
+  border-color: #059669;
+  color: #ffffff;
+}
+
 [data-theme="dark"] .verificationSummaryGrid .metricCardPrimary,
 [data-theme="dark"] .metricCardPrimary,
 [data-theme="dark"] .btn {
@@ -4270,13 +4524,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 .adminChatQueuePanel,
-.adminChatFlowCard,
 .adminChatDetailCard {
-  display: grid;
-  gap: 16px;
-}
-
-.adminChatDetailStack {
   display: grid;
   gap: 14px;
 }
@@ -4500,12 +4748,12 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 .adminChatActionCard {
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #fffdf8, #ffffff);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .adminChatFormGrid {
@@ -4527,8 +4775,66 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   text-align: center;
 }
 
+.adminChatMiniFlow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.adminChatMiniFlowStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.adminChatMiniFlowIndex {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adminChatMiniFlowText {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adminChatMiniFlowStep.active {
+  border-color: #d4b14d;
+  background: #fff8e7;
+}
+
+.adminChatMiniFlowStep.done {
+  border-color: #86e1c1;
+  background: #ecfff8;
+}
+
+.adminChatMiniFlowStep.active .adminChatMiniFlowIndex {
+  background: #d4b14d;
+  color: #ffffff;
+}
+
+.adminChatMiniFlowStep.done .adminChatMiniFlowIndex {
+  background: #1f9d72;
+  color: #ffffff;
+}
+
+.adminChatActionButtons {
+  justify-content: flex-start;
+}
+
 [data-theme="dark"] .adminChatQueuePanel,
-[data-theme="dark"] .adminChatFlowCard,
 [data-theme="dark"] .adminChatDetailCard {
   background: rgba(30, 41, 59, 0.5);
   color: #f8fafc;
@@ -4551,7 +4857,8 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .adminChatListCard,
 [data-theme="dark"] .adminChatFlowStep,
 [data-theme="dark"] .adminChatActionCard,
-[data-theme="dark"] .adminChatEmptyState {
+[data-theme="dark"] .adminChatEmptyState,
+[data-theme="dark"] .adminChatMiniFlowStep {
   background: #162231;
   border-color: #334155;
   color: #f8fafc;
@@ -4576,6 +4883,21 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .adminChatTabCount {
   background: rgba(30, 58, 138, 0.14);
   color: #c7d2fe;
+}
+
+[data-theme="dark"] .adminChatMiniFlowStep.active {
+  background: rgba(240, 195, 109, 0.14);
+  border-color: #f0c36d;
+}
+
+[data-theme="dark"] .adminChatMiniFlowStep.done {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(134, 225, 193, 0.32);
+}
+
+[data-theme="dark"] .adminChatMiniFlowIndex {
+  background: #334155;
+  color: #e2e8f0;
 }
 
 @keyframes rewardsShimmer {
@@ -4876,6 +5198,9 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   .adminChatInfoGrid {
     grid-template-columns: 1fr;
   }
+  .adminChatMiniFlow {
+    grid-template-columns: 1fr;
+  }
   .categoriesSummaryGrid,
   .categoriesOverviewGrid,
   .categoriesDetailsGrid,
@@ -4902,6 +5227,282 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   }
 }
 
+/* ── Suggestions Page ──────────────────────────────────────────────────── */
+
+.suggestionsPageRefreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+  white-space: nowrap;
+}
+
+.suggestionsPageRefreshBtn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.suggestionsPageRefreshBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.suggestionsPageRefreshBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+[data-theme="dark"] .suggestionsPageRefreshBtn {
+  background: #1A1C1E;
+  border-color: #334155;
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .suggestionsPageRefreshBtn:hover {
+  background: #162231;
+  border-color: #475569;
+}
+
+/* ── Suggestions Page Table ─────────────────────────────────────────────── */
+
+.suggestionsPageCard {
+  padding: 0;
+}
+
+.suggestionsPageTableWrap {
+  overflow-x: auto;
+}
+
+.suggestionsPageTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.suggestionsPageTable th,
+.suggestionsPageTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 13px;
+  vertical-align: top;
+}
+
+.suggestionsPageTable th {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #f8fafc;
+  vertical-align: middle;
+}
+
+.suggestionsPageTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.suggestionsPageTable tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Column widths */
+.suggestionsColTitle {
+  width: 40%;
+}
+
+.suggestionsColUser {
+  width: 20%;
+}
+
+.suggestionsColDate {
+  width: 15%;
+}
+
+.suggestionsColStatus {
+  width: 10%;
+}
+
+.suggestionsColActions {
+  width: 15%;
+}
+
+/* Cell content */
+.suggestionsCellTitle {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.suggestionsCellDescription {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-line;
+}
+
+.suggestionsCellUser {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suggestionsCellUserName {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.suggestionsCellUserContact {
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* Status badges */
+.suggestionsStatusBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.suggestionsStatusBadge.pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.suggestionsStatusBadge.rewarded {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.suggestionsStatusBadge.dismissed {
+  background: rgba(239, 68, 68, 0.10);
+  color: #dc2626;
+}
+
+/* Action buttons */
+.suggestionsCellActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.suggestionsActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+  white-space: nowrap;
+}
+
+.suggestionsActionBtn:hover {
+  transform: translateY(-1px);
+}
+
+.suggestionsActionBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.suggestionsActionBtnReward {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.suggestionsActionBtnReward:hover {
+  background: #047857;
+  border-color: #047857;
+}
+
+.suggestionsActionBtnDismiss {
+  background: #ffffff;
+  border-color: var(--border);
+  color: #64748b;
+}
+
+.suggestionsActionBtnDismiss:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.suggestionsActionDone {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] .suggestionsPageTable th {
+  background: #111827;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .suggestionsPageTable tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .suggestionsStatusBadge.pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .suggestionsStatusBadge.rewarded {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+[data-theme="dark"] .suggestionsStatusBadge.dismissed {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+}
+
+[data-theme="dark"] .suggestionsActionBtnReward {
+  background: #065f46;
+  border-color: #059669;
+}
+
+[data-theme="dark"] .suggestionsActionBtnReward:hover {
+  background: #047857;
+}
+
+[data-theme="dark"] .suggestionsActionBtnDismiss {
+  background: #1A1C1E;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .suggestionsActionBtnDismiss:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+  color: #f87171;
+}
+
 @media (max-width: 640px) {
   .nav { grid-template-columns: 1fr; }
   .toolbarRow,
@@ -4926,6 +5527,13 @@ textarea.authInput { min-height: 110px; resize: vertical; }
     flex-direction: column;
     align-items: stretch;
   }
+  .adminChatActionButtons {
+    width: 100%;
+    flex-direction: column;
+  }
+  .adminChatActionButtons .verificationActionButton {
+    width: 100%;
+  }
   .verificationTabs {
     grid-template-columns: 1fr;
   }
@@ -4944,6 +5552,10 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   .categoriesBatchActions {
     flex-direction: column;
     align-items: stretch;
+  }
+  .categoriesBatchActions .verificationActionButton,
+  .categoriesBatchSelect {
+    width: 100%;
   }
   .verificationActionCell {
     width: auto;

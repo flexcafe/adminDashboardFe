@@ -437,9 +437,11 @@ export function SliderAdsPage() {
                       </td>
                       <td>
                         <span className={getStatusBadgeClassName(effectiveStatus)}>
-                          {effectiveStatus === "EXPIRED"
-                            ? t("sliderAdsPage.expired")
-                            : effectiveStatus}
+                          {effectiveStatus === "ACTIVE"
+                            ? t("sliderAdsPage.active")
+                            : effectiveStatus === "EXPIRED"
+                              ? t("sliderAdsPage.expired")
+                              : t("sliderAdsPage.inactive")}
                         </span>
                       </td>
                       <td>{formatDateTime(item.createdAt)}</td>

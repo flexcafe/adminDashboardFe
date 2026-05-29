@@ -37,10 +37,6 @@ export type CategoryPayload = {
   isVisible?: boolean;
   icon?: string;
   iconFile?: File | null;
-  description?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-  metaKeywords?: string[];
 };
 
 export type FlatCategory = Category & {
@@ -85,6 +81,18 @@ const toText = (value: unknown): string => {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "";
+};
+
+const toAbsoluteAssetUrl = (value: unknown): string => {
+  const raw = toText(value).trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+
+  try {
+    return new URL(raw, API_CONFIG.BASE_URL).toString();
+  } catch {
+    return raw;
+  }
 };
 
 const toNumber = (value: unknown): number => {
@@ -166,14 +174,14 @@ const normalizeCategory = (item: Record<string, unknown>): Category | null => {
         : toBoolean(item.isVisible ?? item.visible),
     description: toText(item.description),
     iconUrl:
-      toText(item.icon) ||
-      toText(item.iconUrl) ||
-      toText(item.imageUrl),
+      toAbsoluteAssetUrl(item.icon) ||
+      toAbsoluteAssetUrl(item.iconUrl) ||
+      toAbsoluteAssetUrl(item.imageUrl),
     imageUrl:
-      toText(item.imageUrl) ||
-      toText(item.image) ||
-      toText(item.icon) ||
-      toText(item.iconUrl),
+      toAbsoluteAssetUrl(item.imageUrl) ||
+      toAbsoluteAssetUrl(item.image) ||
+      toAbsoluteAssetUrl(item.icon) ||
+      toAbsoluteAssetUrl(item.iconUrl),
     metaTitle: toText(item.metaTitle),
     metaDescription: toText(item.metaDescription),
     metaKeywords: toStringArray(item.metaKeywords),
@@ -239,12 +247,6 @@ const buildCategoryPayload = (payload: CategoryPayload) => {
   if (payload.isActive !== undefined) next.isActive = payload.isActive;
   if (payload.isVisible !== undefined) next.isVisible = payload.isVisible;
   if (payload.icon !== undefined) next.icon = payload.icon.trim();
-  if (payload.description !== undefined) next.description = payload.description.trim();
-  if (payload.metaTitle !== undefined) next.metaTitle = payload.metaTitle.trim();
-  if (payload.metaDescription !== undefined) {
-    next.metaDescription = payload.metaDescription.trim();
-  }
-  if (payload.metaKeywords !== undefined) next.metaKeywords = payload.metaKeywords;
   return next;
 };
 
@@ -270,19 +272,6 @@ const buildCategoryFormData = (payload: CategoryPayload) => {
   } else if (payload.icon !== undefined && payload.icon.trim()) {
     formData.append("icon", payload.icon.trim());
   }
-  if (payload.description !== undefined) {
-    formData.append("description", payload.description.trim());
-  }
-  if (payload.metaTitle !== undefined) {
-    formData.append("metaTitle", payload.metaTitle.trim());
-  }
-  if (payload.metaDescription !== undefined) {
-    formData.append("metaDescription", payload.metaDescription.trim());
-  }
-  if (payload.metaKeywords !== undefined) {
-    formData.append("metaKeywords", payload.metaKeywords.join(","));
-  }
-
   return formData;
 };
 
@@ -477,8 +466,12 @@ export async function getCategory(categoryId: string): Promise<Category | null> 
     );
 
     ensureSuccessResponse(response.data, "Failed to load category.");
-    const normalized = normalizeCategory(response.data.data as Record<string, unknown>);
-    return normalized;
+    const rawData = response.data?.data;
+    if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
+      return null;
+    }
+
+    return normalizeCategory(rawData as Record<string, unknown>);
   } catch (error) {
     throw new Error(getErrorMessage(error, "Failed to load category."));
   }

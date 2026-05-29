@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "rea
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { AdminNotificationsProvider } from "@/features/adminNotifications/AdminNotificationsContext";
+import { SuggestionsProvider } from "@/features/suggestions/SuggestionsContext";
 
 const LoginPage = lazy(() =>
   import("../../pages/LoginPage").then((module) => ({
@@ -54,6 +55,21 @@ const SliderAdsPage = lazy(() =>
     default: module.SliderAdsPage,
   }))
 );
+const AdminRolesPage = lazy(() =>
+  import("../../pages/AdminRolesPage").then((module) => ({
+    default: module.AdminRolesPage,
+  }))
+);
+const FraudReportsPage = lazy(() =>
+  import("../../pages/FraudReportsPage").then((module) => ({
+    default: module.FraudReportsPage,
+  }))
+);
+const SuggestionsPage = lazy(() =>
+  import("../../pages/SuggestionsPage").then((module) => ({
+    default: module.SuggestionsPage,
+  }))
+);
 const NotFoundPage = lazy(() =>
   import("../../pages/NotFoundPage").then((module) => ({
     default: module.NotFoundPage,
@@ -99,21 +115,29 @@ export function AppRouter() {
             <Route
               element={
                 <AdminNotificationsProvider>
-                  <AppShell />
+                  <SuggestionsProvider>
+                    <AppShell />
+                  </SuggestionsProvider>
                 </AdminNotificationsProvider>
               }
             >
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<VerificationFlowPage />}>
+              <Route path="/" element={<Navigate to="/fraud-reports" replace />} />
+              <Route
+                path="/dashboard"
+                element={<VerificationFlowPage />}
+              >
                 <Route index element={<DashboardPage />} />
                 <Route path=":userId" element={<UserVerificationDetailPage />} />
               </Route>
               <Route path="/admin-chat" element={<AdminChatPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/slider-ads" element={<SliderAdsPage />} />
+              <Route path="/admin-roles" element={<AdminRolesPage />} />
+              <Route path="/fraud-reports" element={<FraudReportsPage />} />
               <Route path="/facebook-follow" element={<FacebookFollowPage />} />
               <Route path="/points" element={<PointsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/suggestions" element={<SuggestionsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />

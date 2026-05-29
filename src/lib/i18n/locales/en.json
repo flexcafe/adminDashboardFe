@@ -458,4 +458,32 @@
     "myanmar": "မြန်မာ",
     "switchLanguage": "Switch Language"
   }
+,
+  "dynamic": {
+    "general": {
+      "type": "General",
+      "title": "Admin notification",
+      "message": "A new admin update has arrived."
+    },
+    "kbzpay_verification_requested": {
+      "type": "Verification",
+      "title": "KBZPay verification requested",
+      "message": "{{nickname}} requested KBZPay verification."
+    },
+    "facebook_follow_submission": {
+      "type": "Facebook Follow",
+      "title": "Facebook follow submission received",
+      "message": "{{nickname}} submitted a Facebook follow proof."
+    },
+    "safe_payment_pending": {
+      "type": "Safe Payment",
+      "title": "Safe payment pending review",
+      "message": "Transaction {{transactionId}} is waiting for admin review."
+    },
+    "withdrawal_pending": {
+      "type": "Withdrawal",
+      "title": "Withdrawal request pending",
+      "message": "{{nickname}} submitted a withdrawal request for {{amount}}."
+    }
+  }
 }

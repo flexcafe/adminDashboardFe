@@ -22,6 +22,13 @@ type ApiResponse<T> = {
   data?: T;
 };
 
+type UserLookupResponse = {
+  id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+};
+
 type AdminChatContextValue = {
   awaitingInstruction: AdminChatRecord[];
   pending: AdminChatRecord[];
@@ -128,14 +135,6 @@ const normalizeRecord = (
       ? "SAFE_PAYMENT_AWAITING_INSTRUCTION"
       : "SAFE_PAYMENT_PENDING");
 
-  const stageLabelMap: Record<AdminChatRecord["stage"], string> = {
-    SAFE_PAYMENT_AWAITING_INSTRUCTION: "Awaiting instruction",
-    SAFE_PAYMENT_INSTRUCTION_SENT: "Instruction sent",
-    SAFE_PAYMENT_PENDING: "Pending buyer proof",
-    SAFE_PAYMENT_RECEIVED: "Received by admin",
-    COMPLETED: "Completed",
-  };
-
   return {
     id: transactionId,
     transactionId,
@@ -158,11 +157,13 @@ const normalizeRecord = (
     buyerKbzPayName: pickFirstText(item, [
       "buyerKbzAccountName",
       "buyerKbzPayName",
+      "payerKbzName",
       "kbzAccountName",
     ]),
     buyerKbzPayPhone: pickFirstText(item, [
       "buyerKbzPhoneNumber",
       "buyerKbzPayPhone",
+      "payerKbzPhone",
       "kbzPayPhoneNumber",
       "kbzPhone",
     ]),
@@ -197,7 +198,6 @@ const normalizeRecord = (
       "kbzTransferRef",
     ]),
     stage,
-    stageLabel: stageLabelMap[stage] ?? "In progress",
     canSendInstruction: stage === "SAFE_PAYMENT_AWAITING_INSTRUCTION",
     canMarkReceived:
       stage === "SAFE_PAYMENT_PENDING" ||
@@ -215,6 +215,49 @@ export function AdminChatProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const enrichRecordsWithUserNames = useCallback(
+    async (records: AdminChatRecord[]) => {
+      const userIds = Array.from(
+        new Set(
+          records.flatMap((record) => [
+            !record.buyerName && record.buyerId ? record.buyerId : "",
+            !record.sellerName && record.sellerId ? record.sellerId : "",
+          ])
+        )
+      ).filter(Boolean);
+
+      if (userIds.length === 0) return records;
+
+      const userEntries = await Promise.all(
+        userIds.map(async (userId) => {
+          try {
+            const response = await httpClient.get<ApiResponse<UserLookupResponse>>(
+              API_ENDPOINTS.USERS.GET_BY_ID,
+              {
+                params: { id: userId },
+              }
+            );
+
+            return [userId, response.data?.name || ""] as const;
+          } catch {
+            return [userId, ""] as const;
+          }
+        })
+      );
+
+      const userNameById = new Map<string, string>(
+        userEntries.filter((entry) => !!entry[1])
+      );
+
+      return records.map((record) => ({
+        ...record,
+        buyerName: record.buyerName || userNameById.get(record.buyerId) || "",
+        sellerName: record.sellerName || userNameById.get(record.sellerId) || "",
+      }));
+    },
+    [httpClient]
+  );
+
   const refreshQueues = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -229,17 +272,21 @@ export function AdminChatProvider({ children }: PropsWithChildren) {
         ),
       ]);
 
-      setAwaitingInstruction(
-        toRecordArray(awaitingResponse?.data)
-          .map((item) => normalizeRecord(item, "awaitingInstruction"))
-          .filter((item): item is AdminChatRecord => !!item)
-      );
+      const awaitingRecords = toRecordArray(awaitingResponse?.data)
+        .map((item) => normalizeRecord(item, "awaitingInstruction"))
+        .filter((item): item is AdminChatRecord => !!item);
 
-      setPending(
-        toRecordArray(pendingResponse?.data)
-          .map((item) => normalizeRecord(item, "pending"))
-          .filter((item): item is AdminChatRecord => !!item)
-      );
+      const pendingRecords = toRecordArray(pendingResponse?.data)
+        .map((item) => normalizeRecord(item, "pending"))
+        .filter((item): item is AdminChatRecord => !!item);
+
+      const [awaitingWithNames, pendingWithNames] = await Promise.all([
+        enrichRecordsWithUserNames(awaitingRecords),
+        enrichRecordsWithUserNames(pendingRecords),
+      ]);
+
+      setAwaitingInstruction(awaitingWithNames);
+      setPending(pendingWithNames);
     } catch (loadError) {
       setAwaitingInstruction([]);
       setPending([]);
@@ -251,7 +298,7 @@ export function AdminChatProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoading(false);
     }
-  }, [httpClient]);
+  }, [enrichRecordsWithUserNames, httpClient]);
 
   useEffect(() => {
     void refreshQueues();
@@ -263,7 +310,6 @@ export function AdminChatProvider({ children }: PropsWithChildren) {
         API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.SEND_INSTRUCTION(transactionId),
         {
           adminReceivingPhone: payload.adminReceivingPhone.trim(),
-          adminReceivingPhoneNumber: payload.adminReceivingPhone.trim(),
           adminNote: payload.adminNote.trim(),
         }
       );

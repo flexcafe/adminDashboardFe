@@ -85,6 +85,32 @@ export const API_ENDPOINTS = {
     BY_ID: (sliderId: string) => `/api/v1/admin/dashboard/slider-ads/${sliderId}`,
   },
 
+  DASHBOARD_ADMIN_ROLES: {
+    PERMISSIONS: "/api/v1/admin/dashboard/admin-roles/permissions",
+    BASE: "/api/v1/admin/dashboard/admin-roles",
+    BY_ID: (roleId: string) => `/api/v1/admin/dashboard/admin-roles/${roleId}`,
+  },
+
+  DASHBOARD_FRAUD_REPORTS: {
+    BASE: "/api/v1/admin/dashboard/fraud-reports",
+    BAN_USER: (userId: string) =>
+      `/api/v1/admin/dashboard/fraud-reports/users/${userId}/ban`,
+    UNBAN_USER: (userId: string) =>
+      `/api/v1/admin/dashboard/fraud-reports/users/${userId}/unban`,
+    CONFIRM: (reportId: string) =>
+      `/api/v1/admin/dashboard/fraud-reports/${reportId}/confirm`,
+    DISMISS: (reportId: string) =>
+      `/api/v1/admin/dashboard/fraud-reports/${reportId}/dismiss`,
+  },
+
+  DASHBOARD_SUGGESTIONS: {
+    BASE: "/api/v1/admin/dashboard/suggestions",
+    REWARD: (suggestionId: string) =>
+      `/api/v1/admin/dashboard/suggestions/${suggestionId}/reward`,
+    DISMISS: (suggestionId: string) =>
+      `/api/v1/admin/dashboard/suggestions/${suggestionId}/dismiss`,
+  },
+
   DASHBOARD_CATEGORIES: {
     BASE: "/api/v1/admin/dashboard/categories",
     BY_ID: (categoryId: string) => `/api/v1/admin/dashboard/categories/${categoryId}`,
