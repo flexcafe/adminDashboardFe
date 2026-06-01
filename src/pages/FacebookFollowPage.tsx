@@ -1,6 +1,8 @@
 import { Check, CheckCircle, Facebook, Users, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FadeSlideSwap } from "@/components/motion/FadeSlideSwap";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
@@ -300,42 +302,54 @@ export function FacebookFollowPage() {
       </div>
 
       <div className="verificationSummaryGrid">
-        <button
+        <motion.button
           type="button"
           className={`metricCard verificationSummaryCard verificationSummaryCardYellow${statusFilter === "PENDING" ? " active" : ""}`}
           onClick={() => setStatusFilter("PENDING")}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
         >
+          {statusFilter === "PENDING" ? <motion.span layoutId="facebookStatusActivePill" className="verificationSummaryActivePill" /> : null}
           <div className="rewardsSummaryIcon rewardsSummaryIconFacebook">
             <Facebook size={18} />
           </div>
           <div className="metricLabel">{t("facebookFollowPage.pendingReview")}</div>
           <div className="metricValue">{pendingCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.pendingReviewMeta")}</div>
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           className={`metricCard verificationSummaryCard verificationSummaryCardGreen${statusFilter === "APPROVED" ? " active" : ""}`}
           onClick={() => setStatusFilter("APPROVED")}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
         >
+          {statusFilter === "APPROVED" ? <motion.span layoutId="facebookStatusActivePill" className="verificationSummaryActivePill" /> : null}
           <div className="rewardsSummaryIcon rewardsSummaryIconEmerald">
             <Users size={18} />
           </div>
           <div className="metricLabel">{t("facebookFollowPage.approved")}</div>
           <div className="metricValue">{approvedCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.approvedMeta")}</div>
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           className={`metricCard verificationSummaryCard verificationSummaryCardBlue${statusFilter === "REJECTED" ? " active" : ""}`}
           onClick={() => setStatusFilter("REJECTED")}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
         >
+          {statusFilter === "REJECTED" ? <motion.span layoutId="facebookStatusActivePill" className="verificationSummaryActivePill" /> : null}
           <div className="rewardsSummaryIcon rewardsSummaryIconRed">
             <CheckCircle size={18} />
           </div>
           <div className="metricLabel">{t("facebookFollowPage.rejected")}</div>
           <div className="metricValue">{rejectedCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.rejectedMeta")}</div>
-        </button>
+        </motion.button>
       </div>
 
       <div className="card verificationPanel">
@@ -372,7 +386,10 @@ export function FacebookFollowPage() {
 
           {pageError ? <p className="authError surfaceMessage facebookFollowError">{pageError}</p> : null}
 
-          <div className="verificationTableWrap">
+          <FadeSlideSwap
+            swapKey={`${statusFilter}-${searchQuery.trim().toLowerCase()}-${filteredSubmissions.length}-${isLoading ? "loading" : "ready"}`}
+          >
+            <div className="verificationTableWrap">
             <table className="verificationTable">
               <thead>
                 <tr>
@@ -477,7 +494,8 @@ export function FacebookFollowPage() {
                 )}
               </tbody>
             </table>
-          </div>
+            </div>
+          </FadeSlideSwap>
         </section>
       </div>
 

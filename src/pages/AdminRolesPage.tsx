@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { AdminRoleFormModal } from "@/features/adminRoles/AdminRoleFormModal";
 import {
@@ -405,15 +406,28 @@ export function AdminRolesPage() {
       />
 
       {/* Delete Confirmation Modal */}
-      {deleteTarget ? (
-        <div className="sliderModalOverlay" role="presentation" onClick={() => setDeleteTarget(null)}>
-          <div
-            className="sliderConfirmDialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="admin-role-delete-title"
-            onClick={(event) => event.stopPropagation()}
+      <AnimatePresence>
+        {deleteTarget ? (
+          <motion.div
+            className="sliderModalOverlay"
+            role="presentation"
+            onClick={() => setDeleteTarget(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
+            <motion.div
+              className="sliderConfirmDialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="admin-role-delete-title"
+              onClick={(event) => event.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.97, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.985, y: 8 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            >
             <h2 id="admin-role-delete-title" className="sectionTitle">
               {t("adminRolesPage.deleteTitle")}
             </h2>
@@ -440,9 +454,10 @@ export function AdminRolesPage() {
                 {isSaving ? t("adminRolesPage.deleting") : t("adminRolesPage.delete")}
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

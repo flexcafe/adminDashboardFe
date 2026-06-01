@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   type AdminRole,
@@ -147,8 +148,6 @@ export function AdminRoleFormModal({
   const selectedCount = formState.selectedPermissions.length;
   const totalCount = permissions.length;
 
-  if (!isOpen) return null;
-
   const togglePermission = (permissionId: string) => {
     setFormState((prev) => ({
       ...prev,
@@ -180,14 +179,28 @@ export function AdminRoleFormModal({
   };
 
   return (
-    <div className="sliderModalOverlay" role="presentation" onClick={onClose}>
-      <div
-        className="sliderModal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-role-modal-title"
-        onClick={(event) => event.stopPropagation()}
-      >
+    <AnimatePresence>
+      {isOpen ? (
+        <motion.div
+          className="sliderModalOverlay"
+          role="presentation"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+          <motion.div
+            className="sliderModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-role-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.97, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.985, y: 8 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          >
         <div className="sliderModalHeader">
           <div>
             <p className="pageEyebrow">{t("adminRolesPage.eyebrow")}</p>
@@ -354,7 +367,9 @@ export function AdminRoleFormModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSuggestions } from "@/features/suggestions/SuggestionsContext";
 import { useTranslation } from "react-i18next";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
 import { translateDynamicField } from "@/lib/i18n/dynamic";
 import flexUsedLogo from "@/assets/flex-used-logo.png";
+import { PageTransition } from "@/components/motion/PageTransition";
 
 function DashboardIcon() {
   return (
@@ -128,6 +130,38 @@ function resolveUiLocale(language: string) {
   return "en-US";
 }
 
+type SidebarNavItemProps = {
+  to: string;
+  title: ReactNode;
+  meta: string;
+  icon: ReactNode;
+};
+
+function SidebarNavItem({ to, title, meta, icon }: SidebarNavItemProps) {
+  return (
+    <NavLink to={to} className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+      {({ isActive }) => (
+        <>
+          {isActive ? (
+            <motion.span
+              layoutId="sidebarActivePill"
+              className="navItemActivePill"
+              transition={{ type: "spring", stiffness: 500, damping: 42, mass: 0.8 }}
+            />
+          ) : null}
+          <span className="navItemIcon">
+            {icon}
+          </span>
+          <span className="navItemBody">
+            <span className="navItemTitle">{title}</span>
+            <span className="navItemMeta">{meta}</span>
+          </span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 export function AppShell() {
   const { i18n, t } = useTranslation();
   const { user, logout } = useAuth();
@@ -143,6 +177,7 @@ export function AppShell() {
   } = useAdminNotifications();
   const { pendingCount: suggestionsPendingCount } = useSuggestions();
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUserName = user?.name || "Admin";
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -237,111 +272,73 @@ export function AppShell() {
 
         <div className="navSectionLabel">{t("shell.mainMenu")}</div>
         <nav className="nav">
-          {/* 1. Fraud Reports */}
-          <NavLink to="/fraud-reports" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <FraudIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.fraudReportsTitle")}</span>
-              <span className="navItemMeta">{t("shell.fraudReportsMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 2. Verification */}
-          <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <DashboardIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.verificationTitle")}</span>
-              <span className="navItemMeta">{t("shell.verificationMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 3. Suggestions */}
-          <NavLink to="/suggestions" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <LightbulbIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">
+          <SidebarNavItem
+            to="/fraud-reports"
+            icon={<FraudIcon />}
+            title={t("shell.fraudReportsTitle")}
+            meta={t("shell.fraudReportsMeta")}
+          />
+          <SidebarNavItem
+            to="/dashboard"
+            icon={<DashboardIcon />}
+            title={t("shell.verificationTitle")}
+            meta={t("shell.verificationMeta")}
+          />
+          <SidebarNavItem
+            to="/suggestions"
+            icon={<LightbulbIcon />}
+            title={(
+              <>
                 {t("shell.suggestionsTitle")}
-                {suggestionsPendingCount > 0 && (
+                {suggestionsPendingCount > 0 ? (
                   <span className="navItemBadge">{suggestionsPendingCount}</span>
-                )}
-              </span>
-              <span className="navItemMeta">{t("shell.suggestionsMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 4. Admin Chat */}
-          <NavLink to="/admin-chat" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <ChatIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.adminChatTitle")}</span>
-              <span className="navItemMeta">{t("shell.adminChatMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 5. Slider Ads */}
-          <NavLink to="/slider-ads" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <SliderIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.sliderAdsTitle")}</span>
-              <span className="navItemMeta">{t("shell.sliderAdsMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 6. Categories */}
-          <NavLink to="/categories" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <CategoriesIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.categoriesTitle")}</span>
-              <span className="navItemMeta">{t("shell.categoriesMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 7. Notifications */}
-          <NavLink to="/notifications" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <NotificationsNavIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.notificationsNavTitle")}</span>
-              <span className="navItemMeta">{t("shell.notificationsMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 8. Rewards */}
-          <NavLink to="/points" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <PointsIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.rewardsTitle")}</span>
-              <span className="navItemMeta">{t("shell.rewardsMeta")}</span>
-            </span>
-          </NavLink>
-          {/* 9. Admin Roles */}
-          <NavLink to="/admin-roles" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <ShieldIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.adminRolesTitle")}</span>
-              <span className="navItemMeta">{t("shell.adminRolesMeta")}</span>
-            </span>
-          </NavLink>
-          {/* Facebook Follow */}
-          <NavLink to="/facebook-follow" className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
-            <span className="navItemIcon">
-              <FacebookIcon />
-            </span>
-            <span className="navItemBody">
-              <span className="navItemTitle">{t("shell.facebookFollowTitle")}</span>
-              <span className="navItemMeta">{t("shell.facebookFollowMeta")}</span>
-            </span>
-          </NavLink>
+                ) : null}
+              </>
+            )}
+            meta={t("shell.suggestionsMeta")}
+          />
+          <SidebarNavItem
+            to="/admin-chat"
+            icon={<ChatIcon />}
+            title={t("shell.adminChatTitle")}
+            meta={t("shell.adminChatMeta")}
+          />
+          <SidebarNavItem
+            to="/slider-ads"
+            icon={<SliderIcon />}
+            title={t("shell.sliderAdsTitle")}
+            meta={t("shell.sliderAdsMeta")}
+          />
+          <SidebarNavItem
+            to="/categories"
+            icon={<CategoriesIcon />}
+            title={t("shell.categoriesTitle")}
+            meta={t("shell.categoriesMeta")}
+          />
+          <SidebarNavItem
+            to="/notifications"
+            icon={<NotificationsNavIcon />}
+            title={t("shell.notificationsNavTitle")}
+            meta={t("shell.notificationsMeta")}
+          />
+          <SidebarNavItem
+            to="/points"
+            icon={<PointsIcon />}
+            title={t("shell.rewardsTitle")}
+            meta={t("shell.rewardsMeta")}
+          />
+          <SidebarNavItem
+            to="/admin-roles"
+            icon={<ShieldIcon />}
+            title={t("shell.adminRolesTitle")}
+            meta={t("shell.adminRolesMeta")}
+          />
+          <SidebarNavItem
+            to="/facebook-follow"
+            icon={<FacebookIcon />}
+            title={t("shell.facebookFollowTitle")}
+            meta={t("shell.facebookFollowMeta")}
+          />
         </nav>
 
         <div className="navSectionLabel">{t("shell.workspace")}</div>
@@ -477,7 +474,11 @@ export function AppShell() {
           </div>
         </header>
         <main className="content">
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
+          </AnimatePresence>
         </main>
       </div>
     </div>
