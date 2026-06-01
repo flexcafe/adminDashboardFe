@@ -80,13 +80,13 @@ button, input, select, textarea { font: inherit; }
   gap: 16px;
   background: linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-soft) 100%);
   border-right: 1px solid #2c3136;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .sidebar {
   background: linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-soft) 100%);
   border-right-color: #2c3136;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .sidebarHeader,
@@ -206,14 +206,14 @@ button, input, select, textarea { font: inherit; }
 .navItem:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(148, 163, 184, 0.14);
-  color: #ffffff;
+  color: #f6efe1;
   transform: translateY(-1px);
 }
 
 [data-theme="dark"] .navItem:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(148, 163, 184, 0.14);
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 @media (min-width: 1101px) {
@@ -337,7 +337,7 @@ button, input, select, textarea { font: inherit; }
 .navItem.active {
   background: linear-gradient(180deg, rgba(26, 28, 30, 0.92), rgba(35, 38, 41, 0.9));
   border-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: #f6efe1;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -1109,14 +1109,14 @@ button, input, select, textarea { font: inherit; }
   min-width: 84px;
   background: #0A192F;
   border-color: #0A192F;
-  color: #ffffff;
+  color: #f6efe1;
   transition: all 0.2s ease-in-out;
 }
 
 .topbarLogout:hover {
   background: #132238;
   border-color: #132238;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .topbarIdentity {
@@ -1134,14 +1134,14 @@ button, input, select, textarea { font: inherit; }
 [data-theme="dark"] .topbarLogout {
   background: #0A192F;
   border-color: #0A192F;
-  color: #ffffff;
+  color: #f6efe1;
   transition: all 0.2s ease-in-out;
 }
 
 [data-theme="dark"] .topbarLogout:hover {
   background: #132238;
   border-color: #132238;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .content {
@@ -1183,7 +1183,7 @@ button, input, select, textarea { font: inherit; }
 [data-theme="dark"] .topbarUser,
 [data-theme="dark"] .detailValue,
 [data-theme="dark"] .verificationUserName {
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .pageDescription {
@@ -1974,13 +1974,13 @@ button, input, select, textarea { font: inherit; }
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.05;
-  color: #ffffff;
+  color: #f6efe1;
   text-align: center;
 }
 
 .authCardSimple .authSubtitle {
   margin: 0;
-  color: rgba(231, 238, 247, 0.78);
+  color: rgba(223, 214, 198, 0.9);
   font-size: 14px;
   text-align: center;
   line-height: 1.5;
@@ -2006,7 +2006,7 @@ button, input, select, textarea { font: inherit; }
   display: inline-block;
   line-height: 1.2;
 }
-.authCardSimple .authLabel { color: rgba(231, 238, 247, 0.72); }
+.authCardSimple .authLabel { color: rgba(214, 205, 188, 0.85); }
 
 .authInput {
   width: 100%;
@@ -2044,11 +2044,11 @@ button, input, select, textarea { font: inherit; }
 .authCardSimple .authInput {
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .authCardSimple .authInput::placeholder {
-  color: rgba(231, 238, 247, 0.58);
+  color: rgba(214, 205, 188, 0.72);
 }
 
 .authCardSimple .authInput:focus {
@@ -2640,7 +2640,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 .sliderPreviewContent {
-  color: #ffffff;
+  color: #f6efe1;
   width: 100%;
 }
 
@@ -3005,7 +3005,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .categoryMgmtFilterButton.active {
   background: #1A1C1E;
   border-color: #1A1C1E;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .categoryMgmtTreeRow {
@@ -4291,13 +4291,13 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .verificationPrimaryButton {
   background: #1A1C1E;
   border-color: #1A1C1E;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .verificationSuccessButton {
   background: #28a745;
   border-color: #28a745;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .verificationDetailPage .verificationSectionCard,
@@ -4350,7 +4350,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .verificationStepMarker.done {
   background: #28a745;
   border-color: #28a745;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationBackButton {
@@ -4362,31 +4362,31 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .copyActionButton {
   background: #2d2d44;
   border-color: #475569;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationPrimaryButton {
   background: #1A1C1E;
   border-color: #1A1C1E;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationSuccessButton {
   background: #28a745;
   border-color: #28a745;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationDetailPage .authInput {
   background: #2d2d44;
   border-color: #475569;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationTab.active {
   background: #1A1C1E;
   border-color: #f0c36d;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationTab.active {
@@ -4396,7 +4396,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .verificationActionButton {
   background: #1A1C1E;
   border-color: #1A1C1E;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationTabs {
@@ -4477,13 +4477,13 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .verificationActionButton.success {
   background: #065f46;
   border-color: #059669;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationSummaryGrid .metricCardPrimary,
 [data-theme="dark"] .metricCardPrimary,
 [data-theme="dark"] .btn {
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatPage {
@@ -4566,7 +4566,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .adminChatTab.active {
   background: #0A192F;
   border-color: #0A192F;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatTabTitle {
@@ -4590,7 +4590,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .adminChatTab.active .adminChatTabCount {
   background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatSearchRow {
@@ -4617,6 +4617,11 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 }
 
+.adminChatListCardActionNeeded {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(180deg, #ffffff, #fff6f6);
+}
+
 .adminChatListCard.active {
   border-color: #d4b14d;
   box-shadow: 0 0 0 3px rgba(212, 177, 77, 0.16);
@@ -4639,6 +4644,23 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   font-weight: 800;
 }
 
+.adminChatListTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adminChatListingTitleIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #334155;
+}
+
 .adminChatTimestamp,
 .adminChatListMeta,
 .adminChatHeroMeta,
@@ -4657,10 +4679,61 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   margin-top: 8px;
 }
 
+.adminChatParticipantChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.adminChatParticipantFlow {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .adminChatListAmount {
   margin-top: 10px;
   font-size: 13px;
   font-weight: 700;
+}
+
+.adminChatPriceWarning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.adminChatQuickActionRow {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adminChatQuickAction {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.adminChatQuickAction:hover {
+  color: #1e3a8a;
+  text-decoration: underline;
 }
 
 .adminChatFlowSteps {
@@ -4698,7 +4771,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .adminChatFlowStep.active .adminChatFlowStepNumber {
   background: #d4b14d;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatFlowStep.done {
@@ -4708,7 +4781,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .adminChatFlowStep.done .adminChatFlowStepNumber {
   background: #1f9d72;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatInfoGrid {
@@ -4822,12 +4895,12 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .adminChatMiniFlowStep.active .adminChatMiniFlowIndex {
   background: #d4b14d;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatMiniFlowStep.done .adminChatMiniFlowIndex {
   background: #1f9d72;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 .adminChatActionButtons {
@@ -4938,7 +5011,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .rewardsBtn.primary {
   background: #1A1C1E;
   border-color: #1A1C1E;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .rewardsSummaryCard {
@@ -5058,7 +5131,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 [data-theme="dark"] .rewardsTable .authInput {
   background: #2d2d44;
   border-color: #475569;
-  color: #ffffff;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .rewardsTable .authInput::placeholder {
@@ -5595,3 +5668,4 @@ textarea.authInput { min-height: 110px; resize: vertical; }
     margin: auto;
   }
 }
+

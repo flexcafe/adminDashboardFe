@@ -1,4 +1,4 @@
-import { CheckCircle, Facebook, Users } from "lucide-react";
+import { Check, CheckCircle, Facebook, Users, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import container from "@/core/infrastructure/di/container";
@@ -26,6 +26,7 @@ type FacebookSubmission = {
   id: string;
   userId: string;
   userName: string;
+  userRegisteredAt: string;
   contact: string;
   facebookName: string;
   facebookProfileUrl: string;
@@ -80,6 +81,11 @@ const normalizeStatus = (value: unknown): FacebookSubmissionStatus => {
 const normalizeSubmission = (
   item: Record<string, unknown>
 ): FacebookSubmission | null => {
+  const userRecord =
+    item.user && typeof item.user === "object"
+      ? (item.user as Record<string, unknown>)
+      : null;
+
   const id =
     toText(item.id) ||
     toText(item.submissionId) ||
@@ -93,12 +99,25 @@ const normalizeSubmission = (
     userId: toText(item.userId) || toText(item.user_id),
     userName:
       toText(item.userName) ||
+      toText(userRecord?.name) ||
+      toText(userRecord?.userName) ||
+      toText(userRecord?.full_name) ||
       toText(item.name) ||
       toText(item.nickname) ||
       "Unknown user",
+    userRegisteredAt:
+      toText(item.created_at) ||
+      toText(item.register_date) ||
+      toText(item.registeredAt) ||
+      toText(userRecord?.created_at) ||
+      toText(userRecord?.createdAt) ||
+      toText(userRecord?.register_date) ||
+      toText(userRecord?.registeredAt),
     contact:
       toText(item.phone) ||
       toText(item.email) ||
+      toText(userRecord?.phone) ||
+      toText(userRecord?.email) ||
       toText(item.userPhoneOrEmail) ||
       "-",
     facebookName:
@@ -139,6 +158,9 @@ export function FacebookFollowPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<FacebookSubmissionStatus | "ALL">(
+    "ALL"
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState("--");
 
@@ -240,13 +262,18 @@ export function FacebookFollowPage() {
   );
 
   const filteredSubmissions = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return submissions;
+    const byStatus =
+      statusFilter === "ALL"
+        ? submissions
+        : submissions.filter((item) => item.status === statusFilter);
 
-    return submissions.filter((item) =>
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return byStatus;
+
+    return byStatus.filter((item) =>
       `${item.userName} ${item.contact} ${item.facebookName} ${item.userId}`.toLowerCase().includes(query)
     );
-  }, [searchQuery, submissions]);
+  }, [searchQuery, statusFilter, submissions]);
 
   return (
     <section className="page verificationPage">
@@ -273,30 +300,42 @@ export function FacebookFollowPage() {
       </div>
 
       <div className="verificationSummaryGrid">
-        <div className="metricCard verificationSummaryCard verificationSummaryCardYellow">
+        <button
+          type="button"
+          className={`metricCard verificationSummaryCard verificationSummaryCardYellow${statusFilter === "PENDING" ? " active" : ""}`}
+          onClick={() => setStatusFilter("PENDING")}
+        >
           <div className="rewardsSummaryIcon rewardsSummaryIconFacebook">
             <Facebook size={18} />
           </div>
           <div className="metricLabel">{t("facebookFollowPage.pendingReview")}</div>
           <div className="metricValue">{pendingCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.pendingReviewMeta")}</div>
-        </div>
-        <div className="metricCard verificationSummaryCard verificationSummaryCardGreen">
+        </button>
+        <button
+          type="button"
+          className={`metricCard verificationSummaryCard verificationSummaryCardGreen${statusFilter === "APPROVED" ? " active" : ""}`}
+          onClick={() => setStatusFilter("APPROVED")}
+        >
           <div className="rewardsSummaryIcon rewardsSummaryIconEmerald">
             <Users size={18} />
           </div>
           <div className="metricLabel">{t("facebookFollowPage.approved")}</div>
           <div className="metricValue">{approvedCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.approvedMeta")}</div>
-        </div>
-        <div className="metricCard verificationSummaryCard verificationSummaryCardBlue">
+        </button>
+        <button
+          type="button"
+          className={`metricCard verificationSummaryCard verificationSummaryCardBlue${statusFilter === "REJECTED" ? " active" : ""}`}
+          onClick={() => setStatusFilter("REJECTED")}
+        >
           <div className="rewardsSummaryIcon rewardsSummaryIconRed">
             <CheckCircle size={18} />
           </div>
           <div className="metricLabel">{t("facebookFollowPage.rejected")}</div>
           <div className="metricValue">{rejectedCount}</div>
           <div className="metricMeta">{t("facebookFollowPage.rejectedMeta")}</div>
-        </div>
+        </button>
       </div>
 
       <div className="card verificationPanel">
@@ -319,6 +358,15 @@ export function FacebookFollowPage() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
               />
+              {statusFilter !== "ALL" ? (
+                <button
+                  type="button"
+                  className="verificationActionButton subtle"
+                  onClick={() => setStatusFilter("ALL")}
+                >
+                  Clear filter
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -360,6 +408,9 @@ export function FacebookFollowPage() {
                       <td>
                         <div className="verificationUserName">{item.userName}</div>
                         {item.userId ? <div className="muted">{t("facebookFollowPage.userId", { id: item.userId })}</div> : null}
+                        {item.userRegisteredAt ? (
+                          <div className="muted">Registered: {formatDateTime(item.userRegisteredAt)}</div>
+                        ) : null}
                       </td>
                       <td>{item.contact}</td>
                       <td>
@@ -402,11 +453,11 @@ export function FacebookFollowPage() {
                           <div className="rewardsInlineActions facebookFollowActions">
                             <button
                               type="button"
-                              className="verificationActionButton"
+                              className="verificationActionButton success"
                               disabled={!!savingKey}
                               onClick={() => runAction("approve", item.id)}
                             >
-                              {savingKey === `approve-${item.id}` ? "..." : t("facebookFollowPage.approve")}
+                              {savingKey === `approve-${item.id}` ? "..." : <><Check size={14} /> {t("facebookFollowPage.approve")}</>}
                             </button>
                             <button
                               type="button"
@@ -414,7 +465,7 @@ export function FacebookFollowPage() {
                               disabled={!!savingKey}
                               onClick={() => runAction("reject", item.id)}
                             >
-                              {savingKey === `reject-${item.id}` ? "..." : t("facebookFollowPage.reject")}
+                              {savingKey === `reject-${item.id}` ? "..." : <><X size={14} /> {t("facebookFollowPage.reject")}</>}
                             </button>
                           </div>
                         ) : (
