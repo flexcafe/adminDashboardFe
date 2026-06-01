@@ -57,8 +57,10 @@ function FacebookIcon() {
 function ShieldIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3a4 4 0 0 0-4 4v1.4c0 .7-.2 1.39-.58 1.98L6 12.5h12l-1.42-2.12A3.6 3.6 0 0 1 16 8.4V7a4 4 0 0 0-4-4Z" />
-      <path d="M10 18a2 2 0 0 0 4 0" />
+      <circle cx="7.5" cy="12" r="2.5" />
+      <path d="M10 12h10" />
+      <path d="M16 12v3" />
+      <path d="M19 12v2" />
     </svg>
   );
 }
