@@ -331,25 +331,6 @@ export function PointsPage() {
     }
   };
 
-  const saveSingleStarRow = async (index: number) => {
-    try {
-      setSavingKey(`star-${index}`);
-      setPageError(null);
-      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, {
-        configs: starConfigs.map((item) => ({
-          starCount: item.starCount,
-          pointsAwarded: item.pointsAwarded,
-        })),
-      });
-      showToast(t("rewardsPage.saved"));
-      await loadStarConfigs();
-    } catch (error) {
-      setPageError(error instanceof Error ? error.message : t("rewardsPage.saveStarRowError"));
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
   const saveRankConfigs = async () => {
     try {
       setSavingKey("rank-all");
@@ -365,26 +346,6 @@ export function PointsPage() {
       await loadRankConfigs();
     } catch (error) {
       setPageError(error instanceof Error ? error.message : t("rewardsPage.saveRankError"));
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
-  const saveSingleRankRow = async (index: number) => {
-    try {
-      setSavingKey(`rank-${index}`);
-      setPageError(null);
-      await httpClient.put<ApiResponse<unknown>>(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, {
-        configs: rankConfigs.map((item) => ({
-          ...item,
-          minPoints: item.minPoints,
-          maxPoints: item.maxPoints,
-        })),
-      });
-      showToast(t("rewardsPage.saved"));
-      await loadRankConfigs();
-    } catch (error) {
-      setPageError(error instanceof Error ? error.message : t("rewardsPage.saveRankRowError"));
     } finally {
       setSavingKey(null);
     }
@@ -557,11 +518,16 @@ export function PointsPage() {
         ) : null}
 
         {!isLoading && activeTab === "config" ? (
-          <div className="rewardsContentStack">
+          <div className="rewardsContentStack rewardsConfigGrid">
             <section className="rewardsSectionCard">
               <div className="rewardsSectionHead">
-                <h2 className="sectionTitle">{t("rewardsPage.starConfigTitle")}</h2>
-                <p className="sectionDescription">{t("rewardsPage.starConfigDescription")}</p>
+                <div className="rewardsSectionHeadContent">
+                  <h2 className="sectionTitle">{t("rewardsPage.starConfigTitle")}</h2>
+                  <p className="sectionDescription">{t("rewardsPage.starConfigDescription")}</p>
+                </div>
+                <button className="rewardsBtn primary rewardsSectionSaveBtn" type="button" disabled={!!savingKey} onClick={saveStarConfigs}>
+                  {savingKey === "star-all" ? t("categoryForm.saving") : t("rewardsPage.saveAllChanges")}
+                </button>
               </div>
               <div className="rewardsTableWrap">
                 <table className="rewardsTable">
@@ -569,7 +535,6 @@ export function PointsPage() {
                     <tr>
                       <th>{t("rewardsPage.starCount")}</th>
                       <th>{t("rewardsPage.pointsAwarded")}</th>
-                      <th>{t("rewardsPage.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -578,7 +543,7 @@ export function PointsPage() {
                         <td>{row.starCount}</td>
                         <td>
                           <input
-                            className="authInput"
+                            className="authInput rewardsCompactInput"
                             type="number"
                             min={0}
                             value={row.pointsAwarded ?? ""}
@@ -593,32 +558,22 @@ export function PointsPage() {
                             }
                           />
                         </td>
-                        <td>
-                          <button
-                            className="rewardsBtn secondary"
-                            type="button"
-                            disabled={!!savingKey}
-                            onClick={() => saveSingleStarRow(index)}
-                          >
-                            {savingKey === `star-${index}` ? t("categoryForm.saving") : t("common.save")}
-                          </button>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="rewardsActions">
-                <button className="rewardsBtn primary" type="button" disabled={!!savingKey} onClick={saveStarConfigs}>
-                  {savingKey === "star-all" ? t("categoryForm.saving") : t("rewardsPage.saveAllChanges")}
-                </button>
-              </div>
             </section>
 
             <section className="rewardsSectionCard">
               <div className="rewardsSectionHead">
-                <h2 className="sectionTitle">{t("rewardsPage.rankConfigTitle")}</h2>
-                <p className="sectionDescription">{t("rewardsPage.rankConfigDescription")}</p>
+                <div className="rewardsSectionHeadContent">
+                  <h2 className="sectionTitle">{t("rewardsPage.rankConfigTitle")}</h2>
+                  <p className="sectionDescription">{t("rewardsPage.rankConfigDescription")}</p>
+                </div>
+                <button className="rewardsBtn primary rewardsSectionSaveBtn" type="button" disabled={!!savingKey} onClick={saveRankConfigs}>
+                  {savingKey === "rank-all" ? t("categoryForm.saving") : t("rewardsPage.saveAllChanges")}
+                </button>
               </div>
               <div className="rewardsTableWrap">
                 <table className="rewardsTable">
@@ -627,7 +582,6 @@ export function PointsPage() {
                       <th>{t("rewardsPage.tier")}</th>
                       <th>{t("rewardsPage.minPoints")}</th>
                       <th>{t("rewardsPage.maxPoints")}</th>
-                      <th>{t("rewardsPage.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -636,7 +590,7 @@ export function PointsPage() {
                         <td>{row.label || row.tier}</td>
                         <td>
                           <input
-                            className="authInput"
+                            className="authInput rewardsCompactInput"
                             type="number"
                             min={0}
                             value={row.minPoints ?? ""}
@@ -653,7 +607,7 @@ export function PointsPage() {
                         </td>
                         <td>
                           <input
-                            className="authInput"
+                            className="authInput rewardsCompactInput"
                             type="number"
                             min={0}
                             value={row.maxPoints ?? ""}
@@ -672,25 +626,10 @@ export function PointsPage() {
                             }
                           />
                         </td>
-                        <td>
-                          <button
-                            className="rewardsBtn secondary"
-                            type="button"
-                            disabled={!!savingKey}
-                            onClick={() => saveSingleRankRow(index)}
-                          >
-                            {savingKey === `rank-${index}` ? t("categoryForm.saving") : t("common.save")}
-                          </button>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-              <div className="rewardsActions">
-                <button className="rewardsBtn primary" type="button" disabled={!!savingKey} onClick={saveRankConfigs}>
-                  {savingKey === "rank-all" ? t("categoryForm.saving") : t("rewardsPage.saveAllChanges")}
-                </button>
               </div>
             </section>
           </div>

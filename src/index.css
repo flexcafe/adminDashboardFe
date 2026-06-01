@@ -71,6 +71,13 @@ button, input, select, textarea { font: inherit; }
   background: linear-gradient(180deg, var(--bg) 0%, var(--bg-elevated) 100%);
 }
 
+@media (min-width: 1200px) {
+  .rewardsConfigGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -2330,6 +2337,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 .rewardsPanel {
+  margin-top: 16px;
   padding: 0;
   overflow: hidden;
   background: var(--surface);
@@ -2341,7 +2349,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  padding: 14px;
+  padding: 16px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
@@ -2379,6 +2387,11 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   padding: 16px;
 }
 
+.rewardsConfigGrid {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
 .rewardsSectionCard {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -2388,7 +2401,15 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 .rewardsSectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
+}
+
+.rewardsSectionHeadContent {
+  min-height: 80px;
 }
 
 .rewardsTableWrap {
@@ -2407,7 +2428,7 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 .rewardsTable td {
   border-bottom: 1px solid var(--border);
   text-align: left;
-  padding: 16px 18px;
+  padding: 12px 14px;
   font-size: 13px;
 }
 
@@ -2429,8 +2450,18 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .rewardsTable .authInput {
   min-height: 40px;
+  width: 100%;
+  max-width: 180px;
   background: #ffffff;
   border: 1px solid var(--border);
+}
+
+.rewardsCompactInput {
+  max-width: 160px !important;
+}
+
+.rewardsSectionSaveBtn {
+  min-width: 160px;
 }
 
 .rewardsActions {
@@ -5367,6 +5398,9 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   }
   .sliderPreviewPanelContent,
   .sliderPreviewCard {
+    width: 100%;
+  }
+  .rewardsConfigGrid {
     width: 100%;
   }
   .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
