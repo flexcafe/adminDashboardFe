@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSuggestions } from "@/features/suggestions/SuggestionsContext";
 import { useTranslation } from "react-i18next";
@@ -137,7 +137,7 @@ type SidebarNavItemProps = {
   icon: ReactNode;
 };
 
-function SidebarNavItem({ to, title, meta, icon }: SidebarNavItemProps) {
+const SidebarNavItem = memo(function SidebarNavItem({ to, title, meta, icon }: SidebarNavItemProps) {
   return (
     <NavLink to={to} className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
       {({ isActive }) => (
@@ -146,7 +146,7 @@ function SidebarNavItem({ to, title, meta, icon }: SidebarNavItemProps) {
             <motion.span
               layoutId="sidebarActivePill"
               className="navItemActivePill"
-              transition={{ type: "spring", stiffness: 500, damping: 42, mass: 0.8 }}
+              transition={{ type: "spring", stiffness: 360, damping: 34, mass: 0.85 }}
             />
           ) : null}
           <span className="navItemIcon">
@@ -160,7 +160,7 @@ function SidebarNavItem({ to, title, meta, icon }: SidebarNavItemProps) {
       )}
     </NavLink>
   );
-}
+});
 
 export function AppShell() {
   const { i18n, t } = useTranslation();
@@ -273,16 +273,22 @@ export function AppShell() {
         <div className="navSectionLabel">{t("shell.mainMenu")}</div>
         <nav className="nav">
           <SidebarNavItem
-            to="/fraud-reports"
-            icon={<FraudIcon />}
-            title={t("shell.fraudReportsTitle")}
-            meta={t("shell.fraudReportsMeta")}
-          />
-          <SidebarNavItem
             to="/dashboard"
             icon={<DashboardIcon />}
             title={t("shell.verificationTitle")}
             meta={t("shell.verificationMeta")}
+          />
+          <SidebarNavItem
+            to="/admin-chat"
+            icon={<ChatIcon />}
+            title={t("shell.adminChatTitle")}
+            meta={t("shell.adminChatMeta")}
+          />
+          <SidebarNavItem
+            to="/fraud-reports"
+            icon={<FraudIcon />}
+            title={t("shell.fraudReportsTitle")}
+            meta={t("shell.fraudReportsMeta")}
           />
           <SidebarNavItem
             to="/suggestions"
@@ -298,10 +304,10 @@ export function AppShell() {
             meta={t("shell.suggestionsMeta")}
           />
           <SidebarNavItem
-            to="/admin-chat"
-            icon={<ChatIcon />}
-            title={t("shell.adminChatTitle")}
-            meta={t("shell.adminChatMeta")}
+            to="/notifications"
+            icon={<NotificationsNavIcon />}
+            title={t("shell.notificationsNavTitle")}
+            meta={t("shell.notificationsMeta")}
           />
           <SidebarNavItem
             to="/slider-ads"
@@ -314,12 +320,6 @@ export function AppShell() {
             icon={<CategoriesIcon />}
             title={t("shell.categoriesTitle")}
             meta={t("shell.categoriesMeta")}
-          />
-          <SidebarNavItem
-            to="/notifications"
-            icon={<NotificationsNavIcon />}
-            title={t("shell.notificationsNavTitle")}
-            meta={t("shell.notificationsMeta")}
           />
           <SidebarNavItem
             to="/points"

@@ -387,7 +387,7 @@ export function FacebookFollowPage() {
           {pageError ? <p className="authError surfaceMessage facebookFollowError">{pageError}</p> : null}
 
           <FadeSlideSwap
-            swapKey={`${statusFilter}-${searchQuery.trim().toLowerCase()}-${filteredSubmissions.length}-${isLoading ? "loading" : "ready"}`}
+            swapKey={`${statusFilter}-${isLoading ? "loading" : "ready"}`}
           >
             <div className="verificationTableWrap">
             <table className="verificationTable">
@@ -402,7 +402,7 @@ export function FacebookFollowPage() {
                   <th>{t("facebookFollowPage.action")}</th>
                 </tr>
               </thead>
-              <tbody>
+              <motion.tbody layout transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
                 {isLoading ? (
                   <tr>
                     <td colSpan={7}>
@@ -421,7 +421,11 @@ export function FacebookFollowPage() {
                   </tr>
                 ) : (
                   filteredSubmissions.map((item) => (
-                    <tr key={item.id}>
+                    <motion.tr
+                      key={item.id}
+                      layout
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    >
                       <td>
                         <div className="verificationUserName">{item.userName}</div>
                         {item.userId ? <div className="muted">{t("facebookFollowPage.userId", { id: item.userId })}</div> : null}
@@ -489,10 +493,10 @@ export function FacebookFollowPage() {
                           <span className="muted">{t("facebookFollowPage.noAction")}</span>
                         )}
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))
                 )}
-              </tbody>
+              </motion.tbody>
             </table>
             </div>
           </FadeSlideSwap>

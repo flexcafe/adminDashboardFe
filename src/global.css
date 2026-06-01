@@ -246,10 +246,10 @@
 }
 
 [data-theme="dark"] .verificationTab.active {
-  background: #3A3C4E !important;
-  border-color: #3A3C4E !important;
-  color: #FFFFFF !important;
-  box-shadow: inset 0 -2px 0 #1A1C1E !important;
+  background: linear-gradient(180deg, rgba(240, 195, 109, 0.28), rgba(240, 195, 109, 0.18)) !important;
+  border-color: #f0c36d !important;
+  color: #f6efe1 !important;
+  box-shadow: inset 0 -2px 0 rgba(26, 28, 30, 0.45) !important;
 }
 
 [data-theme="dark"] .verificationTab.active .verificationTabStep,
@@ -257,7 +257,7 @@
 [data-theme="dark"] .rewardsTab.active,
 [data-theme="dark"] .navItem.active .navItemMeta,
 [data-theme="dark"] .navItem.active .navItemIcon {
-  color: #FFFFFF;
+  color: #f6efe1;
 }
 
 [data-theme="dark"] .verificationSearchRow {

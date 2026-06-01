@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category, FlatCategory } from "./categoriesApi";
 import { filterCategoryTree, flattenCategories } from "./categoriesApi";
@@ -112,6 +112,19 @@ function TreeRow({
 }: TreeRowProps) {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+  const imageCandidates = useMemo(() => {
+    const candidates = [category.iconUrl, category.imageUrl]
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return Array.from(new Set(candidates));
+  }, [category.iconUrl, category.imageUrl]);
+  const currentImageSrc = imageCandidates[imageIndex] || "";
+
+  useEffect(() => {
+    setImageFailed(false);
+    setImageIndex(0);
+  }, [category.id, imageCandidates.length, category.iconUrl, category.imageUrl]);
   const {
     attributes,
     listeners,
@@ -160,7 +173,7 @@ function TreeRow({
               onToggleSelect(category.id);
             }}
           />
-          {category.iconUrl || category.imageUrl ? (
+          {imageCandidates.length > 0 ? (
             <span className="categoryTreeImageWrap" aria-hidden="true">
               {imageFailed ? (
                 <span className="categoryTreeImageFallback">
@@ -169,10 +182,17 @@ function TreeRow({
               ) : (
                 <img
                   className="categoryTreeImage"
-                  src={(category.iconUrl || category.imageUrl).trim()}
+                  src={currentImageSrc}
                   alt=""
                   loading="lazy"
-                  onError={() => setImageFailed(true)}
+                  referrerPolicy="no-referrer"
+                  onError={() => {
+                    if (imageIndex < imageCandidates.length - 1) {
+                      setImageIndex((current) => current + 1);
+                      return;
+                    }
+                    setImageFailed(true);
+                  }}
                 />
               )}
             </span>
@@ -361,4 +381,3 @@ export function CategoryTree({
     </section>
   );
 }
-

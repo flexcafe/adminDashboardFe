@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category } from "./categoriesApi";
 
@@ -23,11 +23,20 @@ export function CategoryDetails({
 }: CategoryDetailsProps) {
   const { i18n, t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
-  const mediaUrl = (category?.iconUrl || category?.imageUrl || "").trim();
+  const [imageIndex, setImageIndex] = useState(0);
+  const mediaCandidates = useMemo(() => {
+    if (!category) return [];
+    const candidates = [category.iconUrl, category.imageUrl]
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return Array.from(new Set(candidates));
+  }, [category]);
+  const mediaUrl = mediaCandidates[imageIndex] || "";
 
   useEffect(() => {
     setImageFailed(false);
-  }, [category?.id, mediaUrl]);
+    setImageIndex(0);
+  }, [category?.id, category?.iconUrl, category?.imageUrl]);
 
   const formatDateTime = (value: string) => {
     if (!value) return "-";
@@ -55,7 +64,7 @@ export function CategoryDetails({
   return (
     <section className="card categoriesDetailsPanel">
       <div className="categoriesDetailsHero">
-        {mediaUrl ? (
+        {mediaCandidates.length > 0 ? (
           <div className="categoriesDetailsMedia">
             {imageFailed ? (
               <div className="categoriesDetailsImageFallback">
@@ -68,7 +77,14 @@ export function CategoryDetails({
                 alt={t("categoryDetails.categoryImageAlt", {
                   name: category.name,
                 })}
-                onError={() => setImageFailed(true)}
+                referrerPolicy="no-referrer"
+                onError={() => {
+                  if (imageIndex < mediaCandidates.length - 1) {
+                    setImageIndex((current) => current + 1);
+                    return;
+                  }
+                  setImageFailed(true);
+                }}
               />
             )}
           </div>

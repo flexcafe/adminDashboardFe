@@ -1,5 +1,5 @@
-import { Clock, Eye, MessageSquare } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Clock, Eye, MessageSquare, Package } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminChat } from "@/features/adminChat/AdminChatContext";
 import type {
@@ -65,6 +65,30 @@ function getTimelineStepState(
   return "idle";
 }
 
+function formatRelativeTime(value: string, locale: string) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const diffMs = date.getTime() - Date.now();
+  const absMs = Math.abs(diffMs);
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+
+  if (absMs < hourMs) {
+    return rtf.format(Math.round(diffMs / minuteMs), "minute");
+  }
+  if (absMs < dayMs) {
+    return rtf.format(Math.round(diffMs / hourMs), "hour");
+  }
+  if (absMs < 7 * dayMs) {
+    return rtf.format(Math.round(diffMs / dayMs), "day");
+  }
+  return formatDate(value, locale);
+}
+
 function getStageLabel(stage: AdminChatRecord["stage"], t: (key: string) => string) {
   switch (stage) {
     case "SAFE_PAYMENT_AWAITING_INSTRUCTION":
@@ -104,6 +128,7 @@ export function AdminChatWorkspace() {
   const [isSubmitting, setIsSubmitting] = useState<null | "instruction" | "received" | "transferred">(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const receivingPhoneInputRef = useRef<HTMLInputElement | null>(null);
 
   const itemsByTab = useMemo(
     () => ({
@@ -192,6 +217,13 @@ export function AdminChatWorkspace() {
     selectedRecord?.adminReceivingPhone,
     selectedRecord?.transactionId,
   ]);
+
+  const focusReceivingPhoneInput = () => {
+    window.requestAnimationFrame(() => {
+      receivingPhoneInputRef.current?.focus();
+      receivingPhoneInputRef.current?.select();
+    });
+  };
 
   const queueStats = {
     awaitingInstruction: awaitingInstruction.length,
@@ -338,7 +370,7 @@ export function AdminChatWorkspace() {
               }
               onClick={() => setActiveTab("awaitingInstruction")}
             >
-              <span className="adminChatTabTitle">{t("adminChatPage.awaitingInstruction")}</span>
+              <span className="adminChatTabTitle">📥 Send Instructions</span>
               <span className="adminChatTabCount">{queueStats.awaitingInstruction}</span>
             </button>
             <button
@@ -346,7 +378,7 @@ export function AdminChatWorkspace() {
               className={activeTab === "pending" ? "adminChatTab active" : "adminChatTab"}
               onClick={() => setActiveTab("pending")}
             >
-              <span className="adminChatTabTitle">{t("adminChatPage.pending")}</span>
+              <span className="adminChatTabTitle">🔍 Verify Payments</span>
               <span className="adminChatTabCount">{queueStats.pending}</span>
             </button>
           </div>
@@ -401,28 +433,67 @@ export function AdminChatWorkspace() {
                     type="button"
                     className={
                       selectedRecord?.transactionId === item.transactionId
-                        ? "adminChatListCard active"
-                        : "adminChatListCard"
+                        ? `adminChatListCard ${!item.amountLabel ? "adminChatListCardActionNeeded" : ""} active`
+                        : `adminChatListCard ${!item.amountLabel ? "adminChatListCardActionNeeded" : ""}`
                     }
-                    onClick={() => setSelectedId(item.transactionId)}
+                    onClick={() => {
+                      setSelectedId(item.transactionId);
+                      focusReceivingPhoneInput();
+                    }}
                   >
                     <div className="adminChatListTop">
                       <span className="inlineBadge">{getStageLabel(item.stage, t)}</span>
                       <span className="adminChatTimestamp">
-                        {formatDate(item.updatedAt || item.createdAt, i18n.language)}
+                        {formatRelativeTime(
+                          item.updatedAt || item.createdAt,
+                          i18n.language
+                        )}
                       </span>
                     </div>
                     <div className="adminChatListTitle">
+                      <span className="adminChatListingTitleIcon">
+                        <Package size={14} />
+                      </span>
                       {item.listingTitle || listingFallback}
                     </div>
                     <div className="adminChatListMeta">
-                      <span>{buyerDisplay}</span>
-                      <span>{sellerDisplay}</span>
+                      <span className="adminChatParticipantChip">
+                        👤 Buyer: {buyerDisplay}
+                      </span>
+                      <span className="adminChatParticipantFlow">➔</span>
+                      <span className="adminChatParticipantChip">
+                        👤 Seller: {sellerDisplay}
+                      </span>
                     </div>
                     <div className="adminChatListAmount">
                       {item.amountLabel
                         ? `${item.amountLabel} ${item.currency}`.trim()
-                        : <span className="adminChatPriceWarning">{t("adminChatPage.amountPending")}</span>}
+                        : <span className="adminChatPriceWarning">🔴 Action Needed: Send KBZPay Details</span>}
+                    </div>
+                    <div className="adminChatQuickActionRow">
+                      <span className="adminChatTimestamp">
+                        {formatDate(item.updatedAt || item.createdAt, i18n.language)}
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="adminChatQuickAction"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setSelectedId(item.transactionId);
+                          focusReceivingPhoneInput();
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedId(item.transactionId);
+                            focusReceivingPhoneInput();
+                          }
+                        }}
+                      >
+                        Process →
+                      </span>
                     </div>
                   </button>
                 );
@@ -587,6 +658,7 @@ export function AdminChatWorkspace() {
                           {t("adminChatPage.receivingPhoneLabel")}
                         </span>
                         <input
+                          ref={receivingPhoneInputRef}
                           type="text"
                           className="authInput"
                           value={instructionPhone}

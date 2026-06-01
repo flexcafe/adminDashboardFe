@@ -3731,26 +3731,26 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 [data-theme="dark"] .sliderPreviewFrame {
-  background: linear-gradient(180deg, #020617, #0f172a);
+  background: #141618;
 }
 
 [data-theme="dark"] .sliderPreviewEmpty,
 [data-theme="dark"] .sliderPreviewPlaceholder,
 [data-theme="dark"] .sliderUploadPreviewEmpty,
 [data-theme="dark"] .sliderThumbPlaceholder {
-  background: #162231;
-  border-color: #334155;
+  background: #1A1D21;
+  border-color: #2A2C2E;
   color: #cbd5e1;
 }
 
 [data-theme="dark"] .sliderModal,
 [data-theme="dark"] .sliderConfirmDialog {
-  background: #1e1e2f;
-  border-color: #334155;
+  background: #141618;
+  border-color: #2A2C2E;
 }
 
 [data-theme="dark"] .sliderModalHeader {
-  border-color: #334155;
+  border-color: #2A2C2E;
 }
 
 [data-theme="dark"] .sliderModalClose,
@@ -3772,8 +3772,8 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 }
 
 [data-theme="dark"] .sliderUploadPreview {
-  background: #162231;
-  border-color: #334155;
+  background: #1A1D21;
+  border-color: #2A2C2E;
 }
 
 [data-theme="dark"] .sliderThumb {

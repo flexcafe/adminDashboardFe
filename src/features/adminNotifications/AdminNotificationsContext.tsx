@@ -249,6 +249,7 @@ export function AdminNotificationsProvider({
   const [lastNotificationAt, setLastNotificationAt] = useState(0);
   const readNotificationIdsRef = useRef<Set<string>>(new Set());
   const refreshNotificationsRef = useRef<() => Promise<void>>(async () => undefined);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const currentUserId = user?.id || null;
 
   useEffect(() => {
@@ -289,6 +290,11 @@ export function AdminNotificationsProvider({
   );
 
   const refreshNotifications = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
+    }
+
+    const refreshTask = (async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -314,7 +320,12 @@ export function AdminNotificationsProvider({
       );
     } finally {
       setIsLoading(false);
+      refreshInFlightRef.current = null;
     }
+    })();
+
+    refreshInFlightRef.current = refreshTask;
+    return refreshTask;
   }, [httpClient, mergeFetchedNotifications]);
 
   refreshNotificationsRef.current = refreshNotifications;
@@ -432,11 +443,12 @@ export function AdminNotificationsProvider({
 
   const markNotificationsRead = useCallback((notificationIds: string[]) => {
     if (notificationIds.length === 0) return;
+    const readIds = new Set(notificationIds);
     setNotifications((current) => {
       const next = current.map((item) =>
-        notificationIds.includes(item.id) ? { ...item, isRead: true } : item
+        readIds.has(item.id) ? { ...item, isRead: true } : item
       );
-      notificationIds.forEach((id) => readNotificationIdsRef.current.add(id));
+      readIds.forEach((id) => readNotificationIdsRef.current.add(id));
       writeStoredNotificationIds(readNotificationIdsRef.current, currentUserId);
       return next;
     });

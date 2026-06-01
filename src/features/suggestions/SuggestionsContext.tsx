@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -33,8 +34,14 @@ export function SuggestionsProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
 
   const refreshSuggestions = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
+    }
+
+    const refreshTask = (async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -50,7 +57,12 @@ export function SuggestionsProvider({ children }: PropsWithChildren) {
       );
     } finally {
       setIsLoading(false);
+      refreshInFlightRef.current = null;
     }
+    })();
+
+    refreshInFlightRef.current = refreshTask;
+    return refreshTask;
   }, []);
 
   useEffect(() => {

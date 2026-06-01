@@ -87,7 +87,25 @@ export function AdminRolesPage() {
     window.setTimeout(() => setToastMessage(null), 2200);
   }, []);
 
-  const loadData = async () => {
+  const loadRoles = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setPageError(null);
+      setModalSubmitError(null);
+      const rolesData = await listAdminRoles();
+      setRoles(rolesData);
+    } catch (error) {
+      setPageError(
+        error instanceof Error
+          ? error.message
+          : t("adminRolesPage.loadError")
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t]);
+
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setPageError(null);
@@ -109,12 +127,11 @@ export function AdminRolesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     void loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadData]);
 
   const filteredRoles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -167,7 +184,7 @@ export function AdminRolesPage() {
       }
 
       setModalState({ isOpen: false, mode: "create", role: null });
-      await loadData();
+      await loadRoles();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : t("adminRolesPage.saveError");
@@ -190,7 +207,7 @@ export function AdminRolesPage() {
       await deleteAdminRole(deleteTarget.id);
       setDeleteTarget(null);
       showToast(t("adminRolesPage.deletedToast"));
-      await loadData();
+      await loadRoles();
     } catch (error) {
       setPageError(
         error instanceof Error
@@ -218,7 +235,7 @@ export function AdminRolesPage() {
             type="button"
             className="verificationActionButton subtle"
             onClick={() => {
-              void loadData();
+              void loadRoles();
             }}
             disabled={isLoading || isSaving}
           >
