@@ -20,6 +20,11 @@ const AdminChatPage = lazy(() =>
     default: module.AdminChatPage,
   }))
 );
+const AIAssistantPage = lazy(() =>
+  import("../../pages/AIAssistantPage").then((module) => ({
+    default: module.AIAssistantPage,
+  }))
+);
 const CategoriesPage = lazy(() =>
   import("../../pages/CategoriesPage").then((module) => ({
     default: module.CategoriesPage,
@@ -129,6 +134,7 @@ export function AppRouter() {
                 <Route index element={<DashboardPage />} />
                 <Route path=":userId" element={<UserVerificationDetailPage />} />
               </Route>
+              <Route path="/ai-assistant" element={<AIAssistantPage />} />
               <Route path="/admin-chat" element={<AdminChatPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/slider-ads" element={<SliderAdsPage />} />

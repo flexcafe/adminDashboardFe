@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category, FlatCategory } from "./categoriesApi";
 import { filterCategoryTree, flattenCategories } from "./categoriesApi";
@@ -100,6 +100,51 @@ function TreeChildDropZone({ categoryId }: { categoryId: string }) {
   );
 }
 
+function TreeRowImage({
+  imageCandidates,
+  fallbackLabel,
+}: {
+  imageCandidates: string[];
+  fallbackLabel: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+  const currentImageSrc = imageCandidates[imageIndex] || "";
+
+  if (imageCandidates.length === 0) {
+    return (
+      <span className="categoryTreeFolder" aria-hidden="true">
+        <FolderIcon />
+      </span>
+    );
+  }
+
+  return (
+    <span className="categoryTreeImageWrap" aria-hidden="true">
+      {imageFailed ? (
+        <span className="categoryTreeImageFallback">
+          <FolderIcon />
+        </span>
+      ) : (
+        <img
+          className="categoryTreeImage"
+          src={currentImageSrc}
+          alt={fallbackLabel}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            if (imageIndex < imageCandidates.length - 1) {
+              setImageIndex((current) => current + 1);
+              return;
+            }
+            setImageFailed(true);
+          }}
+        />
+      )}
+    </span>
+  );
+}
+
 function TreeRow({
   category,
   isExpanded,
@@ -111,20 +156,12 @@ function TreeRow({
   onToggleSelect,
 }: TreeRowProps) {
   const { t } = useTranslation();
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
   const imageCandidates = useMemo(() => {
     const candidates = [category.iconUrl, category.imageUrl]
       .map((value) => value.trim())
       .filter(Boolean);
     return Array.from(new Set(candidates));
   }, [category.iconUrl, category.imageUrl]);
-  const currentImageSrc = imageCandidates[imageIndex] || "";
-
-  useEffect(() => {
-    setImageFailed(false);
-    setImageIndex(0);
-  }, [category.id, imageCandidates.length, category.iconUrl, category.imageUrl]);
   const {
     attributes,
     listeners,
@@ -173,34 +210,11 @@ function TreeRow({
               onToggleSelect(category.id);
             }}
           />
-          {imageCandidates.length > 0 ? (
-            <span className="categoryTreeImageWrap" aria-hidden="true">
-              {imageFailed ? (
-                <span className="categoryTreeImageFallback">
-                  <FolderIcon />
-                </span>
-              ) : (
-                <img
-                  className="categoryTreeImage"
-                  src={currentImageSrc}
-                  alt=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  onError={() => {
-                    if (imageIndex < imageCandidates.length - 1) {
-                      setImageIndex((current) => current + 1);
-                      return;
-                    }
-                    setImageFailed(true);
-                  }}
-                />
-              )}
-            </span>
-          ) : (
-            <span className="categoryTreeFolder" aria-hidden="true">
-              <FolderIcon />
-            </span>
-          )}
+          <TreeRowImage
+            key={`${category.id}-${imageCandidates.join("|")}`}
+            imageCandidates={imageCandidates}
+            fallbackLabel=""
+          />
           <div className="categoryTreeText">
             <span className="categoryTreeName">{category.name}</span>
             <span className="categoryTreeSlug">

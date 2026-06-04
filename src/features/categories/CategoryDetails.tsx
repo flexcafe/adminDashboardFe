@@ -1,6 +1,46 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Category } from "./categoriesApi";
+
+function CategoryDetailsMedia({
+  mediaCandidates,
+  imageUnavailableLabel,
+  categoryImageAlt,
+}: {
+  mediaCandidates: string[];
+  imageUnavailableLabel: string;
+  categoryImageAlt: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+  const mediaUrl = mediaCandidates[imageIndex] || "";
+
+  if (mediaCandidates.length === 0) return null;
+
+  return (
+    <div className="categoriesDetailsMedia">
+      {imageFailed ? (
+        <div className="categoriesDetailsImageFallback">
+          {imageUnavailableLabel}
+        </div>
+      ) : (
+        <img
+          className="categoriesDetailsImage"
+          src={mediaUrl}
+          alt={categoryImageAlt}
+          referrerPolicy="no-referrer"
+          onError={() => {
+            if (imageIndex < mediaCandidates.length - 1) {
+              setImageIndex((current) => current + 1);
+              return;
+            }
+            setImageFailed(true);
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 type CategoryDetailsProps = {
   category: Category | null;
@@ -22,8 +62,6 @@ export function CategoryDetails({
   onCreateChild,
 }: CategoryDetailsProps) {
   const { i18n, t } = useTranslation();
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
   const mediaCandidates = useMemo(() => {
     if (!category) return [];
     const candidates = [category.iconUrl, category.imageUrl]
@@ -31,12 +69,6 @@ export function CategoryDetails({
       .filter(Boolean);
     return Array.from(new Set(candidates));
   }, [category]);
-  const mediaUrl = mediaCandidates[imageIndex] || "";
-
-  useEffect(() => {
-    setImageFailed(false);
-    setImageIndex(0);
-  }, [category?.id, category?.iconUrl, category?.imageUrl]);
 
   const formatDateTime = (value: string) => {
     if (!value) return "-";
@@ -62,33 +94,16 @@ export function CategoryDetails({
   }
 
   return (
-    <section className="card categoriesDetailsPanel">
-      <div className="categoriesDetailsHero">
-        {mediaCandidates.length > 0 ? (
-          <div className="categoriesDetailsMedia">
-            {imageFailed ? (
-              <div className="categoriesDetailsImageFallback">
-                {t("categoryDetails.imageUnavailable")}
-              </div>
-            ) : (
-              <img
-                className="categoriesDetailsImage"
-                src={mediaUrl}
-                alt={t("categoryDetails.categoryImageAlt", {
-                  name: category.name,
-                })}
-                referrerPolicy="no-referrer"
-                onError={() => {
-                  if (imageIndex < mediaCandidates.length - 1) {
-                    setImageIndex((current) => current + 1);
-                    return;
-                  }
-                  setImageFailed(true);
-                }}
-              />
-            )}
-          </div>
-        ) : null}
+      <section className="card categoriesDetailsPanel">
+        <div className="categoriesDetailsHero">
+        <CategoryDetailsMedia
+          key={`${category.id}-${mediaCandidates.join("|")}`}
+          mediaCandidates={mediaCandidates}
+          imageUnavailableLabel={t("categoryDetails.imageUnavailable")}
+          categoryImageAlt={t("categoryDetails.categoryImageAlt", {
+            name: category.name,
+          })}
+        />
         <div className="categoriesDetailsHeroContent">
           <div className="categoriesDetailsTopline">
             <span className="pageEyebrow">{t("categoryDetails.title")}</span>

@@ -63,18 +63,15 @@ export function CategoryFormModal({
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [slugTouched, setSlugTouched] = useState(Boolean(initialCategory?.slug));
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(initialCategory?.iconUrl || "");
 
   useEffect(() => {
-    if (formState.iconFile) {
-      const objectUrl = URL.createObjectURL(formState.iconFile);
-      setPreviewUrl(objectUrl);
-      return () => URL.revokeObjectURL(objectUrl);
-    }
-
-    setPreviewUrl(formState.icon.trim() || "");
-    return;
-  }, [formState.icon, formState.iconFile]);
+    return () => {
+      if (previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const parentSelectOptions = useMemo(
     () => parentOptions.filter((option) => !excludedParentIds.includes(option.id)),
@@ -226,6 +223,12 @@ export function CategoryFormModal({
                   accept="image/png,image/jpeg,image/webp,image/svg+xml"
                   onChange={(event) => {
                     const nextFile = event.target.files?.[0] || null;
+                    setPreviewUrl((current) => {
+                      if (current.startsWith("blob:")) {
+                        URL.revokeObjectURL(current);
+                      }
+                      return nextFile ? URL.createObjectURL(nextFile) : formState.icon.trim();
+                    });
                     setFormState((current) => ({
                       ...current,
                       iconFile: nextFile,

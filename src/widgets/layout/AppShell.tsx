@@ -10,6 +10,7 @@ import { useAdminNotifications } from "@/features/adminNotifications/AdminNotifi
 import { translateDynamicField } from "@/lib/i18n/dynamic";
 import flexUsedLogo from "@/assets/flex-used-logo.png";
 import { PageTransition } from "@/components/motion/PageTransition";
+import { AIAssistantQuickChat } from "@/features/aiAssistant/AIAssistantQuickChat";
 
 function DashboardIcon() {
   return (
@@ -36,6 +37,18 @@ function ChatIcon() {
       <path d="M7 10h10" />
       <path d="M7 14h6" />
       <path d="M5 19.5V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H10l-5 3.5Z" />
+    </svg>
+  );
+}
+
+function AiAssistantIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 8V4" />
+      <rect x="5" y="8" width="14" height="11" rx="3" />
+      <path d="M9 13h.01M15 13h.01" />
+      <path d="M9 17h6" />
+      <path d="m19 4 1 2 2 1-2 1-1 2-1-2-2-1 2-1z" />
     </svg>
   );
 }
@@ -178,6 +191,7 @@ export function AppShell() {
   const { pendingCount: suggestionsPendingCount } = useSuggestions();
   const navigate = useNavigate();
   const location = useLocation();
+  const isAIAssistantRoute = location.pathname.startsWith("/ai-assistant");
   const currentUserName = user?.name || "Admin";
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -277,6 +291,12 @@ export function AppShell() {
             icon={<DashboardIcon />}
             title={t("shell.verificationTitle")}
             meta={t("shell.verificationMeta")}
+          />
+          <SidebarNavItem
+            to="/ai-assistant"
+            icon={<AiAssistantIcon />}
+            title={t("shell.aiAssistantTitle")}
+            meta={t("shell.aiAssistantMeta")}
           />
           <SidebarNavItem
             to="/admin-chat"
@@ -480,6 +500,7 @@ export function AppShell() {
             </PageTransition>
           </AnimatePresence>
         </main>
+        {!isAIAssistantRoute ? <AIAssistantQuickChat currentPath={location.pathname} /> : null}
       </div>
     </div>
   );

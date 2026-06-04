@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
@@ -85,7 +85,6 @@ export function AdminRoleFormModal({
   onSubmit,
 }: AdminRoleFormModalProps) {
   const { t } = useTranslation();
-  const wasOpenRef = useRef(false);
   const [formState, setFormState] = useState<FormState>(() =>
     ({
       ...createInitialState(initialData),
@@ -96,42 +95,6 @@ export function AdminRoleFormModal({
     })
   );
   const [errors, setErrors] = useState<FormErrors>({});
-
-  useEffect(() => {
-    if (!isOpen) {
-      wasOpenRef.current = false;
-      return;
-    }
-
-    const openingNow = !wasOpenRef.current;
-    if (!openingNow) return;
-
-    setFormState({
-      ...createInitialState(initialData),
-      selectedPermissions: normalizeSelectedPermissions(
-        initialData?.permissions || [],
-        permissions
-      ),
-    });
-    setErrors({});
-    wasOpenRef.current = true;
-  }, [initialData, permissions, mode, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || permissions.length === 0) return;
-
-    setFormState((prev) => {
-      const normalized = normalizeSelectedPermissions(prev.selectedPermissions, permissions);
-      if (normalized.length === prev.selectedPermissions.length &&
-        normalized.every((value, index) => value === prev.selectedPermissions[index])) {
-        return prev;
-      }
-      return {
-        ...prev,
-        selectedPermissions: normalized,
-      };
-    });
-  }, [isOpen, permissions]);
 
   // Group permissions by group name
   const groupedPermissions = useMemo(() => {
@@ -145,7 +108,11 @@ export function AdminRoleFormModal({
   }, [permissions]);
 
   // Count selected permissions
-  const selectedCount = formState.selectedPermissions.length;
+  const normalizedSelectedPermissions = useMemo(
+    () => normalizeSelectedPermissions(formState.selectedPermissions, permissions),
+    [formState.selectedPermissions, permissions]
+  );
+  const selectedCount = normalizedSelectedPermissions.length;
   const totalCount = permissions.length;
 
   const togglePermission = (permissionId: string) => {
@@ -173,7 +140,7 @@ export function AdminRoleFormModal({
     await onSubmit({
       name: formState.name.trim(),
       description: formState.description.trim() || undefined,
-      permissions: formState.selectedPermissions,
+      permissions: normalizedSelectedPermissions,
       isActive: formState.isActive,
     });
   };
@@ -313,7 +280,7 @@ export function AdminRoleFormModal({
                     </div>
                     <div className="adminRolesPermissionItems">
                       {perms.map((perm) => {
-                        const isChecked = formState.selectedPermissions.includes(perm.id);
+                        const isChecked = normalizedSelectedPermissions.includes(perm.id);
                         return (
                           <label
                             key={perm.id}
