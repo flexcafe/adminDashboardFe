@@ -9,9 +9,11 @@ import {
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import {
+  buildRecoveryInstruction,
   callAssistantCompletion,
   describeAction,
   executeAssistantAction,
+  isRecoverableActionError,
 } from "@/features/aiAssistant/aiAssistantApi";
 import {
   createAssistantMessage,
@@ -237,6 +239,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
     content,
     dashboardContext,
     onActionComplete,
+    refreshDashboardContext,
     sessionId,
   }: SubmitAssistantMessageArgs) => {
     const trimmed = content.trim();
@@ -289,14 +292,60 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
       );
 
       if (result.action) {
-        const actionResult = await executeAssistantAction(httpClient, result.action);
-        appendMessageToSession(
-          targetSession.id,
-          formatActionExecutionMessage(describeAction(result.action), actionResult),
-          "assistant"
-        );
-        if (onActionComplete) {
-          await onActionComplete();
+        try {
+          const actionResult = await executeAssistantAction(httpClient, result.action);
+          appendMessageToSession(
+            targetSession.id,
+            formatActionExecutionMessage(describeAction(result.action), actionResult),
+            "assistant"
+          );
+          if (onActionComplete) {
+            await onActionComplete();
+          }
+        } catch (actionError) {
+          if (!refreshDashboardContext || !isRecoverableActionError(actionError)) {
+            throw actionError;
+          }
+
+          appendMessageToSession(
+            targetSession.id,
+            "I hit a contract error. Refreshing live context and retrying with corrected parameters.",
+            "assistant"
+          );
+
+          const refreshedDashboardContext = await refreshDashboardContext();
+          const retryResult = await callAssistantCompletion({
+            apiKey: currentSettings.apiKey.trim(),
+            model: currentSettings.model.trim(),
+            messages: [
+              ...conversation,
+              createAssistantMessage("assistant", result.content || "I prepared an answer."),
+              createAssistantMessage("user", buildRecoveryInstruction(actionError)),
+            ],
+            dashboardContext: refreshedDashboardContext,
+            memorySummary: summarizeMemory(nextMemory),
+            agentMode: currentSettings.agentMode,
+          });
+
+          appendMessageToSession(
+            targetSession.id,
+            retryResult.content || "I prepared a corrected action.",
+            "assistant"
+          );
+
+          if (!retryResult.action) {
+            throw actionError;
+          }
+
+          const retryActionResult = await executeAssistantAction(httpClient, retryResult.action);
+          appendMessageToSession(
+            targetSession.id,
+            formatActionExecutionMessage(describeAction(retryResult.action), retryActionResult),
+            "assistant"
+          );
+          if (onActionComplete) {
+            await onActionComplete();
+          }
         }
       }
     } catch (error) {

@@ -2,6 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import { callAssistantCompletion, executeAssistantAction } from "../aiAssistantApi";
 
+const UUIDS = {
+  user: "11111111-1111-4111-8111-111111111111",
+  transaction: "22222222-2222-4222-8222-222222222222",
+  facebook: "33333333-3333-4333-8333-333333333333",
+  slider: "44444444-4444-4444-8444-444444444444",
+  category: "55555555-5555-4555-8555-555555555555",
+};
+
 const baseArgs = {
   apiKey: "test-key",
   model: "deepseek-ai/deepseek-v3.2",
@@ -181,18 +189,18 @@ describe("executeAssistantAction", () => {
 
     await executeAssistantAction(httpClient as never, {
       type: "send_kbz_instruction",
-      userId: "user-1",
+      userId: UUIDS.user,
       adminPhoneForTransfer: "09123456789",
       adminNote: "Send 100 MMK",
     });
     await executeAssistantAction(httpClient as never, {
       type: "mark_safe_payment_received",
-      transactionId: "txn-1",
+      transactionId: UUIDS.transaction,
       adminNote: "Received",
     });
     await executeAssistantAction(httpClient as never, {
       type: "approve_facebook_follow",
-      submissionId: "fb-1",
+      submissionId: UUIDS.facebook,
     });
     await executeAssistantAction(httpClient as never, {
       type: "update_star_config",
@@ -200,7 +208,7 @@ describe("executeAssistantAction", () => {
     });
     await executeAssistantAction(httpClient as never, {
       type: "update_slider_ad",
-      sliderId: "slider-1",
+      sliderId: UUIDS.slider,
       payload: { status: "INACTIVE" },
     });
     await executeAssistantAction(httpClient as never, {
@@ -210,28 +218,28 @@ describe("executeAssistantAction", () => {
     });
     await executeAssistantAction(httpClient as never, {
       type: "move_category",
-      categoryId: "cat-1",
+      categoryId: UUIDS.category,
       parentId: null,
       sortOrder: 2,
     });
 
     expect(httpClient.post).toHaveBeenCalledWith(
-      API_ENDPOINTS.AUTH.KBZPAY_SEND_INSTRUCTION("user-1"),
+      API_ENDPOINTS.AUTH.KBZPAY_SEND_INSTRUCTION(UUIDS.user),
       { adminPhoneForTransfer: "09123456789", adminNote: "Send 100 MMK" }
     );
     expect(httpClient.post).toHaveBeenCalledWith(
-      API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.RECEIVED("txn-1"),
+      API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.RECEIVED(UUIDS.transaction),
       { adminNote: "Received" }
     );
     expect(httpClient.post).toHaveBeenCalledWith(
-      API_ENDPOINTS.DASHBOARD_FACEBOOK_FOLLOW.APPROVE("fb-1")
+      API_ENDPOINTS.DASHBOARD_FACEBOOK_FOLLOW.APPROVE(UUIDS.facebook)
     );
     expect(httpClient.put).toHaveBeenCalledWith(
       API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG,
       { configs: [{ starCount: 1, pointsAwarded: 10 }] }
     );
     expect(httpClient.patch).toHaveBeenCalledWith(
-      API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BY_ID("slider-1"),
+      API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BY_ID(UUIDS.slider),
       expect.any(FormData)
     );
     expect(httpClient.post).toHaveBeenCalledWith(
@@ -243,8 +251,8 @@ describe("executeAssistantAction", () => {
         isActive: undefined,
       }
     );
-    expect(httpClient.put).toHaveBeenCalledWith(
-      API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID("cat-1"),
+    expect(httpClient.patch).toHaveBeenCalledWith(
+      API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(UUIDS.category),
       { parentId: null, sortOrder: 2 }
     );
   });

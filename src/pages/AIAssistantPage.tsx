@@ -4,46 +4,18 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
-import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import loliLogo from "@/assets/loli-logo.png";
+import {
+  buildSnapshotContext,
+  loadDashboardSnapshot,
+  type DashboardSnapshot,
+} from "@/features/aiAssistant/dashboardSnapshot";
 import {
   loadAssistantSettings,
   type AssistantMemory,
   type AssistantSettings,
 } from "@/features/aiAssistant/aiAssistantStorage";
 import { useAIAssistant } from "@/features/aiAssistant/useAIAssistant";
-
-type DashboardSnapshot = {
-  kbzRegisteredAccounts?: unknown;
-  kbzVerificationRequested?: unknown;
-  kbzMoneyCheck?: unknown;
-  kbzVerifiedUsers?: unknown;
-  safePaymentAwaitingInstruction?: unknown;
-  safePaymentPending?: unknown;
-  pointsStarConfig?: unknown;
-  pointsRankConfig?: unknown;
-  fraudReports?: unknown;
-  suggestions?: unknown;
-  notifications?: unknown;
-  withdrawals?: unknown;
-  facebookFollowSubmissions?: unknown;
-  sliderAds?: unknown;
-  adminRoles?: unknown;
-  adminPermissions?: unknown;
-  users?: unknown;
-  categories?: unknown;
-  loadedAt: string;
-};
-
-const compactJson = (value: unknown, maxLength = 18000) => {
-  const text = JSON.stringify(value, null, 2);
-  return text.length > maxLength ? `${text.slice(0, maxLength)}\n...truncated` : text;
-};
-
-const buildSnapshotContext = (snapshot: DashboardSnapshot | null) => {
-  if (!snapshot) return "No dashboard data loaded yet.";
-  return compactJson(snapshot);
-};
 
 const getSessionTitle = (message: string) => {
   const title = message.trim().replace(/\s+/g, " ").slice(0, 42);
@@ -269,50 +241,23 @@ export function AIAssistantPage() {
   const loadSnapshot = useCallback(async () => {
     setPageError(null);
     try {
-      const loaders = {
-        kbzRegisteredAccounts: () => httpClient.get(API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS),
-        kbzVerificationRequested: () => httpClient.get(API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED),
-        kbzMoneyCheck: () => httpClient.get(API_ENDPOINTS.AUTH.KBZPAY_MONEY_CHECK),
-        kbzVerifiedUsers: () => httpClient.get(API_ENDPOINTS.AUTH.KBZPAY_VERIFIED_USERS),
-        safePaymentAwaitingInstruction: () => httpClient.get(API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.AWAITING_INSTRUCTION),
-        safePaymentPending: () => httpClient.get(API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.PENDING),
-        pointsStarConfig: () => httpClient.get(API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG),
-        pointsRankConfig: () => httpClient.get(API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG),
-        fraudReports: () => httpClient.get(API_ENDPOINTS.DASHBOARD_FRAUD_REPORTS.BASE),
-        suggestions: () => httpClient.get(API_ENDPOINTS.DASHBOARD_SUGGESTIONS.BASE),
-        notifications: () => httpClient.get(API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.LIST),
-        withdrawals: () => httpClient.get(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.BASE),
-        facebookFollowSubmissions: () => httpClient.get(API_ENDPOINTS.DASHBOARD_FACEBOOK_FOLLOW.BASE),
-        sliderAds: () => httpClient.get(API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE),
-        adminRoles: () => httpClient.get(API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.BASE),
-        adminPermissions: () => httpClient.get(API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.PERMISSIONS),
-        users: () => httpClient.get(API_ENDPOINTS.USERS.GET_LIST, { params: { take: 10, skip: 0 } }),
-        categories: () => httpClient.get(API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE),
-      };
-
-      const entries = await Promise.all(
-        Object.entries(loaders).map(async ([key, load]) => {
-          try {
-            return [key, await load()] as const;
-          } catch {
-            return [key, "Unable to load"] as const;
-          }
-        })
-      );
-
-      setSnapshot({
-        ...Object.fromEntries(entries),
-        loadedAt: new Date().toISOString(),
-      } as DashboardSnapshot);
+      const nextSnapshot = await loadDashboardSnapshot(httpClient, "/ai-assistant", "full");
+      setSnapshot(nextSnapshot);
       setStatusMessage(t("aiAssistantPage.contextRefreshed"));
+      return nextSnapshot;
     } catch (error) {
       setPageError(error instanceof Error ? error.message : t("aiAssistantPage.contextRefreshError"));
+      return null;
     }
   }, [httpClient, t]);
 
-  useEffect(() => {
-    void loadSnapshot();
+  const refreshSnapshot = useCallback(async () => {
+    await loadSnapshot();
   }, [loadSnapshot]);
+
+  useEffect(() => {
+    void refreshSnapshot();
+  }, [refreshSnapshot]);
 
   const saveSettings = () => {
     const nextSettings: AssistantSettings = {
@@ -337,10 +282,12 @@ export function AIAssistantPage() {
     setStatusMessage(null);
 
     try {
+      const nextSnapshot = (await loadSnapshot()) ?? snapshot;
       await submitAssistantMessage({
         content: trimmed,
-        dashboardContext: buildSnapshotContext(snapshot),
-        onActionComplete: loadSnapshot,
+        dashboardContext: buildSnapshotContext(nextSnapshot),
+        onActionComplete: refreshSnapshot,
+        refreshDashboardContext: async () => buildSnapshotContext((await loadSnapshot()) ?? nextSnapshot),
         sessionId: activeSession.id,
       });
     } catch (error) {
@@ -357,7 +304,7 @@ export function AIAssistantPage() {
           <p className="pageDescription">{t("aiAssistantPage.description")}</p>
         </div>
         <div className="aiAssistantHeaderActions">
-          <button className="rewardsBtn secondary" type="button" onClick={() => void loadSnapshot()}>
+          <button className="rewardsBtn secondary" type="button" onClick={() => void refreshSnapshot()}>
             {t("aiAssistantPage.refreshContext")}
           </button>
           <button

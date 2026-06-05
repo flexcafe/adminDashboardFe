@@ -246,7 +246,6 @@ const buildCategoryPayload = (payload: CategoryPayload) => {
   if (payload.sortOrder !== undefined) next.sortOrder = payload.sortOrder;
   if (payload.isActive !== undefined) next.isActive = payload.isActive;
   if (payload.isVisible !== undefined) next.isVisible = payload.isVisible;
-  if (payload.icon !== undefined) next.icon = payload.icon.trim();
   return next;
 };
 
@@ -268,9 +267,7 @@ const buildCategoryFormData = (payload: CategoryPayload) => {
     formData.append("parentId", payload.parentId);
   }
   if (payload.iconFile) {
-    formData.append("icon", payload.iconFile);
-  } else if (payload.icon !== undefined && payload.icon.trim()) {
-    formData.append("icon", payload.icon.trim());
+    formData.append("image", payload.iconFile);
   }
   return formData;
 };

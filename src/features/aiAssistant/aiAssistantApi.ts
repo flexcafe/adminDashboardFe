@@ -3,6 +3,7 @@ import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import type { AssistantMessage } from "./aiAssistantStorage";
 
 type GenericApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type AssistantListResource =
   | "kbz_registered_accounts"
@@ -94,10 +95,8 @@ export type AssistantToolAction =
       type: "create_category";
       name: string;
       slug?: string;
-      description?: string;
       parentId?: string | null;
       sortOrder?: number;
-      isActive?: boolean;
     }
   | {
       type: "update_category";
@@ -188,6 +187,11 @@ const toStatus = (value: unknown): "ACTIVE" | "INACTIVE" | undefined => {
   const boolValue = toBoolean(value);
   return boolValue === undefined ? undefined : boolValue ? "ACTIVE" : "INACTIVE";
 };
+
+const sanitizeRecord = (value: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  );
 
 type GenericEndpointDefinition = {
   method: GenericApiMethod;
@@ -374,7 +378,7 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
   categories_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE, description: "List categories" },
   categories_create: { method: "POST", path: API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE, description: "Create category" },
   categories_update: {
-    method: "PUT",
+    method: "PATCH",
     path: (params) => API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(requirePathParam(params, "categoryId")),
     requiredPathParams: ["categoryId"],
     description: "Update category",
@@ -937,10 +941,8 @@ const parseAction = (content: string): AssistantToolAction | null => {
         type: "create_category",
         name,
         slug: toText(params.slug) || undefined,
-        description: toText(params.description) || undefined,
         parentId: params.parentId === null ? null : toText(params.parentId) || undefined,
         sortOrder: params.sortOrder === undefined ? undefined : toNumber(params.sortOrder),
-        isActive: toBoolean(params.isActive),
       };
     }
 
@@ -1019,6 +1021,8 @@ const DASHBOARD_FEATURE_GUIDE = `Dashboard feature map:
 - Slider ads (/slider-ads): inspect active/expired ads, update metadata/status/schedule, delete ads. File image upload is not available from AI.
 - Admin roles (/admin-roles): inspect roles/permissions and create/update/delete roles when permission keys are explicitly provided.
 - Categories (/categories): inspect category tree, create/update/deactivate/move categories.
+- Category creation rule: for create-category requests, only send name, slug, sortOrder, and parentId. Never include description or isActive because the backend rejects extra fields with a 400 validation error.
+- Category fact rule: for category hierarchy questions, use the live current tree and pageContext exactly as given. Do not infer historical moves, hidden children, or prior parents unless the context explicitly states them.
 - Notifications (/notifications): inspect notification stream and unread state.
 - Suggestions (/suggestions): inspect feedback/suggestions, reward with points, or dismiss.
 - Users: inspect user list/details when available through dashboard context.
@@ -1028,7 +1032,15 @@ const DASHBOARD_FEATURE_GUIDE = `Dashboard feature map:
 - For generic_api writes, map the admin request to the exact endpoint key first, then send only the required pathParams, query, and body fields.
 
 Operational rules:
+- Global execution rules:
+- Every entity ID must be a full 36-character UUID. Never truncate, guess, or reuse a partial ID. If an ID is incomplete, reload fresh context and resolve the full ID before requesting an action.
+- For mutations, send only schema-allowed properties. Never add automatic fields such as status, isActive, icon, or similar unless the action schema explicitly allows them and the user asked for them.
+- Follow the backend HTTP contract exactly. If an endpoint is defined as PATCH, never substitute PUT or POST.
+- Before answering category placement or count questions, use the latest live context and current tree only. Never infer historical moves.
+- If a write action fails with a 400 or 404, treat it as a recoverable contract mismatch: refresh live context, correct the ID/method/payload, and retry once.
 - If the user asks about a page, use that page's context first and mention if the data was not loaded.
+- If pageContext is present, treat it as the highest-priority source for selected-record facts on that page.
+- For category questions, answer only from current parent/child relationships in the provided context. If a count or child list is unclear, say it is unclear instead of guessing.
 - For destructive/security/payment actions, require explicit IDs and only return one action request.
 - If an ID is missing, ask for the exact ID instead of guessing from names.
 - Explain what will change before requesting an action.
@@ -1095,7 +1107,7 @@ Available actions:
 - create_admin_role: params { name, description?, permissions, isActive? }
 - update_admin_role: params { roleId, name?, description?, permissions?, isActive? }
 - delete_admin_role: params { roleId }
-- create_category: params { name, slug?, description?, parentId?, sortOrder?, isActive? }
+- create_category: params { name, slug?, parentId?, sortOrder? }
 - update_category: params { categoryId, name?, slug?, description?, parentId?, sortOrder?, isActive? }
 - deactivate_category: params { categoryId }
 - move_category: params { categoryId, parentId?, sortOrder? }
@@ -1106,6 +1118,92 @@ ${genericEndpointGuide}
 
 Only request write actions when the user clearly asks for the change and enough IDs or identifiers are present.
 For CRUD requests across registered endpoints, choose the exact generic endpoint key that matches the requested create/read/update/delete operation.` : "Agent Mode is OFF. Do not request tool actions. Analyze and advise only."}`;
+
+const assertUuid = (value: string, label: string) => {
+  if (!UUID_PATTERN.test(value)) {
+    throw new Error(`${label} must be a full 36-character UUID. Refresh live context and retry with the complete ID.`);
+  }
+};
+
+const validateRecordUuidFields = (value: Record<string, unknown>, labelPrefix: string) => {
+  Object.entries(value).forEach(([key, entryValue]) => {
+    if (entryValue === null || entryValue === undefined) return;
+    if (!/(^id$|Id$|_id$)/.test(key)) return;
+    if (typeof entryValue === "string") {
+      assertUuid(entryValue, `${labelPrefix}.${key}`);
+    }
+  });
+};
+
+export const validateAssistantAction = (action: AssistantToolAction) => {
+  switch (action.type) {
+    case "list":
+    case "update_star_config":
+    case "update_rank_config":
+      return;
+    case "confirm_fraud_report":
+    case "dismiss_fraud_report":
+      return assertUuid(action.reportId, `${action.type}.reportId`);
+    case "ban_user":
+    case "unban_user":
+    case "send_kbz_instruction":
+    case "verify_kbz_user":
+      return assertUuid(action.userId, `${action.type}.userId`);
+    case "reward_suggestion":
+    case "dismiss_suggestion":
+      return assertUuid(action.suggestionId, `${action.type}.suggestionId`);
+    case "approve_withdrawal":
+    case "reject_withdrawal":
+    case "mark_withdrawal_paid":
+      return assertUuid(action.withdrawalId, `${action.type}.withdrawalId`);
+    case "send_safe_payment_instruction":
+    case "mark_safe_payment_received":
+    case "mark_safe_payment_transferred":
+      return assertUuid(action.transactionId, `${action.type}.transactionId`);
+    case "approve_facebook_follow":
+    case "reject_facebook_follow":
+      return assertUuid(action.submissionId, `${action.type}.submissionId`);
+    case "update_slider_ad":
+    case "delete_slider_ad":
+      return assertUuid(action.sliderId, `${action.type}.sliderId`);
+    case "update_admin_role":
+    case "delete_admin_role":
+      return assertUuid(action.roleId, `${action.type}.roleId`);
+    case "deactivate_category":
+      return assertUuid(action.categoryId, `${action.type}.categoryId`);
+    case "move_category":
+      assertUuid(action.categoryId, `${action.type}.categoryId`);
+      if (action.parentId) assertUuid(action.parentId, `${action.type}.parentId`);
+      return;
+    case "create_category":
+      if (action.parentId) assertUuid(action.parentId, `${action.type}.parentId`);
+      return;
+    case "update_category":
+      assertUuid(action.categoryId, `${action.type}.categoryId`);
+      if (action.payload.parentId) assertUuid(action.payload.parentId, `${action.type}.payload.parentId`);
+      return;
+    case "create_admin_role":
+      return;
+    case "generic_api":
+      if (action.pathParams) validateRecordUuidFields(action.pathParams, "generic_api.pathParams");
+      if (action.body) validateRecordUuidFields(action.body, "generic_api.body");
+      if (action.query) validateRecordUuidFields(action.query, "generic_api.query");
+      return;
+  }
+};
+
+export const isRecoverableActionError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /400|404|bad request|not found|should not exist|missing required path parameter|36-character uuid|validation/i.test(message)
+  );
+};
+
+export const buildRecoveryInstruction = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return `The previous tool action failed with this recoverable error: ${message}
+Refresh the live dashboard context, fix any truncated UUID, wrong method, or extra payload property, and return exactly one corrected action only if the current live data supports it.`;
+};
 
 const extractProviderError = (data: unknown): string | null => {
   const record = toRecord(data) as AssistantProviderError | null;
@@ -1305,6 +1403,8 @@ export async function executeAssistantAction(
   httpClient: HttpClient,
   action: AssistantToolAction
 ): Promise<unknown> {
+  validateAssistantAction(action);
+
   switch (action.type) {
     case "list": {
       const endpoints: Record<AssistantListResource, string> = {
@@ -1420,17 +1520,18 @@ export async function executeAssistantAction(
       return httpClient.post(API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE, {
         name: action.name,
         slug: action.slug,
-        description: action.description,
         parentId: action.parentId,
         sortOrder: action.sortOrder,
-        isActive: action.isActive,
       });
     case "update_category":
-      return httpClient.put(API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(action.categoryId), action.payload);
+      return httpClient.patch(
+        API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(action.categoryId),
+        sanitizeRecord(action.payload)
+      );
     case "deactivate_category":
       return httpClient.delete(API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(action.categoryId));
     case "move_category":
-      return httpClient.put(API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(action.categoryId), {
+      return httpClient.patch(API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(action.categoryId), {
         parentId: action.parentId,
         sortOrder: action.sortOrder,
       });

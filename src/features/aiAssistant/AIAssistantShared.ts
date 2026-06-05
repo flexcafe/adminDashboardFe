@@ -9,6 +9,7 @@ export type SubmitAssistantMessageArgs = {
   content: string;
   dashboardContext: string;
   onActionComplete?: () => Promise<void> | void;
+  refreshDashboardContext?: () => Promise<string>;
   sessionId?: string;
 };
 

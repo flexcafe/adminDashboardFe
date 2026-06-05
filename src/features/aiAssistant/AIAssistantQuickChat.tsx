@@ -5,30 +5,26 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
-import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import loliLogo from "@/assets/loli-logo.png";
+import {
+  buildSnapshotContext,
+  loadDashboardSnapshot,
+} from "@/features/aiAssistant/dashboardSnapshot";
 import { useAIAssistant } from "@/features/aiAssistant/useAIAssistant";
-
-type DashboardSnapshot = {
-  currentPage: string;
-  loadedAt: string;
-  data: Record<string, unknown>;
-};
-
-const compactJson = (value: unknown, maxLength = 14000) => {
-  const text = JSON.stringify(value, null, 2);
-  return text.length > maxLength ? `${text.slice(0, maxLength)}\n...truncated` : text;
-};
-
-const buildSnapshotContext = (snapshot: DashboardSnapshot | null) => {
-  if (!snapshot) return "No dashboard data loaded yet.";
-  return compactJson(snapshot);
-};
 
 function SparkIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M13 2 3 14h8l-1 8 10-12h-8z" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 2 11 13" />
+      <path d="m22 2-7 20-4-9-9-4 20-7Z" />
     </svg>
   );
 }
@@ -69,41 +65,22 @@ export function AIAssistantQuickChat({ currentPath }: { currentPath: string }) {
   const shouldAutoScrollRef = useRef(true);
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+  const [snapshotContext, setSnapshotContext] = useState<string>("No dashboard data loaded yet.");
   const [error, setError] = useState<string | null>(null);
 
   const hasApiKey = savedSettings.apiKey.trim().length > 0;
   const messages = activeSession?.messages ?? [];
 
   const loadSnapshot = useCallback(async () => {
-    const loaders = {
-      dashboard: () => httpClient.get(API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED),
-      adminChatAwaiting: () => httpClient.get(API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.AWAITING_INSTRUCTION),
-      adminChatPending: () => httpClient.get(API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.PENDING),
-      fraudReports: () => httpClient.get(API_ENDPOINTS.DASHBOARD_FRAUD_REPORTS.BASE),
-      suggestions: () => httpClient.get(API_ENDPOINTS.DASHBOARD_SUGGESTIONS.BASE),
-      sliderAds: () => httpClient.get(API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE),
-      categories: () => httpClient.get(API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE),
-      withdrawals: () => httpClient.get(API_ENDPOINTS.DASHBOARD_WITHDRAWALS.BASE),
-      users: () => httpClient.get(API_ENDPOINTS.USERS.GET_LIST, { params: { take: 10, skip: 0 } }),
-    };
-
-    const entries = await Promise.all(
-      Object.entries(loaders).map(async ([key, load]) => {
-        try {
-          return [key, await load()] as const;
-        } catch {
-          return [key, "Unable to load"] as const;
-        }
-      })
-    );
-
-    setSnapshot({
-      currentPage: currentPath,
-      loadedAt: new Date().toISOString(),
-      data: Object.fromEntries(entries),
-    });
+    const nextSnapshot = await loadDashboardSnapshot(httpClient, currentPath, "quick");
+    const nextContext = buildSnapshotContext(nextSnapshot, 14000);
+    setSnapshotContext(nextContext);
+    return nextContext;
   }, [currentPath, httpClient]);
+
+  const refreshSnapshot = useCallback(async () => {
+    await loadSnapshot();
+  }, [loadSnapshot]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -171,8 +148,7 @@ export function AIAssistantQuickChat({ currentPath }: { currentPath: string }) {
     }, 0);
   };
 
-  const submitMessage = async (event: FormEvent) => {
-    event.preventDefault();
+  const handleSendMessage = async () => {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
 
@@ -186,15 +162,22 @@ export function AIAssistantQuickChat({ currentPath }: { currentPath: string }) {
     shouldAutoScrollRef.current = true;
 
     try {
+      const nextSnapshotContext = await loadSnapshot();
       await submitAssistantMessage({
         content: trimmed,
-        dashboardContext: buildSnapshotContext(snapshot),
-        onActionComplete: loadSnapshot,
+        dashboardContext: nextSnapshotContext || snapshotContext,
+        onActionComplete: refreshSnapshot,
+        refreshDashboardContext: loadSnapshot,
         sessionId: activeSession?.id,
       });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : t("aiAssistantPage.aiRequestFailed"));
     }
+  };
+
+  const handleComposerSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    void handleSendMessage();
   };
 
   return (
@@ -280,22 +263,30 @@ export function AIAssistantQuickChat({ currentPath }: { currentPath: string }) {
             {isLoading ? <div className="aiQuickChatTyping">{t("aiAssistantPage.thinking")}</div> : null}
           </div>
 
-          <form className="aiQuickChatComposer" onSubmit={(event) => void submitMessage(event)}>
-            <textarea
-              ref={textareaRef}
-              value={input}
-              placeholder={t("aiAssistantPage.quickInputPlaceholder")}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void submitMessage(event);
-                }
-              }}
-            />
-            <button type="submit" disabled={isLoading || !input.trim()}>
-              <SparkIcon />
-            </button>
+          <form className="aiQuickChatComposer" onSubmit={handleComposerSubmit}>
+            <div className="aiQuickChatComposerRow">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                placeholder={t("aiAssistantPage.quickInputPlaceholder")}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void handleSendMessage();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void handleSendMessage()}
+                disabled={isLoading || !input.trim()}
+                aria-label={t("aiAssistantPage.send")}
+              >
+                <SendIcon />
+                <span>{t("aiAssistantPage.send")}</span>
+              </button>
+            </div>
           </form>
         </section>
       ) : null}

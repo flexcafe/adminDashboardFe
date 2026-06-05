@@ -4,6 +4,7 @@ import { CategoryDetails } from "@/features/categories/CategoryDetails";
 import { CategoryFormModal } from "@/features/categories/CategoryFormModal";
 import { CategoryTree } from "@/features/categories/CategoryTree";
 import { DeleteConfirmModal } from "@/features/categories/DeleteConfirmModal";
+import { savePageContext } from "@/features/aiAssistant/pageContextStore";
 import {
   collectDescendantIds,
   createCategory,
@@ -241,6 +242,10 @@ export function CategoriesPage() {
     () => getCategoryBreadcrumbs(categories, selectedId),
     [categories, selectedId]
   );
+  const selectedCategoryFromTree = useMemo(
+    () => findCategoryById(categories, selectedId),
+    [categories, selectedId]
+  );
   const parentName =
     selectedCategory && selectedCategory.parentId
       ? findCategoryById(categories, selectedCategory.parentId)?.name || ""
@@ -248,6 +253,53 @@ export function CategoriesPage() {
   const inactiveCount = flatCategories.filter((category) => !category.isActive).length;
   const rootCount = categories.length;
   const availableCategoryIds = new Set(flatCategories.map((category) => category.id));
+
+  useEffect(() => {
+    const currentCategory = selectedCategoryFromTree ?? selectedCategory;
+    const currentChildren = currentCategory?.children ?? [];
+
+    savePageContext("/categories", {
+      page: "categories",
+      summary: {
+        totalCategories: flatCategories.length,
+        inactiveCategories: inactiveCount,
+        rootCategories: rootCount,
+      },
+      selectedCategory: currentCategory
+        ? {
+            id: currentCategory.id,
+            name: currentCategory.name,
+            slug: currentCategory.slug,
+            parentId: currentCategory.parentId,
+            parentName:
+              currentCategory.parentId
+                ? findCategoryById(categories, currentCategory.parentId)?.name || null
+                : null,
+            isActive: currentCategory.isActive,
+            productCount: currentCategory.productCount,
+            sortOrder: currentCategory.sortOrder,
+            childCount: currentChildren.length,
+            directChildren: currentChildren.map((child) => ({
+              id: child.id,
+              name: child.name,
+              slug: child.slug,
+              isActive: child.isActive,
+              productCount: child.productCount,
+            })),
+            breadcrumbs: breadcrumbs.map((item) => item.name),
+          }
+        : null,
+      visibleCategoryNames: flatCategories.map((category) => category.name),
+    });
+  }, [
+    breadcrumbs,
+    categories,
+    flatCategories,
+    inactiveCount,
+    rootCount,
+    selectedCategory,
+    selectedCategoryFromTree,
+  ]);
 
   const handleFormSubmit = async (payload: CategoryPayload) => {
     try {

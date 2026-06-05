@@ -4,13 +4,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import "@/lib/i18n";
+import { AIAssistantProvider } from "@/features/aiAssistant/AIAssistantContext";
 import { AIAssistantPage } from "../AIAssistantPage";
+
+const APPROVAL_WITHDRAWAL_ID = "66666666-6666-4666-8666-666666666666";
 
 const httpGet = vi.fn();
 const httpPost = vi.fn();
 const httpPut = vi.fn();
 const httpPatch = vi.fn();
 const httpDelete = vi.fn();
+const listCategories = vi.fn();
 
 vi.mock("@/core/infrastructure/di/container", () => ({
   default: {
@@ -24,7 +28,18 @@ vi.mock("@/core/infrastructure/di/container", () => ({
   },
 }));
 
+vi.mock("@/features/categories/categoriesApi", () => ({
+  listCategories: (...args: unknown[]) => listCategories(...args),
+}));
+
 describe("AIAssistantPage smoke", () => {
+  const renderPage = () =>
+    render(
+      <AIAssistantProvider>
+        <AIAssistantPage />
+      </AIAssistantProvider>
+    );
+
   beforeEach(() => {
     localStorage.clear();
     httpGet.mockResolvedValue({ data: [] });
@@ -32,6 +47,7 @@ describe("AIAssistantPage smoke", () => {
     httpPut.mockResolvedValue({ success: true });
     httpPatch.mockResolvedValue({ success: true });
     httpDelete.mockResolvedValue({ success: true });
+    listCategories.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -39,7 +55,7 @@ describe("AIAssistantPage smoke", () => {
   });
 
   it("renders settings and loads dashboard context", async () => {
-    render(<AIAssistantPage />);
+    renderPage();
 
     expect(screen.getByText("LOLI AI Assistant")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open AI settings" })).toBeInTheDocument();
@@ -59,7 +75,7 @@ describe("AIAssistantPage smoke", () => {
   });
 
   it("loads context for every dashboard feature surface", async () => {
-    render(<AIAssistantPage />);
+    renderPage();
 
     await waitFor(() => {
       expect(httpGet).toHaveBeenCalledWith(API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS);
@@ -78,13 +94,13 @@ describe("AIAssistantPage smoke", () => {
       expect(httpGet).toHaveBeenCalledWith(API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE);
       expect(httpGet).toHaveBeenCalledWith(API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.BASE);
       expect(httpGet).toHaveBeenCalledWith(API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.PERMISSIONS);
-      expect(httpGet).toHaveBeenCalledWith(API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE);
       expect(httpGet).toHaveBeenCalledWith(API_ENDPOINTS.USERS.GET_LIST, { params: { take: 10, skip: 0 } });
+      expect(listCategories).toHaveBeenCalledWith(true);
     });
   });
 
   it("opens the memory layer from the brain icon", async () => {
-    render(<AIAssistantPage />);
+    renderPage();
 
     await userEvent.click(screen.getByRole("button", { name: "Open AI memory" }));
 
@@ -99,14 +115,18 @@ describe("AIAssistantPage smoke", () => {
   });
 
   it("saves API settings in localStorage", async () => {
-    render(<AIAssistantPage />);
+    renderPage();
 
     await userEvent.click(screen.getByRole("button", { name: "Open AI settings" }));
     await userEvent.type(screen.getByLabelText("APIfree.ai API key"), "test-key");
     await userEvent.clear(screen.getByLabelText("Model"));
     await userEvent.type(screen.getByLabelText("Model"), "test-model");
 
-    expect(localStorage.getItem("flex-ai-assistant-settings")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("flex-ai-assistant-settings") || "{}")).toEqual({
+      apiKey: "",
+      model: "deepseek-ai/deepseek-v3.2",
+      agentMode: false,
+    });
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Save AI settings" }));
 
@@ -131,14 +151,14 @@ describe("AIAssistantPage smoke", () => {
           {
             message: {
               content:
-                "Approving this withdrawal now.\n\n```json\n{\"action\":\"approve_withdrawal\",\"params\":{\"withdrawalId\":\"wd-1\",\"adminNote\":\"Approved by AI\"}}\n```",
+                `Approving this withdrawal now.\n\n\`\`\`json\n{"action":"approve_withdrawal","params":{"withdrawalId":"${APPROVAL_WITHDRAWAL_ID}","adminNote":"Approved by AI"}}\n\`\`\``,
             },
           },
         ],
       }),
     } as Response);
 
-    render(<AIAssistantPage />);
+    renderPage();
 
     await userEvent.click(screen.getByRole("button", { name: "Open AI settings" }));
     await userEvent.type(screen.getByLabelText("APIfree.ai API key"), "test-key");
@@ -149,11 +169,11 @@ describe("AIAssistantPage smoke", () => {
 
     await waitFor(() => {
       expect(httpPost).toHaveBeenCalledWith(
-        API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE("wd-1"),
+        API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(APPROVAL_WITHDRAWAL_ID),
         { adminNote: "Approved by AI" }
       );
     });
-    expect(await screen.findByText("Done")).toBeInTheDocument();
+    expect(await screen.findByText("Action completed successfully.")).toBeInTheDocument();
     expect(screen.queryByText("Confirm action")).not.toBeInTheDocument();
   });
 });
