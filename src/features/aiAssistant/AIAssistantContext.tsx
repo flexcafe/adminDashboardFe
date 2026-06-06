@@ -58,52 +58,200 @@ const sanitizeActionText = (text: string) =>
     .replace(/\s{2,}/g, " ")
     .trim();
 
-const formatProcessLabel = (actionLabel: string) => {
-  const cleaned = sanitizeActionText(actionLabel).toLowerCase();
-
-  if (cleaned.startsWith("update slider ad")) return "Updated the selected slider ad settings.";
-  if (cleaned.startsWith("delete slider ad")) return "Deleted the selected slider ad.";
-  if (cleaned.startsWith("confirm fraud report")) return "Confirmed the fraud report.";
-  if (cleaned.startsWith("dismiss fraud report")) return "Dismissed the fraud report.";
-  if (cleaned.startsWith("ban user")) return "Banned the selected user.";
-  if (cleaned.startsWith("unban user")) return "Removed the ban from the selected user.";
-
-  return `${sanitizeActionText(actionLabel)}.`;
-};
-
 const sanitizeUpdateMessage = (message: string) =>
   sanitizeActionText(message)
     .replace(/\breference\b[:\s-]*/i, "")
     .replace(/\bid\b[:\s-]*/i, "")
     .trim();
 
-const formatActionExecutionMessage = (actionLabel: string, result: unknown) => {
+const toRecordArray = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value)
+    ? value.filter(
+        (entry): entry is Record<string, unknown> =>
+          !!entry && typeof entry === "object" && !Array.isArray(entry)
+      )
+    : [];
+
+const getActionResultPayload = (result: unknown): unknown => {
   const record = getRecord(result);
-  const data = getRecord(record?.data);
-  const message = typeof record?.message === "string" ? record.message : null;
-  const status = record?.success === false ? "Failed" : "Completed";
+  if (!record) return result;
 
-  const headline = status === "Completed" ? "Action completed successfully." : "Action could not be completed.";
-  const processLabel = formatProcessLabel(actionLabel);
-  const cleanMessage = message ? sanitizeUpdateMessage(message) : null;
-  const detailSummary =
-    typeof data?.status === "string"
-      ? `Current state is now ${String(data.status).replace(/_/g, " ").toLowerCase()}.`
-      : null;
+  if (record.data !== undefined) return record.data;
+  return result;
+};
 
-  return [
-    `**${headline}**`,
-    "",
-    `**What LOLI did**`,
-    `- ${processLabel}`,
-    "",
-    `**Result**`,
-    `- Status: ${status}`,
-    cleanMessage ? `- Update: ${cleanMessage}` : null,
-    detailSummary ? `- ${detailSummary}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
+const extractListItems = (result: unknown): Record<string, unknown>[] => {
+  const payload = getActionResultPayload(result);
+
+  if (Array.isArray(payload)) {
+    return toRecordArray(payload);
+  }
+
+  const payloadRecord = getRecord(payload);
+  if (!payloadRecord) return [];
+
+  if (Array.isArray(payloadRecord.items)) {
+    return toRecordArray(payloadRecord.items);
+  }
+
+  if (Array.isArray(payloadRecord.rows)) {
+    return toRecordArray(payloadRecord.rows);
+  }
+
+  if (Array.isArray(payloadRecord.permissions)) {
+    return toRecordArray(payloadRecord.permissions);
+  }
+
+  return [];
+};
+
+const humanizeResourceName = (resource: string) =>
+  resource.replace(/_/g, " ");
+
+const formatListEntryLabel = (item: Record<string, unknown>) => {
+  const candidates = [
+    item.name,
+    item.nickname,
+    item.title,
+    item.email,
+    item.label,
+    item.id,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+};
+
+const formatReadableListSummary = (resource: string, result: unknown) => {
+  const items = extractListItems(result);
+  const count = items.length;
+
+  if (resource === "admin_roles") {
+    const roleNames = items
+      .map((item) => formatListEntryLabel(item))
+      .filter((value): value is string => !!value);
+
+    if (roleNames.length === 0) {
+      return "I loaded the admin roles, but the response did not include readable role names.";
+    }
+
+    return `There ${roleNames.length === 1 ? "is" : "are"} ${roleNames.length} admin ${roleNames.length === 1 ? "role" : "roles"}: ${roleNames.join(", ")}.`;
+  }
+
+  if (resource === "admin_permissions") {
+    const payload = getActionResultPayload(result);
+    const payloadRecord = getRecord(payload);
+    const permissions = Array.isArray(payloadRecord?.permissions)
+      ? payloadRecord.permissions.filter(
+          (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+        )
+      : [];
+
+    if (permissions.length === 0) {
+      return "I loaded the admin permissions list, but there were no readable permission values in the response.";
+    }
+
+    return `There ${permissions.length === 1 ? "is" : "are"} ${permissions.length} admin permission ${permissions.length === 1 ? "key" : "keys"} available.`;
+  }
+
+  if (count === 0) {
+    return `I loaded ${humanizeResourceName(resource)}, but there were no records in the response.`;
+  }
+
+  const preview = items
+    .map((item) => formatListEntryLabel(item))
+    .filter((value): value is string => !!value)
+    .slice(0, 5);
+
+  if (preview.length > 0) {
+    const extraCount = count - preview.length;
+    return `I found ${count} ${humanizeResourceName(resource)} record${count === 1 ? "" : "s"}. ${preview.join(", ")}${extraCount > 0 ? `, and ${extraCount} more.` : "."}`;
+  }
+
+  return `I found ${count} ${humanizeResourceName(resource)} record${count === 1 ? "" : "s"}.`;
+};
+
+const formatReadableAssistantResult = (
+  action: Parameters<typeof executeAssistantAction>[1],
+  result: unknown
+) => {
+  if (action.type === "list") {
+    return formatReadableListSummary(action.resource, result);
+  }
+
+  const record = getRecord(result);
+  const payload = getRecord(record?.data);
+  const message = typeof record?.message === "string" ? sanitizeUpdateMessage(record.message) : "";
+
+  switch (action.type) {
+    case "confirm_fraud_report":
+      return "The fraud report is now confirmed.";
+    case "dismiss_fraud_report":
+      return "The fraud report is now dismissed.";
+    case "ban_user":
+      return "The selected user is now banned.";
+    case "unban_user":
+      return "The selected user ban has been removed.";
+    case "reward_suggestion":
+      return `The suggestion was rewarded with ${action.points} points.`;
+    case "dismiss_suggestion":
+      return "The suggestion was dismissed.";
+    case "approve_withdrawal":
+      return "The withdrawal request is now approved.";
+    case "reject_withdrawal":
+      return "The withdrawal request is now rejected.";
+    case "mark_withdrawal_paid":
+      return "The withdrawal is now marked as paid.";
+    case "send_kbz_instruction":
+      return "KBZPay transfer instructions were sent to the selected user.";
+    case "verify_kbz_user":
+      return "The KBZPay user is now verified.";
+    case "send_safe_payment_instruction":
+      return "Safe payment instructions were sent.";
+    case "mark_safe_payment_received":
+      return "The safe payment transaction is now marked as received.";
+    case "mark_safe_payment_transferred":
+      return "The safe payment transaction is now marked as transferred.";
+    case "approve_facebook_follow":
+      return "The Facebook follow submission is now approved.";
+    case "reject_facebook_follow":
+      return "The Facebook follow submission is now rejected.";
+    case "update_star_config":
+      return `I updated ${action.configs.length} star reward configuration row${action.configs.length === 1 ? "" : "s"}.`;
+    case "update_rank_config":
+      return `I updated ${action.configs.length} rank configuration row${action.configs.length === 1 ? "" : "s"}.`;
+    case "update_slider_ad":
+      return "The slider ad was updated.";
+    case "delete_slider_ad":
+      return "The slider ad was deleted.";
+    case "create_admin_role":
+      return `The admin role ${action.name} was created.`;
+    case "update_admin_role":
+      return "The admin role was updated.";
+    case "delete_admin_role":
+      return "The admin role was deleted.";
+    case "create_category":
+      return `The category ${action.name} was created.`;
+    case "update_category":
+      return "The category was updated.";
+    case "deactivate_category":
+      return "The category was deactivated.";
+    case "move_category":
+      return "The category position was updated.";
+    case "generic_api":
+      return message || "The requested admin action completed successfully.";
+  }
+
+  if (typeof payload?.status === "string") {
+    return `Done. Current status is ${payload.status.replace(/_/g, " ").toLowerCase()}.`;
+  }
+
+  return message || "The requested admin action completed successfully.";
 };
 
 const formatWriteConfirmationRequiredMessage = (actionLabel: string) => {
@@ -319,7 +467,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
           const actionResult = await executeAssistantAction(httpClient, result.action);
           appendMessageToSession(
             targetSession.id,
-            formatActionExecutionMessage(describeAction(result.action), actionResult),
+            formatReadableAssistantResult(result.action, actionResult),
             "assistant"
           );
           if (onActionComplete) {
@@ -363,7 +511,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
           const retryActionResult = await executeAssistantAction(httpClient, retryResult.action);
           appendMessageToSession(
             targetSession.id,
-            formatActionExecutionMessage(describeAction(retryResult.action), retryActionResult),
+            formatReadableAssistantResult(retryResult.action, retryActionResult),
             "assistant"
           );
           if (onActionComplete) {
