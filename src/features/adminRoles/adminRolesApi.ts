@@ -209,7 +209,9 @@ const normalizeAdminRole = (item: Record<string, unknown>): AdminRole | null => 
     isActive:
       typeof item.isActive === "boolean"
         ? item.isActive
-        : item.status === "ACTIVE" || item.status === "active",
+        : typeof item.status === "string"
+          ? item.status === "ACTIVE" || item.status === "active"
+          : true,
     createdAt:
       toText(item.createdAt) ||
       toText(item.created_at) ||

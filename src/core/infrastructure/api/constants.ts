@@ -91,6 +91,14 @@ export const API_ENDPOINTS = {
     BY_ID: (roleId: string) => `/api/v1/admin/dashboard/admin-roles/${roleId}`,
   },
 
+  DASHBOARD_ADMIN_USERS: {
+    BASE: "/api/v1/admin/dashboard/admin-users",
+    CHANGE_ROLE: (userId: string) =>
+      `/api/v1/admin/dashboard/admin-users/${userId}/role`,
+    DEMOTE: (userId: string) =>
+      `/api/v1/admin/dashboard/admin-users/${userId}/role`,
+  },
+
   DASHBOARD_FRAUD_REPORTS: {
     BASE: "/api/v1/admin/dashboard/fraud-reports",
     BAN_USER: (userId: string) =>

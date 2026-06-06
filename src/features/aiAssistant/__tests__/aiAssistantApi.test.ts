@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
-import { callAssistantCompletion, executeAssistantAction } from "../aiAssistantApi";
+import {
+  callAssistantCompletion,
+  executeAssistantAction,
+  hasWriteConfirmationPhrase,
+  isWriteAction,
+} from "../aiAssistantApi";
 
 const UUIDS = {
   user: "11111111-1111-4111-8111-111111111111",
@@ -141,6 +146,46 @@ describe("callAssistantCompletion", () => {
     expect(sentHistory).toBe("Earlier I said I was LOLI AI.");
     expect(result.content).toBe("I'm LOLI AI, your admin assistant.");
   });
+
+  it("keeps the prompt limited to admin dashboard domains", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "OK" } }],
+      }),
+    } as Response);
+
+    await callAssistantCompletion(baseArgs);
+
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const systemPrompt = requestBody.messages[0].content;
+
+    expect(systemPrompt).not.toContain("List stocks");
+    expect(systemPrompt).not.toContain("List suppliers");
+    expect(systemPrompt).not.toContain("List customer debts");
+  });
+
+  it("documents the required write confirmation phrases in the prompt", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "OK" } }],
+      }),
+    } as Response);
+
+    await callAssistantCompletion({
+      ...baseArgs,
+      agentMode: true,
+    });
+
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const systemPrompt = requestBody.messages[0].content;
+
+    expect(systemPrompt).toContain('"confirm and apply"');
+    expect(systemPrompt).toContain('"confirm and execute"');
+    expect(systemPrompt).toContain('"proceed with write"');
+    expect(systemPrompt).toContain('"execute this write"');
+  });
 });
 
 describe("executeAssistantAction", () => {
@@ -255,5 +300,30 @@ describe("executeAssistantAction", () => {
       API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(UUIDS.category),
       { parentId: null, sortOrder: 2 }
     );
+  });
+});
+
+describe("write confirmation helpers", () => {
+  it("matches only the configured confirmation phrases", () => {
+    expect(hasWriteConfirmationPhrase("Please confirm and apply the withdrawal approval.")).toBe(true);
+    expect(hasWriteConfirmationPhrase("Proceed with write for this change.")).toBe(true);
+    expect(hasWriteConfirmationPhrase("Approve this now.")).toBe(false);
+  });
+
+  it("treats reads as safe and writes as gated", () => {
+    expect(isWriteAction({ type: "list", resource: "withdrawals" })).toBe(false);
+    expect(
+      isWriteAction({
+        type: "generic_api",
+        endpoint: "categories_get_by_id",
+        pathParams: { categoryId: UUIDS.category },
+      })
+    ).toBe(false);
+    expect(
+      isWriteAction({
+        type: "approve_withdrawal",
+        withdrawalId: UUIDS.user,
+      })
+    ).toBe(true);
   });
 });

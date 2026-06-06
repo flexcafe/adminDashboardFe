@@ -143,7 +143,41 @@ describe("AIAssistantPage smoke", () => {
     expect(JSON.parse(localStorage.getItem("flex-ai-assistant-settings") || "{}").agentMode).toBe(true);
   });
 
-  it("auto-executes returned tool actions in Agent Mode", async () => {
+  it("auto-executes returned tool actions in Agent Mode after a confirmation phrase", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content:
+                `Approving this withdrawal now.\n\n\`\`\`json\n{"action":"approve_withdrawal","params":{"withdrawalId":"${APPROVAL_WITHDRAWAL_ID}","adminNote":"Approved by AI"}}\n\`\`\``,
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open AI settings" }));
+    await userEvent.type(screen.getByLabelText("APIfree.ai API key"), "test-key");
+    await userEvent.click(screen.getByRole("button", { name: "Save AI settings" }));
+    await userEvent.click(screen.getByRole("switch", { name: "Toggle Agent Mode" }));
+    await userEvent.type(screen.getByPlaceholderText("Ask the assistant, or request an action with Agent Mode enabled..."), "confirm and apply: approve wd-1");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(httpPost).toHaveBeenCalledWith(
+        API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(APPROVAL_WITHDRAWAL_ID),
+        { adminNote: "Approved by AI" }
+      );
+    });
+    expect(await screen.findByText("Action completed successfully.")).toBeInTheDocument();
+    expect(screen.queryByText("Confirm action")).not.toBeInTheDocument();
+  });
+
+  it("blocks returned write actions when the confirmation phrase is missing", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -168,12 +202,12 @@ describe("AIAssistantPage smoke", () => {
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
 
     await waitFor(() => {
-      expect(httpPost).toHaveBeenCalledWith(
-        API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(APPROVAL_WITHDRAWAL_ID),
-        { adminNote: "Approved by AI" }
-      );
+      expect(screen.getByText("Write action not executed.")).toBeInTheDocument();
     });
-    expect(await screen.findByText("Action completed successfully.")).toBeInTheDocument();
-    expect(screen.queryByText("Confirm action")).not.toBeInTheDocument();
+    expect(httpPost).not.toHaveBeenCalledWith(
+      API_ENDPOINTS.DASHBOARD_WITHDRAWALS.APPROVE(APPROVAL_WITHDRAWAL_ID),
+      { adminNote: "Approved by AI" }
+    );
+    expect(screen.getByText(/confirm and apply/i)).toBeInTheDocument();
   });
 });

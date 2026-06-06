@@ -93,7 +93,7 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
   // Update user function
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
-    // Also update the user in secure cookie to persist the changes
+    sessionStorage.setItem("wms_user", JSON.stringify(updatedUser));
     tokenCookies.setUser(JSON.stringify(updatedUser));
   };
 

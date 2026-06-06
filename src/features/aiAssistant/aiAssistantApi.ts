@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
+import { tokenCookies } from "@/lib/cookies";
 import type { AssistantMessage } from "./aiAssistantStorage";
 
 type GenericApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -125,6 +126,13 @@ export type AssistantCompletionResult = {
   action: AssistantToolAction | null;
 };
 
+export const WRITE_CONFIRMATION_PHRASES = [
+  "confirm and apply",
+  "confirm and execute",
+  "proceed with write",
+  "execute this write",
+] as const;
+
 type AssistantProviderError = {
   error?: {
     message?: string;
@@ -133,6 +141,10 @@ type AssistantProviderError = {
   };
   code?: number | string;
   message?: string;
+};
+
+type AssistantSessionUser = {
+  adminRoleName?: string;
 };
 
 const APIFREE_CHAT_COMPLETIONS_URL =
@@ -201,6 +213,25 @@ type GenericEndpointDefinition = {
   description: string;
 };
 
+const ROOT_ONLY_ASSISTANT_LIST_RESOURCES = [
+  "admin_roles",
+  "admin_permissions",
+] as const satisfies readonly AssistantListResource[];
+
+const ROOT_ONLY_GENERIC_ENDPOINT_KEYS = [
+  "admin_roles_permissions",
+  "admin_roles_list",
+  "admin_roles_create",
+  "admin_roles_update",
+  "admin_roles_delete",
+] as const;
+
+const ROOT_ONLY_ASSISTANT_ACTION_TYPES = [
+  "create_admin_role",
+  "update_admin_role",
+  "delete_admin_role",
+] as const satisfies readonly AssistantToolAction["type"][];
+
 const requirePathParam = (pathParams: Record<string, string>, key: string) => {
   const value = pathParams[key]?.trim();
   if (!value) throw new Error(`Missing required path parameter: ${key}`);
@@ -208,25 +239,7 @@ const requirePathParam = (pathParams: Record<string, string>, key: string) => {
 };
 
 const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
-  users_list: { method: "GET", path: API_ENDPOINTS.USERS.GET_LIST, description: "List users" },
-  users_create: { method: "POST", path: API_ENDPOINTS.USERS.CREATE, description: "Create user" },
-  users_get_by_id: {
-    method: "GET",
-    path: API_ENDPOINTS.USERS.GET_BY_ID,
-    description: "Get a user by id; pass id in query/body according to API contract",
-  },
-  users_update: { method: "PUT", path: API_ENDPOINTS.USERS.UPDATE, description: "Update user" },
-  users_update_profile: { method: "PUT", path: API_ENDPOINTS.USERS.UPDATE_PROFILE, description: "Update current user profile" },
-  users_upload_profile_image: { method: "POST", path: API_ENDPOINTS.USERS.UPLOAD_PROFILE_IMAGE, bodyMode: "formData", description: "Upload user profile image" },
-  users_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.USERS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete user by id",
-  },
-
   admin_notifications_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.LIST, description: "List admin notifications" },
-  admin_notifications_mark_all_read: { method: "POST", path: API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.MARK_ALL_READ, description: "Mark all admin notifications read" },
   kbz_registered_accounts: { method: "GET", path: API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS, description: "List KBZPay registered accounts" },
   kbz_verification_requested: { method: "GET", path: API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED, description: "List KBZPay verification requests" },
   kbz_money_check: { method: "GET", path: API_ENDPOINTS.AUTH.KBZPAY_MONEY_CHECK, description: "List KBZPay money check queue" },
@@ -243,7 +256,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["userId"],
     description: "Verify KBZPay user",
   },
-
   safe_payments_awaiting_instruction: { method: "GET", path: API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.AWAITING_INSTRUCTION, description: "List safe payments awaiting instruction" },
   safe_payments_pending: { method: "GET", path: API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.PENDING, description: "List pending safe payments" },
   safe_payments_send_instruction: {
@@ -264,7 +276,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["transactionId"],
     description: "Mark safe payment transferred",
   },
-
   points_star_config: { method: "GET", path: API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, description: "Get star config" },
   points_star_config_update: { method: "PUT", path: API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG, description: "Update star config" },
   points_rank_config: { method: "GET", path: API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG, description: "Get rank config" },
@@ -288,7 +299,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["withdrawalId"],
     description: "Mark withdrawal paid",
   },
-
   facebook_follow_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_FACEBOOK_FOLLOW.BASE, description: "List Facebook follow submissions" },
   facebook_follow_approve: {
     method: "POST",
@@ -302,7 +312,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["submissionId"],
     description: "Reject Facebook follow submission",
   },
-
   slider_ads_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE, description: "List slider ads" },
   slider_ads_create: { method: "POST", path: API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE, bodyMode: "formData", description: "Create slider ad" },
   slider_ads_update: {
@@ -318,7 +327,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["sliderId"],
     description: "Delete slider ad",
   },
-
   admin_roles_permissions: { method: "GET", path: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.PERMISSIONS, description: "List admin permissions" },
   admin_roles_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.BASE, description: "List admin roles" },
   admin_roles_create: { method: "POST", path: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.BASE, description: "Create admin role" },
@@ -334,7 +342,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["roleId"],
     description: "Delete admin role",
   },
-
   fraud_reports_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_FRAUD_REPORTS.BASE, description: "List fraud reports" },
   fraud_reports_confirm: {
     method: "POST",
@@ -360,7 +367,6 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["userId"],
     description: "Unban fraud reported user",
   },
-
   suggestions_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_SUGGESTIONS.BASE, description: "List suggestions" },
   suggestions_reward: {
     method: "POST",
@@ -374,9 +380,14 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["suggestionId"],
     description: "Dismiss suggestion",
   },
-
   categories_list: { method: "GET", path: API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE, description: "List categories" },
   categories_create: { method: "POST", path: API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE, description: "Create category" },
+  categories_get_by_id: {
+    method: "GET",
+    path: (params) => API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(requirePathParam(params, "categoryId")),
+    requiredPathParams: ["categoryId"],
+    description: "Get category by id",
+  },
   categories_update: {
     method: "PATCH",
     path: (params) => API_ENDPOINTS.DASHBOARD_CATEGORIES.BY_ID(requirePathParam(params, "categoryId")),
@@ -389,326 +400,143 @@ const genericApiEndpoints: Record<string, GenericEndpointDefinition> = {
     requiredPathParams: ["categoryId"],
     description: "Delete or deactivate category",
   },
-
-  items_list: { method: "GET", path: API_ENDPOINTS.ITEMS.GET_ALL, description: "List items" },
-  items_create: { method: "POST", path: API_ENDPOINTS.ITEMS.BASE, description: "Create item" },
-  items_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.ITEMS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get item by id",
-  },
-  items_get_by_name: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.ITEMS.GET_BY_NAME(requirePathParam(params, "name")),
-    requiredPathParams: ["name"],
-    description: "Get item by name",
-  },
-  items_get_sub_items: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.ITEMS.GET_SUB_ITEMS(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "List item sub-items",
-  },
-  items_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.ITEMS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update item",
-  },
-  items_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.ITEMS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete item",
-  },
-  stocks_list: { method: "GET", path: API_ENDPOINTS.STOCKS.GET_ALL, description: "List stocks" },
-  stocks_create: { method: "POST", path: API_ENDPOINTS.STOCKS.BASE, description: "Create stock" },
-  stocks_get_low: { method: "GET", path: API_ENDPOINTS.STOCKS.GET_LOW, description: "List low-stock records" },
-  stocks_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.STOCKS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get stock by id",
-  },
-  stocks_get_by_item_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.STOCKS.GET_BY_ITEM_ID(requirePathParam(params, "itemId")),
-    requiredPathParams: ["itemId"],
-    description: "Get stock by item id",
-  },
-  stocks_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.STOCKS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update stock",
-  },
-  stocks_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.STOCKS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete stock",
-  },
-  customers_list: { method: "GET", path: API_ENDPOINTS.CUSTOMERS.GET_ALL, description: "List customers" },
-  customers_create: { method: "POST", path: API_ENDPOINTS.CUSTOMERS.CREATE, description: "Create customer" },
-  customers_list_all: { method: "GET", path: API_ENDPOINTS.CUSTOMERS.GET_ALL_NO_PAGINATION, description: "List all customers without pagination" },
-  customers_list_with_debts: { method: "GET", path: API_ENDPOINTS.CUSTOMERS.GET_WITH_DEBTS, description: "List customers with debts" },
-  customers_list_deleted: { method: "GET", path: API_ENDPOINTS.CUSTOMERS.GET_DELETED, description: "List deleted customers" },
-  customers_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.CUSTOMERS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get customer by id",
-  },
-  customers_get_by_email: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.CUSTOMERS.GET_BY_EMAIL(requirePathParam(params, "email")),
-    requiredPathParams: ["email"],
-    description: "Get customer by email",
-  },
-  customers_get_by_phone: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.CUSTOMERS.GET_BY_PHONE(requirePathParam(params, "phone")),
-    requiredPathParams: ["phone"],
-    description: "Get customer by phone",
-  },
-  customers_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.CUSTOMERS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update customer",
-  },
-  customers_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.CUSTOMERS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete customer",
-  },
-  customers_restore: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.CUSTOMERS.RESTORE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Restore deleted customer",
-  },
-  suppliers_list: { method: "GET", path: API_ENDPOINTS.SUPPLIERS.GET_ALL, description: "List suppliers" },
-  suppliers_create: { method: "POST", path: API_ENDPOINTS.SUPPLIERS.CREATE, description: "Create supplier" },
-  suppliers_list_all: { method: "GET", path: API_ENDPOINTS.SUPPLIERS.GET_ALL_NO_PAGINATION, description: "List all suppliers without pagination" },
-  suppliers_list_with_debts: { method: "GET", path: API_ENDPOINTS.SUPPLIERS.GET_WITH_DEBTS, description: "List suppliers with debts" },
-  suppliers_list_deleted: { method: "GET", path: API_ENDPOINTS.SUPPLIERS.GET_DELETED, description: "List deleted suppliers" },
-  suppliers_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIERS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get supplier by id",
-  },
-  suppliers_get_by_email: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIERS.GET_BY_EMAIL(requirePathParam(params, "email")),
-    requiredPathParams: ["email"],
-    description: "Get supplier by email",
-  },
-  suppliers_get_by_phone: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIERS.GET_BY_PHONE(requirePathParam(params, "phone")),
-    requiredPathParams: ["phone"],
-    description: "Get supplier by phone",
-  },
-  suppliers_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.SUPPLIERS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update supplier",
-  },
-  suppliers_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.SUPPLIERS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete supplier",
-  },
-  suppliers_restore: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.SUPPLIERS.RESTORE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Restore deleted supplier",
-  },
-  transactions_list: { method: "GET", path: API_ENDPOINTS.TRANSACTIONS.GET_ALL, description: "List transactions" },
-  transactions_create: { method: "POST", path: API_ENDPOINTS.TRANSACTIONS.BASE, description: "Create transaction" },
-  transactions_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.TRANSACTIONS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get transaction by id",
-  },
-  transactions_get_by_customer: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.TRANSACTIONS.GET_BY_CUSTOMER(requirePathParam(params, "customerId")),
-    requiredPathParams: ["customerId"],
-    description: "List transactions by customer",
-  },
-  transactions_get_by_supplier: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.TRANSACTIONS.GET_BY_SUPPLIER(requirePathParam(params, "supplierId")),
-    requiredPathParams: ["supplierId"],
-    description: "List transactions by supplier",
-  },
-  transactions_sales_report: { method: "GET", path: API_ENDPOINTS.TRANSACTIONS.GET_SALES_REPORT, description: "Get sales report" },
-  transactions_purchases_report: { method: "GET", path: API_ENDPOINTS.TRANSACTIONS.GET_PURCHASES_REPORT, description: "Get purchases report" },
-  transactions_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.TRANSACTIONS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update transaction",
-  },
-  transactions_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.TRANSACTIONS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete transaction",
-  },
-  debts_list: { method: "GET", path: API_ENDPOINTS.DEBTS.GET_ALL, description: "List customer debts" },
-  debts_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBTS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get customer debt by id",
-  },
-  debts_get_overdue: { method: "GET", path: API_ENDPOINTS.DEBTS.GET_OVERDUE, description: "List overdue customer debts" },
-  debts_get_by_customer: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBTS.GET_BY_CUSTOMER(requirePathParam(params, "customerId")),
-    requiredPathParams: ["customerId"],
-    description: "List debts by customer id",
-  },
-  debts_get_by_customer_name: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBTS.GET_BY_CUSTOMER_NAME(requirePathParam(params, "customerName")),
-    requiredPathParams: ["customerName"],
-    description: "List debts by customer name",
-  },
-  debts_get_by_transaction: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBTS.GET_BY_TRANSACTION(requirePathParam(params, "transactionId")),
-    requiredPathParams: ["transactionId"],
-    description: "Get debt by transaction id",
-  },
-  debts_get_purchase_debts: { method: "GET", path: API_ENDPOINTS.DEBTS.GET_PURCHASE_DEBTS, description: "List purchase debts" },
-  debts_get_credit_balances: { method: "GET", path: API_ENDPOINTS.DEBTS.GET_CREDIT_BALANCES, description: "List credit balances" },
-  debts_get_exchange_debts: { method: "GET", path: API_ENDPOINTS.DEBTS.GET_EXCHANGE_DEBTS, description: "List exchange debts" },
-  debts_get_refund_adjustments: { method: "GET", path: API_ENDPOINTS.DEBTS.GET_REFUND_ADJUSTMENTS, description: "List refund adjustments" },
-  debts_get_summary_by_customer: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBTS.GET_SUMMARY_BY_CUSTOMER(requirePathParam(params, "customerId")),
-    requiredPathParams: ["customerId"],
-    description: "Get debt summary by customer id",
-  },
-  debts_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.DEBTS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update customer debt",
-  },
-  debts_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.DEBTS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete customer debt",
-  },
-  debts_settle: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.DEBTS.SETTLE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Settle customer debt",
-  },
-  debts_mark_alert_sent: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.DEBTS.MARK_ALERT_SENT(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Mark customer debt alert as sent",
-  },
-  supplier_debts_list: { method: "GET", path: API_ENDPOINTS.SUPPLIER_DEBTS.GET_ALL, description: "List supplier debts" },
-  supplier_debts_get_by_id: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.GET_BY_ID(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Get supplier debt by id",
-  },
-  supplier_debts_get_overdue: { method: "GET", path: API_ENDPOINTS.SUPPLIER_DEBTS.GET_OVERDUE, description: "List overdue supplier debts" },
-  supplier_debts_get_by_supplier: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.GET_BY_SUPPLIER(requirePathParam(params, "supplierId")),
-    requiredPathParams: ["supplierId"],
-    description: "List supplier debts by supplier id",
-  },
-  supplier_debts_get_by_supplier_name: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.GET_BY_SUPPLIER_NAME(requirePathParam(params, "supplierName")),
-    requiredPathParams: ["supplierName"],
-    description: "List supplier debts by supplier name",
-  },
-  supplier_debts_get_by_transaction: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.GET_BY_TRANSACTION(requirePathParam(params, "transactionId")),
-    requiredPathParams: ["transactionId"],
-    description: "Get supplier debt by transaction id",
-  },
-  supplier_debts_update: {
-    method: "PUT",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.UPDATE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Update supplier debt",
-  },
-  supplier_debts_delete: {
-    method: "DELETE",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.DELETE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Delete supplier debt",
-  },
-  supplier_debts_settle: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.SETTLE(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Settle supplier debt",
-  },
-  supplier_debts_mark_alert_sent: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.SUPPLIER_DEBTS.MARK_ALERT_SENT(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Mark supplier debt alert as sent",
-  },
-  debt_alerts_list: { method: "GET", path: API_ENDPOINTS.DEBT_ALERTS.GET_ALL, description: "List debt alerts" },
-  debt_alerts_active: { method: "GET", path: API_ENDPOINTS.DEBT_ALERTS.GET_ACTIVE, description: "List active debt alerts" },
-  debt_alerts_by_type: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBT_ALERTS.GET_BY_TYPE(requirePathParam(params, "type")),
-    requiredPathParams: ["type"],
-    description: "List debt alerts by type",
-  },
-  debt_alerts_by_alert_type: {
-    method: "GET",
-    path: (params) => API_ENDPOINTS.DEBT_ALERTS.GET_BY_ALERT_TYPE(requirePathParam(params, "alertType")),
-    requiredPathParams: ["alertType"],
-    description: "List debt alerts by alert type",
-  },
-  debt_alerts_counters: { method: "GET", path: API_ENDPOINTS.DEBT_ALERTS.GET_COUNTERS, description: "Get debt alert counters" },
-  debt_alerts_mark_read: {
-    method: "POST",
-    path: (params) => API_ENDPOINTS.DEBT_ALERTS.MARK_READ(requirePathParam(params, "id")),
-    requiredPathParams: ["id"],
-    description: "Mark debt alert read",
-  },
-  debt_alerts_mark_all_read: { method: "POST", path: API_ENDPOINTS.DEBT_ALERTS.MARK_ALL_READ, description: "Mark all debt alerts read" },
 };
 
 type GenericApiEndpointKey = keyof typeof genericApiEndpoints;
 
-const genericEndpointGuide = Object.entries(genericApiEndpoints)
-  .map(([key, definition]) => {
+const ROOT_ONLY_GENERIC_ENDPOINT_KEY_SET = new Set<GenericApiEndpointKey>(
+  ROOT_ONLY_GENERIC_ENDPOINT_KEYS
+);
+const ROOT_ONLY_ASSISTANT_LIST_RESOURCE_SET = new Set<AssistantListResource>(
+  ROOT_ONLY_ASSISTANT_LIST_RESOURCES
+);
+const ROOT_ONLY_ASSISTANT_ACTION_TYPE_SET = new Set<AssistantToolAction["type"]>(
+  ROOT_ONLY_ASSISTANT_ACTION_TYPES
+);
+
+const getPersistedAssistantUser = (): AssistantSessionUser | null => {
+  try {
+    const cookieUser = tokenCookies.getUser();
+    const sessionUser =
+      typeof window !== "undefined"
+        ? window.sessionStorage.getItem("wms_user")
+        : null;
+    const rawUser = cookieUser || sessionUser;
+    if (!rawUser) return null;
+
+    const parsed = JSON.parse(rawUser);
+    return parsed && typeof parsed === "object"
+      ? (parsed as AssistantSessionUser)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const normalizeRoleName = (value: unknown) =>
+  String(value || "").trim().toUpperCase();
+
+const isRootAdminSessionUser = (user: AssistantSessionUser | null) =>
+  normalizeRoleName(user?.adminRoleName) === "ROOT_ADMIN";
+
+const getAssistantAccessScope = () => {
+  const user = getPersistedAssistantUser();
+  const isRootAdmin = isRootAdminSessionUser(user);
+
+  return {
+    isRootAdmin,
+    allowedListResources: (
+      Object.keys(assistantListResourceEndpoints) as AssistantListResource[]
+    ).filter((resource) =>
+      isRootAdmin || !ROOT_ONLY_ASSISTANT_LIST_RESOURCE_SET.has(resource)
+    ),
+    allowedGenericEndpointKeys: (
+      Object.keys(genericApiEndpoints) as GenericApiEndpointKey[]
+    ).filter((endpointKey) =>
+      isRootAdmin || !ROOT_ONLY_GENERIC_ENDPOINT_KEY_SET.has(endpointKey)
+    ),
+  };
+};
+
+const buildGenericEndpointGuide = (allowedEndpointKeys: readonly GenericApiEndpointKey[]) =>
+  allowedEndpointKeys
+    .map((key) => {
+      const definition = genericApiEndpoints[key];
     const required = definition.requiredPathParams?.length
       ? ` pathParams: ${definition.requiredPathParams.join(", ")}`
       : "";
     return `- ${key}: ${definition.method} ${definition.description}${required}`;
-  })
-  .join("\n");
+    })
+    .join("\n");
+
+const assistantListResourceEndpoints: Record<AssistantListResource, string> = {
+  kbz_registered_accounts: API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS,
+  kbz_verification_requested: API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED,
+  kbz_money_check: API_ENDPOINTS.AUTH.KBZPAY_MONEY_CHECK,
+  kbz_verified_users: API_ENDPOINTS.AUTH.KBZPAY_VERIFIED_USERS,
+  safe_payment_awaiting_instruction: API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.AWAITING_INSTRUCTION,
+  safe_payment_pending: API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.PENDING,
+  points_star_config: API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG,
+  points_rank_config: API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG,
+  fraud_reports: API_ENDPOINTS.DASHBOARD_FRAUD_REPORTS.BASE,
+  suggestions: API_ENDPOINTS.DASHBOARD_SUGGESTIONS.BASE,
+  notifications: API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.LIST,
+  users: API_ENDPOINTS.USERS.GET_LIST,
+  withdrawals: API_ENDPOINTS.DASHBOARD_WITHDRAWALS.BASE,
+  facebook_follow_submissions: API_ENDPOINTS.DASHBOARD_FACEBOOK_FOLLOW.BASE,
+  slider_ads: API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE,
+  admin_roles: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.BASE,
+  admin_permissions: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.PERMISSIONS,
+  categories: API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE,
+};
+
+const buildAvailableActionsGuide = (
+  isRootAdmin: boolean,
+  allowedListResources: readonly AssistantListResource[]
+) => {
+  const actionLines = [
+    `- list: params { resource: ${allowedListResources
+      .map((resource) => `"${resource}"`)
+      .join(" | ")} }`,
+    "- confirm_fraud_report: params { reportId, reporterMessage? }",
+    "- dismiss_fraud_report: params { reportId, reporterMessage? }",
+    "- ban_user: params { userId }",
+    "- unban_user: params { userId }",
+    "- reward_suggestion: params { suggestionId, points }",
+    "- dismiss_suggestion: params { suggestionId }",
+    "- approve_withdrawal: params { withdrawalId, adminNote? }",
+    "- reject_withdrawal: params { withdrawalId, adminNote? }",
+    "- mark_withdrawal_paid: params { withdrawalId, kbzTransferRef }",
+    "- send_kbz_instruction: params { userId, adminPhoneForTransfer, adminNote }",
+    "- verify_kbz_user: params { userId, adminNote? }",
+    "- send_safe_payment_instruction: params { transactionId, adminReceivingPhone, adminNote }",
+    "- mark_safe_payment_received: params { transactionId, adminNote? }",
+    "- mark_safe_payment_transferred: params { transactionId, adminNote? }",
+    "- approve_facebook_follow: params { submissionId }",
+    "- reject_facebook_follow: params { submissionId }",
+    "- update_star_config: params { configs: [{ starCount, pointsAwarded }] }",
+    "- update_rank_config: params { configs: [{ tier, minPoints, maxPoints, label, badgeUrl?, sortOrder }] }",
+    "- update_slider_ad: params { sliderId, title?, linkUrl?, sortOrder?, status?, startsAt?, endsAt? }",
+    "- delete_slider_ad: params { sliderId }",
+    "- create_category: params { name, slug?, parentId?, sortOrder? }",
+    "- update_category: params { categoryId, name?, slug?, description?, parentId?, sortOrder?, isActive? }",
+    "- deactivate_category: params { categoryId }",
+    "- move_category: params { categoryId, parentId?, sortOrder? }",
+    "- generic_api: params { endpoint, pathParams?, query?, body? }",
+  ];
+
+  if (isRootAdmin) {
+    actionLines.splice(
+      19,
+      0,
+      "- create_admin_role: params { name, description?, permissions, isActive? }",
+      "- update_admin_role: params { roleId, name?, description?, permissions?, isActive? }",
+      "- delete_admin_role: params { roleId }"
+    );
+  }
+
+  return actionLines.join("\n");
+};
 
 const parseStarConfigs = (value: unknown): StarConfigInput[] =>
   Array.isArray(value)
@@ -746,7 +574,11 @@ const parseRankConfigs = (value: unknown): RankConfigInput[] =>
         .filter((item): item is RankConfigInput => !!item)
     : [];
 
-const parseAction = (content: string): AssistantToolAction | null => {
+const parseAction = (
+  content: string,
+  allowedListResources: readonly AssistantListResource[],
+  isRootAdmin: boolean
+): AssistantToolAction | null => {
   const match = content.match(ACTION_BLOCK_REGEX);
   const rawJson = match?.[1] || match?.[2];
   if (!rawJson) return null;
@@ -760,28 +592,7 @@ const parseAction = (content: string): AssistantToolAction | null => {
 
     if (action === "list") {
       const resource = toText(params.resource);
-      if (
-        [
-          "kbz_registered_accounts",
-          "kbz_verification_requested",
-          "kbz_money_check",
-          "kbz_verified_users",
-          "safe_payment_awaiting_instruction",
-          "safe_payment_pending",
-          "points_star_config",
-          "points_rank_config",
-          "fraud_reports",
-          "suggestions",
-          "notifications",
-          "users",
-          "withdrawals",
-          "facebook_follow_submissions",
-          "slider_ads",
-          "admin_roles",
-          "admin_permissions",
-          "categories",
-        ].includes(resource)
-      ) {
+      if (allowedListResources.includes(resource as AssistantListResource)) {
         return { type: "list", resource: resource as AssistantListResource, params };
       }
     }
@@ -904,6 +715,7 @@ const parseAction = (content: string): AssistantToolAction | null => {
     }
 
     if (action === "create_admin_role") {
+      if (!isRootAdmin) return null;
       const name = toText(params.name);
       if (!name) return null;
       return {
@@ -916,6 +728,7 @@ const parseAction = (content: string): AssistantToolAction | null => {
     }
 
     if (action === "update_admin_role") {
+      if (!isRootAdmin) return null;
       const roleId = toText(params.roleId || params.id);
       if (!roleId) return null;
       return {
@@ -929,6 +742,7 @@ const parseAction = (content: string): AssistantToolAction | null => {
     }
 
     if (action === "delete_admin_role") {
+      if (!isRootAdmin) return null;
       const roleId = toText(params.roleId || params.id);
       if (!roleId) return null;
       return { type: "delete_admin_role", roleId };
@@ -980,7 +794,13 @@ const parseAction = (content: string): AssistantToolAction | null => {
 
     if (action === "generic_api") {
       const endpoint = toText(params.endpoint) as GenericApiEndpointKey;
-      if (!endpoint || !genericApiEndpoints[endpoint]) return null;
+      if (
+        !endpoint ||
+        !genericApiEndpoints[endpoint] ||
+        (!isRootAdmin && ROOT_ONLY_GENERIC_ENDPOINT_KEY_SET.has(endpoint))
+      ) {
+        return null;
+      }
       const pathParamsRecord = toRecord(params.pathParams);
       const queryRecord = toRecord(params.query);
       const bodyRecord = toRecord(params.body);
@@ -1010,7 +830,13 @@ export const stripActionBlock = (content: string) =>
 export const normalizeAssistantIdentity = (content: string) =>
   content
     .replace(/\bFlex\s+AI\b/gi, "LOLI AI")
-    .replace(/\bFlexAI\b/gi, "LOLI AI");
+    .replace(/\bFlexAI\b/gi, "LOLI AI")
+    .replace(/\bLOLO\s+AI\b/gi, "LOLI AI");
+
+export const hasWriteConfirmationPhrase = (content: string) => {
+  const normalized = content.trim().toLowerCase();
+  return WRITE_CONFIRMATION_PHRASES.some((phrase) => normalized.includes(phrase));
+};
 
 const DASHBOARD_FEATURE_GUIDE = `Dashboard feature map:
 - KBZPay verification (/dashboard): registered accounts, verification requested, money check, verified users; actions can send transfer instructions and verify users.
@@ -1020,19 +846,17 @@ const DASHBOARD_FEATURE_GUIDE = `Dashboard feature map:
 - Facebook follow (/facebook-follow): approve or reject submitted follow proofs.
 - Slider ads (/slider-ads): inspect active/expired ads, update metadata/status/schedule, delete ads. File image upload is not available from AI.
 - Admin roles (/admin-roles): inspect roles/permissions and create/update/delete roles when permission keys are explicitly provided.
-- Categories (/categories): inspect category tree, create/update/deactivate/move categories.
+- Categories (/categories): inspect category tree, get category by id, create/update/deactivate/move categories.
 - Category creation rule: for create-category requests, only send name, slug, sortOrder, and parentId. Never include description or isActive because the backend rejects extra fields with a 400 validation error.
 - Category fact rule: for category hierarchy questions, use the live current tree and pageContext exactly as given. Do not infer historical moves, hidden children, or prior parents unless the context explicitly states them.
 - Notifications (/notifications): inspect notification stream and unread state.
 - Suggestions (/suggestions): inspect feedback/suggestions, reward with points, or dismiss.
-- Users: inspect user list/details when available through dashboard context.
 - Generic CRUD: when no domain-specific action fits, use the generic_api tool with one of the registered endpoint names. Never invent URLs.
-- Generic endpoint naming follows a CRUD pattern whenever the backend supports it:
-  *_list, *_create, *_get_by_id, *_update, *_delete, *_restore, plus domain-specific helpers like *_settle, *_mark_read, *_report, and *_by_* filters.
+- Generic endpoint naming follows the admin dashboard contract:
+  *_list, *_create, *_get_by_id, *_update, *_delete, plus domain-specific helpers such as *_approve, *_reject, *_verify, *_send_instruction, *_mark_paid, *_confirm, *_dismiss, *_ban_user, and *_unban_user.
 - For generic_api writes, map the admin request to the exact endpoint key first, then send only the required pathParams, query, and body fields.
 
 Operational rules:
-- Global execution rules:
 - Every entity ID must be a full 36-character UUID. Never truncate, guess, or reuse a partial ID. If an ID is incomplete, reload fresh context and resolve the full ID before requesting an action.
 - For mutations, send only schema-allowed properties. Never add automatic fields such as status, isActive, icon, or similar unless the action schema explicitly allows them and the user asked for them.
 - Follow the backend HTTP contract exactly. If an endpoint is defined as PATCH, never substitute PUT or POST.
@@ -1042,6 +866,7 @@ Operational rules:
 - If pageContext is present, treat it as the highest-priority source for selected-record facts on that page.
 - For category questions, answer only from current parent/child relationships in the provided context. If a count or child list is unclear, say it is unclear instead of guessing.
 - For destructive/security/payment actions, require explicit IDs and only return one action request.
+- Never return a write action unless the user's latest message includes one of these exact confirmation phrases: "confirm and apply", "confirm and execute", "proceed with write", or "execute this write".
 - If an ID is missing, ask for the exact ID instead of guessing from names.
 - Explain what will change before requesting an action.
 - In Agent Mode, returned action JSON is executed automatically by the dashboard without another confirmation prompt.`;
@@ -1050,13 +875,17 @@ const buildSystemPrompt = (
   dashboardContext: string,
   memorySummary: string,
   agentMode: boolean
-) => `You are LOLI AI, the admin dashboard assistant for Flex Used Market.
+) => {
+  const { isRootAdmin, allowedListResources, allowedGenericEndpointKeys } =
+    getAssistantAccessScope();
+
+  return `You are LOLI AI, the admin dashboard assistant for Flex Used Market.
 Your assistant name is LOLI AI. Do not introduce yourself with any other assistant name.
 When the user greets you, introduce yourself as LOLI AI.
 
 Use the dashboard context to answer operational questions with exact counts and IDs when available.
 Be concise, practical, and explicit about uncertainty. Do not invent data.
-You are not model-trained on this dashboard; your behavior is grounded by the feature map, live dashboard context, persistent memory, and available tools below.
+Your behavior is grounded only by the feature map, live dashboard context, persistent memory, and available tools below.
 
 ${DASHBOARD_FEATURE_GUIDE}
 
@@ -1072,8 +901,7 @@ Response style:
 - Use clean Markdown with short headings and 3-5 bullets when useful.
 - Do not expose raw JSON, database objects, or long internal IDs unless the user asks for exact technical details.
 - For action requests, explain the business result, not implementation details.
-- Add tasteful, relevant emojis only when they improve scanning.
-- Avoid raw "***" separators unless the user explicitly asks for them.
+- Do not add emojis, decorative phrasing, or filler.
 - Prefer domain-specific actions first; if no dedicated action fits, fall back to generic_api for full CRUD endpoint management.
 - When using generic_api, mention the business purpose in prose and keep the endpoint key only inside the returned action block.
 
@@ -1082,42 +910,19 @@ Returned tool actions are auto-executed by the dashboard without another confirm
 Return action requests as a single JSON object in a fenced code block with this shape:
 { "action": "action_name", "params": { ... } }
 
+Write confirmation rule:
+- Return write actions only when the user's latest message includes exactly one of these phrases: "confirm and apply", "confirm and execute", "proceed with write", or "execute this write".
+- If the latest message does not include one of those phrases, do not return a write action. Explain the change and ask the user to resend the request with one of the confirmation phrases.
+
 Available actions:
-- list: params { resource: "kbz_registered_accounts" | "kbz_verification_requested" | "kbz_money_check" | "kbz_verified_users" | "safe_payment_awaiting_instruction" | "safe_payment_pending" | "points_star_config" | "points_rank_config" | "fraud_reports" | "suggestions" | "notifications" | "users" | "withdrawals" | "facebook_follow_submissions" | "slider_ads" | "admin_roles" | "admin_permissions" | "categories" }
-- confirm_fraud_report: params { reportId, reporterMessage? }
-- dismiss_fraud_report: params { reportId, reporterMessage? }
-- ban_user: params { userId }
-- unban_user: params { userId }
-- reward_suggestion: params { suggestionId, points }
-- dismiss_suggestion: params { suggestionId }
-- approve_withdrawal: params { withdrawalId, adminNote? }
-- reject_withdrawal: params { withdrawalId, adminNote? }
-- mark_withdrawal_paid: params { withdrawalId, kbzTransferRef }
-- send_kbz_instruction: params { userId, adminPhoneForTransfer, adminNote }
-- verify_kbz_user: params { userId, adminNote? }
-- send_safe_payment_instruction: params { transactionId, adminReceivingPhone, adminNote }
-- mark_safe_payment_received: params { transactionId, adminNote? }
-- mark_safe_payment_transferred: params { transactionId, adminNote? }
-- approve_facebook_follow: params { submissionId }
-- reject_facebook_follow: params { submissionId }
-- update_star_config: params { configs: [{ starCount, pointsAwarded }] }
-- update_rank_config: params { configs: [{ tier, minPoints, maxPoints, label, badgeUrl?, sortOrder }] }
-- update_slider_ad: params { sliderId, title?, linkUrl?, sortOrder?, status?, startsAt?, endsAt? }
-- delete_slider_ad: params { sliderId }
-- create_admin_role: params { name, description?, permissions, isActive? }
-- update_admin_role: params { roleId, name?, description?, permissions?, isActive? }
-- delete_admin_role: params { roleId }
-- create_category: params { name, slug?, parentId?, sortOrder? }
-- update_category: params { categoryId, name?, slug?, description?, parentId?, sortOrder?, isActive? }
-- deactivate_category: params { categoryId }
-- move_category: params { categoryId, parentId?, sortOrder? }
-- generic_api: params { endpoint, pathParams?, query?, body? }
+${buildAvailableActionsGuide(isRootAdmin, allowedListResources)}
 
 Registered generic API endpoints:
-${genericEndpointGuide}
+${buildGenericEndpointGuide(allowedGenericEndpointKeys)}
 
-Only request write actions when the user clearly asks for the change and enough IDs or identifiers are present.
+Only request write actions when the user clearly asks for the change, enough IDs or identifiers are present, and the latest message contains one of the required confirmation phrases.
 For CRUD requests across registered endpoints, choose the exact generic endpoint key that matches the requested create/read/update/delete operation.` : "Agent Mode is OFF. Do not request tool actions. Analyze and advise only."}`;
+};
 
 const assertUuid = (value: string, label: string) => {
   if (!UUID_PATTERN.test(value)) {
@@ -1190,6 +995,14 @@ export const validateAssistantAction = (action: AssistantToolAction) => {
       if (action.query) validateRecordUuidFields(action.query, "generic_api.query");
       return;
   }
+};
+
+export const isWriteAction = (action: AssistantToolAction) => {
+  if (action.type === "list") return false;
+  if (action.type === "generic_api") {
+    return genericApiEndpoints[action.endpoint].method !== "GET";
+  }
+  return true;
 };
 
 export const isRecoverableActionError = (error: unknown) => {
@@ -1290,9 +1103,13 @@ export async function callAssistantCompletion(args: {
     throw new Error("AI response did not include content. Check that the selected APIfree model supports chat completions.");
   }
 
+  const { allowedListResources, isRootAdmin } = getAssistantAccessScope();
+
   return {
     content: normalizeAssistantIdentity(stripActionBlock(content)),
-    action: args.agentMode ? parseAction(content) : null,
+    action: args.agentMode
+      ? parseAction(content, allowedListResources, isRootAdmin)
+      : null,
   };
 }
 
@@ -1378,6 +1195,10 @@ const executeGenericApiAction = (
   httpClient: HttpClient,
   action: Extract<AssistantToolAction, { type: "generic_api" }>
 ) => {
+  if (!getAssistantAccessScope().isRootAdmin && ROOT_ONLY_GENERIC_ENDPOINT_KEY_SET.has(action.endpoint)) {
+    throw new Error("This AI tool is restricted to ROOT_ADMIN.");
+  }
+
   const definition = genericApiEndpoints[action.endpoint];
   const url = resolveGenericEndpointUrl(definition, action.pathParams);
   const body = definition.bodyMode === "formData" && action.body
@@ -1404,30 +1225,20 @@ export async function executeAssistantAction(
   action: AssistantToolAction
 ): Promise<unknown> {
   validateAssistantAction(action);
+  const { isRootAdmin } = getAssistantAccessScope();
+
+  if (!isRootAdmin && ROOT_ONLY_ASSISTANT_ACTION_TYPE_SET.has(action.type)) {
+    throw new Error("This AI action is restricted to ROOT_ADMIN.");
+  }
 
   switch (action.type) {
     case "list": {
-      const endpoints: Record<AssistantListResource, string> = {
-        kbz_registered_accounts: API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS,
-        kbz_verification_requested: API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED,
-        kbz_money_check: API_ENDPOINTS.AUTH.KBZPAY_MONEY_CHECK,
-        kbz_verified_users: API_ENDPOINTS.AUTH.KBZPAY_VERIFIED_USERS,
-        safe_payment_awaiting_instruction: API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.AWAITING_INSTRUCTION,
-        safe_payment_pending: API_ENDPOINTS.DASHBOARD_ADMIN_CHAT.PENDING,
-        points_star_config: API_ENDPOINTS.DASHBOARD_POINTS.STAR_CONFIG,
-        points_rank_config: API_ENDPOINTS.DASHBOARD_POINTS.RANK_CONFIG,
-        fraud_reports: API_ENDPOINTS.DASHBOARD_FRAUD_REPORTS.BASE,
-        suggestions: API_ENDPOINTS.DASHBOARD_SUGGESTIONS.BASE,
-        notifications: API_ENDPOINTS.DASHBOARD_NOTIFICATIONS.LIST,
-        users: API_ENDPOINTS.USERS.GET_LIST,
-        withdrawals: API_ENDPOINTS.DASHBOARD_WITHDRAWALS.BASE,
-        facebook_follow_submissions: API_ENDPOINTS.DASHBOARD_FACEBOOK_FOLLOW.BASE,
-        slider_ads: API_ENDPOINTS.DASHBOARD_SLIDER_ADS.BASE,
-        admin_roles: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.BASE,
-        admin_permissions: API_ENDPOINTS.DASHBOARD_ADMIN_ROLES.PERMISSIONS,
-        categories: API_ENDPOINTS.DASHBOARD_CATEGORIES.BASE,
-      };
-      return httpClient.get(endpoints[action.resource], { params: action.params });
+      if (!isRootAdmin && ROOT_ONLY_ASSISTANT_LIST_RESOURCE_SET.has(action.resource)) {
+        throw new Error("This AI resource is restricted to ROOT_ADMIN.");
+      }
+      return httpClient.get(assistantListResourceEndpoints[action.resource], {
+        params: action.params,
+      });
     }
     case "confirm_fraud_report":
       return httpClient.post(API_ENDPOINTS.DASHBOARD_FRAUD_REPORTS.CONFIRM(action.reportId), {

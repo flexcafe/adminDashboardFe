@@ -3,11 +3,15 @@
  * This is independent of any framework or external concern
  */
 export class User {
-  id: string;
-  name: string;
-  email: string;
+  id!: string;
+  name!: string;
+  email!: string;
   phone?: string;
-  role: "ADMIN" | "STAFF";
+  role!: "ADMIN" | "STAFF";
+  nickname?: string;
+  adminRoleId?: string;
+  adminRoleName?: string;
+  permissions?: string[];
   profileImageUrl?: string;
   createdDate?: Date;
   updatedDate?: Date;
@@ -21,18 +25,15 @@ export class User {
     email: string;
     phone?: string;
     role: "ADMIN" | "STAFF";
+    nickname?: string;
+    adminRoleId?: string;
+    adminRoleName?: string;
+    permissions?: string[];
     profileImageUrl?: string;
     createdDate?: Date;
     updatedDate?: Date;
   }) {
-    this.id = data.id;
-    this.name = data.name;
-    this.email = data.email;
-    this.phone = data.phone;
-    this.role = data.role;
-    this.profileImageUrl = data.profileImageUrl;
-    this.createdDate = data.createdDate;
-    this.updatedDate = data.updatedDate;
+    Object.assign(this, data);
   }
 
   /**

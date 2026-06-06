@@ -4613,6 +4613,27 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   text-align: right;
 }
 
+.adminUsersActionCell {
+  width: 320px;
+}
+
+.adminUsersActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.adminUsersRoleSelect {
+  width: 240px;
+  max-width: 100%;
+}
+
+.adminUsersActionButtons {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .verificationUserCell {
   display: flex;
   align-items: center;
@@ -7341,6 +7362,18 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   }
   .sliderSearchField {
     max-width: none;
+  }
+  .adminUsersActionCell {
+    width: auto;
+  }
+  .adminUsersActions {
+    align-items: stretch;
+  }
+  .adminUsersRoleSelect {
+    width: 100%;
+  }
+  .adminUsersActionButtons {
+    justify-content: stretch;
   }
   .sliderModalOverlay {
     place-items: stretch;

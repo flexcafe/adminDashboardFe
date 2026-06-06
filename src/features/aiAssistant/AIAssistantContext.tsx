@@ -13,7 +13,10 @@ import {
   callAssistantCompletion,
   describeAction,
   executeAssistantAction,
+  hasWriteConfirmationPhrase,
+  isWriteAction,
   isRecoverableActionError,
+  WRITE_CONFIRMATION_PHRASES,
 } from "@/features/aiAssistant/aiAssistantApi";
 import {
   createAssistantMessage,
@@ -101,6 +104,17 @@ const formatActionExecutionMessage = (actionLabel: string, result: unknown) => {
   ]
     .filter(Boolean)
     .join("\n");
+};
+
+const formatWriteConfirmationRequiredMessage = (actionLabel: string) => {
+  const quotedPhrases = WRITE_CONFIRMATION_PHRASES.map((phrase) => `"${phrase}"`).join(", ");
+
+  return [
+    "**Write action not executed.**",
+    "",
+    `LOLI AI prepared this change: ${sanitizeActionText(actionLabel)}.`,
+    `To allow writes, resend the request with one of these exact phrases: ${quotedPhrases}.`,
+  ].join("\n");
 };
 
 const ensureSessions = (sessions: AssistantSession[]) =>
@@ -292,6 +306,15 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
       );
 
       if (result.action) {
+        if (isWriteAction(result.action) && !hasWriteConfirmationPhrase(trimmed)) {
+          appendMessageToSession(
+            targetSession.id,
+            formatWriteConfirmationRequiredMessage(describeAction(result.action)),
+            "assistant"
+          );
+          return;
+        }
+
         try {
           const actionResult = await executeAssistantAction(httpClient, result.action);
           appendMessageToSession(

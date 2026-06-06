@@ -2,7 +2,7 @@ import axios from "axios";
 import { User } from "../../domain/entities/User";
 import { HttpClient } from "../api/HttpClient";
 import { API_ENDPOINTS, API_CONFIG } from "../api/constants";
-import { isTokenExpired, tokenCookies } from "@/lib/cookies";
+import { decodeJWT, isTokenExpired, tokenCookies } from "@/lib/cookies";
 
 /**
  * API response types for auth endpoints
@@ -17,12 +17,23 @@ interface LoginResponse {
 interface RegisterResponse {
   id: string;
   name: string;
+  nickname?: string;
   email: string;
   phone: string;
   role: string;
+  adminRoleId?: string;
+  adminRoleName?: string;
+  permissions?: unknown[];
+  adminRole?: {
+    id?: string;
+    name?: string;
+    permissions?: unknown[];
+  };
   profileImageUrl?: string;
   createdDate: string;
   updatedDate: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ApiResponse<T> {
@@ -50,6 +61,7 @@ export class ApiAuthRepository {
     password: string
   ): Promise<{ user: User; token: string }> {
     try {
+      this.clearPersistedAuthenticatedSession();
       const loginPayload = this.buildLoginPayload(identifier, password);
 
       const response = await this.httpClient.post<ApiResponse<LoginResponse>>(
@@ -62,7 +74,7 @@ export class ApiAuthRepository {
         throw new Error("Login response did not include a token");
       }
 
-      const responseUser = this.extractUser(response);
+      const responseUser = this.extractUser(response, identifier, token);
       if (!responseUser) {
         throw new Error("Login response did not include a user");
       }
@@ -107,6 +119,12 @@ export class ApiAuthRepository {
     tokenCookies.setUser(JSON.stringify(user));
   }
 
+  private clearPersistedAuthenticatedSession(): void {
+    sessionStorage.removeItem("wms_token");
+    sessionStorage.removeItem("wms_user");
+    tokenCookies.clearAll();
+  }
+
   /**
    * Logout user
    */
@@ -115,8 +133,8 @@ export class ApiAuthRepository {
       // Clear CSRF token
       this.httpClient.clearCsrfToken();
 
-      // Clear stored data from secure cookies
-      tokenCookies.clearAll();
+      // Clear stored data from all client-side auth storage
+      this.clearPersistedAuthenticatedSession();
     } catch (error) {
       console.error("Error during logout:", error);
     }
@@ -154,16 +172,25 @@ export class ApiAuthRepository {
    */
   private mapApiResponseToUser(apiUser: RegisterResponse): User {
     const normalizedRole = this.normalizeRole(apiUser.role);
+    const rolePermissions = this.normalizePermissions(
+      apiUser.permissions ??
+        apiUser.adminRole?.permissions ??
+        []
+    );
 
     return new User({
       id: String(apiUser.id),
-      name: apiUser.name || "",
+      name: apiUser.name || apiUser.nickname || "",
+      nickname: apiUser.nickname || apiUser.name || "",
       email: apiUser.email || "",
       phone: apiUser.phone,
       role: normalizedRole,
+      adminRoleId: apiUser.adminRoleId || apiUser.adminRole?.id,
+      adminRoleName: apiUser.adminRoleName || apiUser.adminRole?.name,
+      permissions: rolePermissions,
       profileImageUrl: this.convertToFullUrl(apiUser.profileImageUrl),
-      createdDate: new Date(apiUser.createdDate),
-      updatedDate: new Date(apiUser.updatedDate),
+      createdDate: new Date(apiUser.createdDate || apiUser.createdAt || Date.now()),
+      updatedDate: new Date(apiUser.updatedDate || apiUser.updatedAt || Date.now()),
     });
   }
 
@@ -210,7 +237,11 @@ export class ApiAuthRepository {
     return null;
   }
 
-  private extractUser(response: unknown): RegisterResponse | null {
+  private extractUser(
+    response: unknown,
+    identifier?: string,
+    token?: string
+  ): RegisterResponse | null {
     if (!response || typeof response !== "object") return null;
     const root = response as Record<string, unknown>;
     const data =
@@ -222,22 +253,64 @@ export class ApiAuthRepository {
         ? (data.data as Record<string, unknown>)
         : null;
 
-    const candidate =
-      nestedData?.user ??
-      nestedData?.admin ??
-      data?.user ??
-      data?.admin ??
-      root.user ??
-      root.admin;
+    const candidates = [
+      nestedData?.user,
+      nestedData?.admin,
+      data?.user,
+      data?.admin,
+      root.user,
+      root.admin,
+    ].filter(
+      (candidate): candidate is Record<string, unknown> =>
+        !!candidate && typeof candidate === "object"
+    );
 
-    if (candidate && typeof candidate === "object") {
-      return candidate as RegisterResponse;
-    }
-    return null;
+    if (candidates.length === 0) return null;
+
+    const normalizedIdentifier = String(identifier || "").trim().toLowerCase();
+    const tokenPayload = token ? decodeJWT(token) : null;
+    const tokenEmail = String(tokenPayload?.email || "").trim().toLowerCase();
+    const tokenUserId = String(tokenPayload?.sub || "").trim();
+
+    const matchedCandidate = candidates.find((candidate) => {
+      const candidateEmail = String(candidate.email || "").trim().toLowerCase();
+      const candidatePhone = String(candidate.phone || "").trim().toLowerCase();
+      const candidateId = String(candidate.id || "").trim();
+
+      return (
+        (!!normalizedIdentifier &&
+          (candidateEmail === normalizedIdentifier ||
+            candidatePhone === normalizedIdentifier)) ||
+        (!!tokenEmail && candidateEmail === tokenEmail) ||
+        (!!tokenUserId && candidateId === tokenUserId)
+      );
+    });
+
+    return (matchedCandidate || candidates[0]) as unknown as RegisterResponse;
   }
 
   private normalizeRole(rawRole: unknown): "ADMIN" | "STAFF" {
     const value = String(rawRole || "").trim().toUpperCase();
     return value === "ADMIN" ? "ADMIN" : "STAFF";
+  }
+
+  private normalizePermissions(rawPermissions: unknown[]): string[] {
+    if (!Array.isArray(rawPermissions)) return [];
+
+    return rawPermissions
+      .map((entry) => {
+        if (typeof entry === "string") return entry.trim();
+        if (entry && typeof entry === "object") {
+          const permission = entry as Record<string, unknown>;
+          return String(
+            permission.key ||
+              permission.name ||
+              permission.id ||
+              ""
+          ).trim();
+        }
+        return "";
+      })
+      .filter(Boolean);
   }
 }

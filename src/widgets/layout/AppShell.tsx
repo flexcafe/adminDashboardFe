@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
 import { useAdminNotifications } from "@/features/adminNotifications/AdminNotificationsContext";
 import { translateDynamicField } from "@/lib/i18n/dynamic";
+import { ADMIN_PAGE_PERMISSIONS, useAdminPermissions } from "@/features/adminPermissions/useAdminPermissions";
+import { AI_ASSISTANT_POPUP_ALLOWED_ROUTES } from "@/features/aiAssistant/aiAssistantConfig";
 import flexUsedLogo from "@/assets/flex-used-logo.png";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { AIAssistantQuickChat } from "@/features/aiAssistant/AIAssistantQuickChat";
@@ -76,6 +78,17 @@ function ShieldIcon() {
       <path d="M10 12h10" />
       <path d="M16 12v3" />
       <path d="M19 12v2" />
+    </svg>
+  );
+}
+
+function AdminUsersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8h3" />
+      <path d="M20.5 6.5v3" />
     </svg>
   );
 }
@@ -178,6 +191,7 @@ const SidebarNavItem = memo(function SidebarNavItem({ to, title, meta, icon }: S
 export function AppShell() {
   const { i18n, t } = useTranslation();
   const { user, logout } = useAuth();
+  const { canAccess, isRootAdmin, resolvedRoleName } = useAdminPermissions();
   const {
     notifications,
     unreadCount,
@@ -192,7 +206,17 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const isAIAssistantRoute = location.pathname.startsWith("/ai-assistant");
-  const currentUserName = user?.name || "Admin";
+  const isAIAssistantPopupAllowedRoute = AI_ASSISTANT_POPUP_ALLOWED_ROUTES.some(
+    (route) =>
+      location.pathname === route || location.pathname.startsWith(`${route}/`)
+  );
+  const canUseAIAssistantPopup =
+    isAIAssistantPopupAllowedRoute &&
+    (isRootAdmin || canAccess(ADMIN_PAGE_PERMISSIONS.aiAssistantPopup));
+  const currentUserName = user?.nickname || user?.name || "Admin";
+  const currentAdminRoleName = String(
+    resolvedRoleName || user?.adminRoleName || ""
+  ).trim();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
     if (typeof window === "undefined") return true;
     const storedValue = window.localStorage.getItem("adminSidebarExpanded");
@@ -286,79 +310,109 @@ export function AppShell() {
 
         <div className="navSectionLabel">{t("shell.mainMenu")}</div>
         <nav className="nav">
-          <SidebarNavItem
-            to="/dashboard"
-            icon={<DashboardIcon />}
-            title={t("shell.verificationTitle")}
-            meta={t("shell.verificationMeta")}
-          />
-          <SidebarNavItem
-            to="/ai-assistant"
-            icon={<AiAssistantIcon />}
-            title={t("shell.aiAssistantTitle")}
-            meta={t("shell.aiAssistantMeta")}
-          />
-          <SidebarNavItem
-            to="/admin-chat"
-            icon={<ChatIcon />}
-            title={t("shell.adminChatTitle")}
-            meta={t("shell.adminChatMeta")}
-          />
-          <SidebarNavItem
-            to="/fraud-reports"
-            icon={<FraudIcon />}
-            title={t("shell.fraudReportsTitle")}
-            meta={t("shell.fraudReportsMeta")}
-          />
-          <SidebarNavItem
-            to="/suggestions"
-            icon={<LightbulbIcon />}
-            title={(
-              <>
-                {t("shell.suggestionsTitle")}
-                {suggestionsPendingCount > 0 ? (
-                  <span className="navItemBadge">{suggestionsPendingCount}</span>
-                ) : null}
-              </>
-            )}
-            meta={t("shell.suggestionsMeta")}
-          />
-          <SidebarNavItem
-            to="/notifications"
-            icon={<NotificationsNavIcon />}
-            title={t("shell.notificationsNavTitle")}
-            meta={t("shell.notificationsMeta")}
-          />
-          <SidebarNavItem
-            to="/slider-ads"
-            icon={<SliderIcon />}
-            title={t("shell.sliderAdsTitle")}
-            meta={t("shell.sliderAdsMeta")}
-          />
-          <SidebarNavItem
-            to="/categories"
-            icon={<CategoriesIcon />}
-            title={t("shell.categoriesTitle")}
-            meta={t("shell.categoriesMeta")}
-          />
-          <SidebarNavItem
-            to="/points"
-            icon={<PointsIcon />}
-            title={t("shell.rewardsTitle")}
-            meta={t("shell.rewardsMeta")}
-          />
-          <SidebarNavItem
-            to="/admin-roles"
-            icon={<ShieldIcon />}
-            title={t("shell.adminRolesTitle")}
-            meta={t("shell.adminRolesMeta")}
-          />
-          <SidebarNavItem
-            to="/facebook-follow"
-            icon={<FacebookIcon />}
-            title={t("shell.facebookFollowTitle")}
-            meta={t("shell.facebookFollowMeta")}
-          />
+          {canAccess(ADMIN_PAGE_PERMISSIONS.dashboard) ? (
+            <SidebarNavItem
+              to="/dashboard"
+              icon={<DashboardIcon />}
+              title={t("shell.verificationTitle")}
+              meta={t("shell.verificationMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.aiAssistant) ? (
+            <SidebarNavItem
+              to="/ai-assistant"
+              icon={<AiAssistantIcon />}
+              title={t("shell.aiAssistantTitle")}
+              meta={t("shell.aiAssistantMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.adminChat) ? (
+            <SidebarNavItem
+              to="/admin-chat"
+              icon={<ChatIcon />}
+              title={t("shell.adminChatTitle")}
+              meta={t("shell.adminChatMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.fraudReports) ? (
+            <SidebarNavItem
+              to="/fraud-reports"
+              icon={<FraudIcon />}
+              title={t("shell.fraudReportsTitle")}
+              meta={t("shell.fraudReportsMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.suggestions) ? (
+            <SidebarNavItem
+              to="/suggestions"
+              icon={<LightbulbIcon />}
+              title={(
+                <>
+                  {t("shell.suggestionsTitle")}
+                  {suggestionsPendingCount > 0 ? (
+                    <span className="navItemBadge">{suggestionsPendingCount}</span>
+                  ) : null}
+                </>
+              )}
+              meta={t("shell.suggestionsMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.notifications) ? (
+            <SidebarNavItem
+              to="/notifications"
+              icon={<NotificationsNavIcon />}
+              title={t("shell.notificationsNavTitle")}
+              meta={t("shell.notificationsMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.sliderAds) ? (
+            <SidebarNavItem
+              to="/slider-ads"
+              icon={<SliderIcon />}
+              title={t("shell.sliderAdsTitle")}
+              meta={t("shell.sliderAdsMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.categories) ? (
+            <SidebarNavItem
+              to="/categories"
+              icon={<CategoriesIcon />}
+              title={t("shell.categoriesTitle")}
+              meta={t("shell.categoriesMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.points) ? (
+            <SidebarNavItem
+              to="/points"
+              icon={<PointsIcon />}
+              title={t("shell.rewardsTitle")}
+              meta={t("shell.rewardsMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.adminUsers) ? (
+            <SidebarNavItem
+              to="/admin-users"
+              icon={<AdminUsersIcon />}
+              title={t("shell.adminUsersTitle", { defaultValue: "Admin Users" })}
+              meta={t("shell.adminUsersMeta", { defaultValue: "Manage admin accounts" })}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.adminRoles) ? (
+            <SidebarNavItem
+              to="/admin-roles"
+              icon={<ShieldIcon />}
+              title={t("shell.adminRolesTitle")}
+              meta={t("shell.adminRolesMeta")}
+            />
+          ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.facebookFollow) ? (
+            <SidebarNavItem
+              to="/facebook-follow"
+              icon={<FacebookIcon />}
+              title={t("shell.facebookFollowTitle")}
+              meta={t("shell.facebookFollowMeta")}
+            />
+          ) : null}
         </nav>
 
         <div className="navSectionLabel">{t("shell.workspace")}</div>
@@ -486,7 +540,9 @@ export function AppShell() {
             <div className="topbarIdentity">
               <span className="topbarRole">{t("shell.signedInAs")}</span>
               <span className="topbarUser">{currentUserName}</span>
-              <span className="topbarRole">{t("shell.administrator")}</span>
+              <span className="topbarRole">
+                {isRootAdmin ? "Root Admin" : currentAdminRoleName || t("shell.administrator")}
+              </span>
             </div>
             <button className="btn topbarLogout" type="button" onClick={handleLogout}>
               {t("shell.logout")}
@@ -500,7 +556,9 @@ export function AppShell() {
             </PageTransition>
           </AnimatePresence>
         </main>
-        {!isAIAssistantRoute ? <AIAssistantQuickChat currentPath={location.pathname} /> : null}
+        {!isAIAssistantRoute && canUseAIAssistantPopup ? (
+          <AIAssistantQuickChat currentPath={location.pathname} />
+        ) : null}
       </div>
     </div>
   );
