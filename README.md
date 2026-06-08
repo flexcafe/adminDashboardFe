@@ -1,24 +1,34 @@
-# Admin Dashboard FE (Template)
+# Admin Dashboard FE
 
-React + TypeScript + Vite **template only**, organized with a clean architecture style
-## Create project (npm)
+Admin frontend for role-based operational workflows including verification, safe payments, fraud moderation, rewards, categories, slider ads, notifications, admin roles/users, Facebook follow review, and an AI assistant surface.
 
-This was scaffolded with:
+## Start Here
+
+- Project guide: [docs/PROJECT_GUIDE.md](./docs/PROJECT_GUIDE.md)
+- Architecture background: [architecture.md](./architecture.md)
+- Shared UI notes: [src/shared/README.md](./src/shared/README.md)
+
+## Scripts
 
 ```bash
-npm create vite@latest admin-dashboard-fe -- --template react-ts
-cd admin-dashboard-fe
 npm install
 npm run dev
+npm run build
+npm run test
+npm run lint
 ```
 
-## What you get
+## Environment
 
-- App shell (sidebar + topbar) and routing (`react-router-dom`)
-- Dashboard page placeholder cards
-- Clean architecture core under `src/core/` (domain, application, infrastructure, presentation) — see **[architecture.md](./architecture.md)**
+Common env values:
 
-## Architecture
+- `VITE_API_URL`
+- `VITE_PUSHER_KEY`
+- `VITE_PUSHER_CLUSTER`
+- `VITE_PUSHER_ADMIN_CHANNEL`
+- `VITE_PUSHER_ADMIN_EVENT`
 
-- **Start here :** [architecture.md](./architecture.md) — layers, dependency flow, how to add features.
-- **Shared UI / widgets:** [src/shared/README.md](./src/shared/README.md)
+## Notes
+
+- The active dashboard feature pattern is mostly page + feature API/context under `src/features`, not only the older `src/core` clean-architecture modules.
+- After meaningful frontend changes, run `npm run build`.

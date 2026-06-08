@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { LoadingScreen } from "./LoadingScreen";
 
 type NetworkStatusGateProps = {
@@ -6,6 +7,7 @@ type NetworkStatusGateProps = {
 };
 
 export function NetworkStatusGate({ children }: NetworkStatusGateProps) {
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine
   );
@@ -26,9 +28,9 @@ export function NetworkStatusGate({ children }: NetworkStatusGateProps) {
   if (!isOnline) {
     return (
       <LoadingScreen
-        title="No Internet"
-        subtitle="Your connection is offline. Please check your network and try again."
-        badge="Offline Alert"
+        title={t("networkStatus.offlineTitle")}
+        subtitle={t("networkStatus.offlineSubtitle")}
+        badge={t("networkStatus.offlineBadge")}
       />
     );
   }

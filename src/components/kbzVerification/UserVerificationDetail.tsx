@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/ui/Button/Button";
 import type { VerificationRecord } from "@/features/kbzVerification/types";
@@ -19,11 +20,11 @@ type UserVerificationDetailProps = {
   onVerify: () => void;
 };
 
-const formatDateTime = (value?: string) => {
-  if (!value) return "Not available";
+const formatDateTime = (value: string | undefined, language: string, fallback: string) => {
+  if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(language);
 };
 
 const getHeroBadgeClassName = (status: VerificationRecord["status"]) => {
@@ -64,8 +65,11 @@ export function UserVerificationDetail({
   onSendInstruction,
   onVerify,
 }: UserVerificationDetailProps) {
+  const { i18n, t } = useTranslation();
   const [copiedField, setCopiedField] = useState<"phone" | "note" | null>(null);
   const hasRealData = !!record?.userName.trim() || !!record?.userPhoneOrEmail.trim();
+  const notAvailable = t("userVerificationDetail.notAvailable");
+  const noDataAvailable = t("userVerificationDetail.noDataAvailable");
 
   const handleCopy = async (value: string, field: "phone" | "note") => {
     if (!value.trim()) return;
@@ -83,11 +87,11 @@ export function UserVerificationDetail({
       <section className="page verificationPage verificationDetailPage">
         <div className="card verificationMissingState">
           <Link to="/dashboard" className="verificationBackLink verificationBackButton">
-            Back to List
+            {t("userVerificationDetail.backToList")}
           </Link>
-          <h1 className="pageTitle">Verification request not found</h1>
+          <h1 className="pageTitle">{t("userVerificationDetail.notFoundTitle")}</h1>
           <p className="pageDescription">
-            No real verification data is available for this user right now.
+            {t("userVerificationDetail.notFoundDescription")}
           </p>
         </div>
       </section>
@@ -103,16 +107,21 @@ export function UserVerificationDetail({
       <div className="pageHeader verificationDetailHeader">
         <div>
           <Link to="/dashboard" className="verificationBackLink verificationBackButton">
-            Back to List
+            {t("userVerificationDetail.backToList")}
           </Link>
-          <p className="pageEyebrow">Verification Detail</p>
-          <h1 className="pageTitle">{record.userName || "Verification Detail"}</h1>
+          <p className="pageEyebrow">{t("userVerificationDetail.eyebrow")}</p>
+          <h1 className="pageTitle">{record.userName || t("userVerificationDetail.title")}</h1>
           <p className="pageDescription">
-            {record.userPhoneOrEmail || "No contact information available."}
+            {record.userPhoneOrEmail || t("userVerificationDetail.noContactInformation")}
             {record.createdAt
-              ? ` - Updated ${formatDateTime(
+              ? ` - ${t("userVerificationDetail.updatedAt", {
+                  value: formatDateTime(
                   record.lastActionAt || record.createdAt
-                )}`
+                    ,
+                    i18n.language,
+                    notAvailable
+                  ),
+                })}`
               : ""}
           </p>
         </div>
@@ -125,7 +134,7 @@ export function UserVerificationDetail({
         <aside className="card verificationStepperCard">
           <div className="sectionHeader">
             <div>
-              <div className="sectionTitle">Verification Flow</div>
+              <div className="sectionTitle">{t("userVerificationDetail.flowTitle")}</div>
             </div>
           </div>
           <div className="verificationStepper">
@@ -134,9 +143,9 @@ export function UserVerificationDetail({
                 <CheckIcon />
               </div>
               <div className="verificationStepContent">
-                <div className="verificationStepTitle">Open request</div>
+                <div className="verificationStepTitle">{t("userVerificationDetail.openRequest")}</div>
                 <div className="verificationStepMeta">
-                  Admin is reviewing account details.
+                  {t("userVerificationDetail.openRequestMeta")}
                 </div>
               </div>
             </div>
@@ -153,13 +162,15 @@ export function UserVerificationDetail({
                 {record.status === "VERIFIED" || record.instructionSentAt ? <CheckIcon /> : "2"}
               </div>
               <div className="verificationStepContent">
-                <div className="verificationStepTitle">Send instruction</div>
+                <div className="verificationStepTitle">{t("userVerificationDetail.sendInstructionStep")}</div>
                 <div className="verificationStepMeta">
                   {record.status === "VERIFIED"
-                    ? "Instruction step completed."
+                    ? t("userVerificationDetail.instructionCompleted")
                     : record.instructionSentAt
-                    ? `Sent ${formatDateTime(record.instructionSentAt)}`
-                    : "Share transfer number and the required payment note."}
+                    ? t("userVerificationDetail.sentAt", {
+                        value: formatDateTime(record.instructionSentAt, i18n.language, notAvailable),
+                      })
+                    : t("userVerificationDetail.instructionPendingMeta")}
                 </div>
               </div>
             </div>
@@ -176,13 +187,15 @@ export function UserVerificationDetail({
                 {record.status === "VERIFIED" ? <CheckIcon /> : "3"}
               </div>
               <div className="verificationStepContent">
-                <div className="verificationStepTitle">Final verification</div>
+                <div className="verificationStepTitle">{t("userVerificationDetail.finalVerification")}</div>
                 <div className="verificationStepMeta">
                   {record.status === "VERIFIED"
-                    ? `Verified on ${formatDateTime(record.lastActionAt)}`
+                    ? t("userVerificationDetail.verifiedOn", {
+                        value: formatDateTime(record.lastActionAt, i18n.language, notAvailable),
+                      })
                     : canVerify
-                      ? "Review the submitted transfer and verify the user."
-                      : "Waiting for the next backend verification step."}
+                      ? t("userVerificationDetail.finalVerificationMeta")
+                      : t("userVerificationDetail.waitingForBackendStep")}
                 </div>
               </div>
             </div>
@@ -193,46 +206,49 @@ export function UserVerificationDetail({
           <section className="card verificationSectionCard">
             <div className="sectionHeader">
               <div>
-                <div className="sectionTitle">Section 1: Instruction</div>
+                <div className="sectionTitle">{t("userVerificationDetail.sectionInstructionTitle")}</div>
                 <p className="verificationSectionText">
-                  Share the transfer number and note the user must follow before
-                  payment verification.
+                  {t("userVerificationDetail.sectionInstructionDescription")}
                 </p>
               </div>
             </div>
             <div className="verificationInstructionPreview">
               <div className="verificationPreviewItem verificationPreviewCard">
                 <div className="verificationPreviewTop">
-                  <span className="detailLabel">Admin Phone</span>
+                  <span className="detailLabel">{t("userVerificationDetail.adminPhone")}</span>
                   <button
                     type="button"
                     className="copyActionButton"
                     onClick={() => void handleCopy(adminPhoneForTransfer, "phone")}
                     disabled={!adminPhoneForTransfer.trim()}
                   >
-                    {copiedField === "phone" ? "Copied" : "Copy"}
+                    {copiedField === "phone"
+                      ? t("userVerificationDetail.copied")
+                      : t("userVerificationDetail.copy")}
                   </button>
                 </div>
-                <span className="detailValue">{adminPhoneForTransfer || "No data available."}</span>
+                <span className="detailValue">{adminPhoneForTransfer || noDataAvailable}</span>
               </div>
               <div className="verificationPreviewItem verificationPreviewCard">
                 <div className="verificationPreviewTop">
-                  <span className="detailLabel">Instruction Note</span>
+                  <span className="detailLabel">{t("userVerificationDetail.instructionNote")}</span>
                   <button
                     type="button"
                     className="copyActionButton"
                     onClick={() => void handleCopy(instructionNote, "note")}
                     disabled={!instructionNote.trim()}
                   >
-                    {copiedField === "note" ? "Copied" : "Copy"}
+                    {copiedField === "note"
+                      ? t("userVerificationDetail.copied")
+                      : t("userVerificationDetail.copy")}
                   </button>
                 </div>
-                <span className="detailValue">{instructionNote || "No data available."}</span>
+                <span className="detailValue">{instructionNote || noDataAvailable}</span>
               </div>
             </div>
             <form className="authForm" onSubmit={onSendInstruction}>
               <label className="authLabel" htmlFor="adminPhoneForTransfer">
-                Admin Phone for Transfer
+                {t("userVerificationDetail.adminPhoneForTransfer")}
               </label>
               <input
                 id="adminPhoneForTransfer"
@@ -244,7 +260,7 @@ export function UserVerificationDetail({
                 disabled={!canSendInstruction}
               />
               <label className="authLabel" htmlFor="instructionNote">
-                Instruction Note
+                {t("userVerificationDetail.instructionNote")}
               </label>
               <textarea
                 id="instructionNote"
@@ -261,7 +277,9 @@ export function UserVerificationDetail({
                   type="submit"
                   disabled={isSubmittingInstruction || !canSendInstruction}
                 >
-                  {isSubmittingInstruction ? "Sending..." : "Send Instruction"}
+                  {isSubmittingInstruction
+                    ? t("userVerificationDetail.sending")
+                    : t("userVerificationDetail.sendInstruction")}
                 </Button>
               </div>
             </form>
@@ -270,16 +288,15 @@ export function UserVerificationDetail({
           <section className="card verificationSectionCard">
             <div className="sectionHeader">
               <div>
-                <div className="sectionTitle">Section 2: Verification</div>
+                <div className="sectionTitle">{t("userVerificationDetail.sectionVerificationTitle")}</div>
                 <p className="verificationSectionText">
-                  Leave a final admin note and verify the submitted KBZPay
-                  transfer.
+                  {t("userVerificationDetail.sectionVerificationDescription")}
                 </p>
               </div>
             </div>
             <div className="authForm">
               <label className="authLabel" htmlFor="finalAdminNote">
-                Final Admin Note
+                {t("userVerificationDetail.finalAdminNote")}
               </label>
               <textarea
                 id="finalAdminNote"
@@ -297,7 +314,9 @@ export function UserVerificationDetail({
                   disabled={isSubmittingResolution || !canVerify}
                   onClick={onVerify}
                 >
-                  {isSubmittingResolution ? "Working..." : "Verify"}
+                  {isSubmittingResolution
+                    ? t("userVerificationDetail.working")
+                    : t("userVerificationDetail.verify")}
                 </Button>
               </div>
             </div>
@@ -305,7 +324,7 @@ export function UserVerificationDetail({
 
           {isReadOnly ? (
             <p className="surfaceMessage">
-              This record is read-only for the current backend stage.
+              {t("userVerificationDetail.readOnly")}
             </p>
           ) : null}
 

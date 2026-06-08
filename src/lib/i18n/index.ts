@@ -19,12 +19,14 @@ const resources = {
   },
   ko: {
     translation: {
+      ...enTranslations,
       ...enAdminTranslations,
       ...koTranslations,
     },
   },
   my: {
     translation: {
+      ...enTranslations,
       ...enAdminTranslations,
       ...myTranslations,
       ...myAdminTranslations,
@@ -32,6 +34,7 @@ const resources = {
   },
   "zh-CN": {
     translation: {
+      ...enTranslations,
       ...enAdminTranslations,
       ...zhCnTranslations,
     },

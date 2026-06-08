@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { useTranslation } from "react-i18next";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/core/presentation/hooks/useAuth";
@@ -112,12 +113,14 @@ function RequireAuth() {
 }
 
 function UnauthorizedPage() {
+  const { t } = useTranslation();
+
   return (
     <section className="page">
       <div className="card">
-        <h1 className="pageTitle">Access Denied</h1>
+        <h1 className="pageTitle">{t("router.accessDeniedTitle")}</h1>
         <p className="pageDescription">
-          Your current admin role does not have permission to open this page.
+          {t("router.accessDeniedDescription")}
         </p>
       </div>
     </section>
@@ -172,6 +175,8 @@ function RequirePermission({
 }
 
 export function AppRouter() {
+  const { t } = useTranslation();
+
   return (
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
@@ -180,8 +185,8 @@ export function AppRouter() {
             path="/loading-preview"
             element={
               <LoadingScreen
-                title="Loading Preview"
-                subtitle="Use this route to review the logo spinner animation."
+                title={t("router.loadingPreviewTitle")}
+                subtitle={t("router.loadingPreviewSubtitle")}
               />
             }
           />

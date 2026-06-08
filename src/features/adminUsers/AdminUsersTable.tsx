@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AdminRole } from "@/features/adminRoles/adminRolesApi";
 import type { AdminUser } from "./adminUsersApi";
 
@@ -19,6 +20,7 @@ export function AdminUsersTable({
   onChangeRole,
   onDemote,
 }: AdminUsersTableProps) {
+  const { t } = useTranslation();
   const [roleDraftByUserId, setRoleDraftByUserId] = useState<Record<string, string>>(
     {}
   );
@@ -35,7 +37,7 @@ export function AdminUsersTable({
     const trimmedName = user.nickname.trim();
     if (trimmedName && trimmedName !== "Unnamed admin") return trimmedName;
     const emailPrefix = user.email.split("@")[0]?.trim();
-    return emailPrefix || "Unnamed admin";
+    return emailPrefix || t("adminUsersPage.unnamedAdmin");
   };
 
   return (
@@ -43,24 +45,24 @@ export function AdminUsersTable({
       <table className="verificationTable">
         <thead>
           <tr>
-            <th>Nickname</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>Current Role</th>
-            <th className="verificationActionCell">Actions</th>
+            <th>{t("adminUsersPage.nicknameColumn")}</th>
+            <th>{t("adminUsersPage.phoneColumn")}</th>
+            <th>{t("adminUsersPage.emailColumn")}</th>
+            <th>{t("adminUsersPage.currentRoleColumn")}</th>
+            <th className="verificationActionCell">{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {isLoading ? (
             <tr>
               <td colSpan={5}>
-                <div className="verificationEmptyState">Loading admin users...</div>
+                <div className="verificationEmptyState">{t("adminUsersPage.loading")}</div>
               </td>
             </tr>
           ) : users.length === 0 ? (
             <tr>
               <td colSpan={5}>
-                <div className="verificationEmptyState">No admin users found.</div>
+                <div className="verificationEmptyState">{t("adminUsersPage.emptyDefault")}</div>
               </td>
             </tr>
           ) : (
@@ -91,7 +93,7 @@ export function AdminUsersTable({
                         }
                         disabled={isBusy || availableRoles.length === 0}
                       >
-                        <option value="">Select role</option>
+                        <option value="">{t("adminUsersPage.selectRole")}</option>
                         {availableRoles.map((role) => (
                           <option key={role.id} value={role.id}>
                             {role.name}
@@ -105,7 +107,7 @@ export function AdminUsersTable({
                           disabled={isBusy || !selectedRoleId || selectedRoleId === user.adminRoleId}
                           onClick={() => void onChangeRole(user.id, selectedRoleId)}
                         >
-                          {isBusy ? "Saving..." : "Change Role"}
+                          {isBusy ? t("adminUsersPage.saving") : t("adminUsersPage.changeRole")}
                         </button>
                         <button
                           type="button"
@@ -113,7 +115,7 @@ export function AdminUsersTable({
                           disabled={isBusy}
                           onClick={() => void onDemote(user)}
                         >
-                          {isBusy ? "Working..." : "Demote"}
+                          {isBusy ? t("adminUsersPage.working") : t("adminUsersPage.demote")}
                         </button>
                       </div>
                     </div>

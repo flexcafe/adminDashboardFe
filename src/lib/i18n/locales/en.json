@@ -30,7 +30,67 @@
     "actions": "Actions",
     "logout": "Logout",
     "info": "Info",
-    "all": "All"
+    "all": "All",
+    "noDataAvailable": "No data available",
+    "clearSearch": "Clear search"
+  },
+  "layout": {
+    "toggleMenu": "Toggle menu",
+    "notifications": "Notifications",
+    "userMenu": "User menu"
+  },
+  "router": {
+    "accessDeniedTitle": "Access Denied",
+    "accessDeniedDescription": "Your current admin role does not have permission to open this page.",
+    "loadingPreviewTitle": "Loading Preview",
+    "loadingPreviewSubtitle": "Use this route to review the logo spinner animation."
+  },
+  "networkStatus": {
+    "offlineTitle": "No Internet",
+    "offlineSubtitle": "Your connection is offline. Please check your network and try again.",
+    "offlineBadge": "Offline Alert"
+  },
+  "notFound": {
+    "title": "Not found",
+    "description": "The page you requested does not exist.",
+    "goToDashboard": "Go to dashboard"
+  },
+  "userVerificationDetail": {
+    "backToList": "Back to List",
+    "eyebrow": "Verification Detail",
+    "title": "Verification Detail",
+    "notFoundTitle": "Verification request not found",
+    "notFoundDescription": "No real verification data is available for this user right now.",
+    "noContactInformation": "No contact information available.",
+    "updatedAt": "Updated {{value}}",
+    "flowTitle": "Verification Flow",
+    "openRequest": "Open request",
+    "openRequestMeta": "Admin is reviewing account details.",
+    "sendInstructionStep": "Send instruction",
+    "instructionCompleted": "Instruction step completed.",
+    "sentAt": "Sent {{value}}",
+    "instructionPendingMeta": "Share transfer number and the required payment note.",
+    "finalVerification": "Final verification",
+    "verifiedOn": "Verified on {{value}}",
+    "finalVerificationMeta": "Review the submitted transfer and verify the user.",
+    "waitingForBackendStep": "Waiting for the next backend verification step.",
+    "sectionInstructionTitle": "Section 1: Instruction",
+    "sectionInstructionDescription": "Share the transfer number and note the user must follow before payment verification.",
+    "adminPhone": "Admin Phone",
+    "instructionNote": "Instruction Note",
+    "copy": "Copy",
+    "copied": "Copied",
+    "noDataAvailable": "No data available.",
+    "adminPhoneForTransfer": "Admin Phone for Transfer",
+    "sendInstruction": "Send Instruction",
+    "sending": "Sending...",
+    "sectionVerificationTitle": "Section 2: Verification",
+    "sectionVerificationDescription": "Leave a final admin note and verify the submitted KBZPay transfer.",
+    "finalAdminNote": "Final Admin Note",
+    "verify": "Verify",
+    "working": "Working...",
+    "readOnly": "This record is read-only for the current backend stage.",
+    "notAvailable": "Not available"
   },
   "navigation": {
     "dashboard": "Dashboard",

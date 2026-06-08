@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export type Column<T> = {
   key: string;
@@ -40,6 +41,8 @@ export function DataTable<T extends Record<string, unknown>>({
   className = "",
   onRowClick,
 }: DataTableProps<T>) {
+  const { t } = useTranslation();
+
   return (
     <div
       className={[
@@ -77,7 +80,7 @@ export function DataTable<T extends Record<string, unknown>>({
               >
                 {emptyState ?? (
                   <div className="text-slate-400 text-sm">
-                    No data available
+                    {t("common.noDataAvailable")}
                   </div>
                 )}
               </td>

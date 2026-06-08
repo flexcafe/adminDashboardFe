@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet } from "react-router-dom";
 import { useTheme } from "@/theme/useTheme";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -65,6 +66,7 @@ function UserIcon() {
 }
 
 export function Layout({ sidebar, headerExtra, children }: LayoutProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -97,7 +99,7 @@ export function Layout({ sidebar, headerExtra, children }: LayoutProps) {
                   ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
                   : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
               ].join(" ")}
-              aria-label="Toggle menu"
+              aria-label={t("layout.toggleMenu")}
             >
               <MenuIcon />
             </button>
@@ -115,7 +117,7 @@ export function Layout({ sidebar, headerExtra, children }: LayoutProps) {
                   ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
                   : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
               ].join(" ")}
-              aria-label="Notifications"
+              aria-label={t("layout.notifications")}
             >
               <BellIcon />
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center">
@@ -136,7 +138,7 @@ export function Layout({ sidebar, headerExtra, children }: LayoutProps) {
                   ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
                   : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
               ].join(" ")}
-              aria-label="User menu"
+              aria-label={t("layout.userMenu")}
             >
               <UserIcon />
             </button>

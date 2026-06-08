@@ -30,7 +30,67 @@
     "actions": "လုပ်ဆောင်ချက်များ",
     "logout": "ထွက်ရန်",
     "info": "အချက်အလက်",
-    "all": "အားလုံး"
+    "all": "အားလုံး",
+    "noDataAvailable": "ဒေတာ မရှိပါ။",
+    "clearSearch": "ရှာဖွေမှုကို ရှင်းလင်းရန်"
+  },
+  "layout": {
+    "toggleMenu": "မီနူးကို ပြောင်းလဲရန်",
+    "notifications": "အသိပေးချက်များ",
+    "userMenu": "အသုံးပြုသူ မီနူး"
+  },
+  "router": {
+    "accessDeniedTitle": "ဝင်ရောက်ခွင့် ငြင်းပယ်ခံရသည်",
+    "accessDeniedDescription": "သင့်ဝင်ရောက်ထားသော admin role တွင် ဤစာမျက်နှာကို ဖွင့်ရန် ခွင့်ပြုချက် မရှိပါ။",
+    "loadingPreviewTitle": "တင်နေသည့် အနေအထား ကြိုတင်ကြည့်ရှုမှု",
+    "loadingPreviewSubtitle": "ဤ route ကို logo spinner animation ကို ကြည့်ရှုနိုင်ရန် အသုံးပြုပါ။"
+  },
+  "networkStatus": {
+    "offlineTitle": "အင်တာနက် ချိတ်ဆက်မှု မရှိပါ",
+    "offlineSubtitle": "သင့် network connection က offline ဖြစ်နေပါသည်။ network ကို စစ်ဆေးပြီး ပြန်လည် ကြိုးစားပါ။",
+    "offlineBadge": "Offline သတိပေးချက်"
+  },
+  "notFound": {
+    "title": "စာမျက်နှာကို မတွေ့ရှိပါ",
+    "description": "သင် တောင်းဆိုထားသော စာမျက်နှာ မရှိပါ။",
+    "goToDashboard": "dashboard သို့ သွားမည်"
+  },
+  "userVerificationDetail": {
+    "backToList": "စာရင်းသို့ ပြန်သွားမည်",
+    "eyebrow": "အတည်ပြုချက် အသေးစိတ်",
+    "title": "အတည်ပြုချက် အသေးစိတ်",
+    "notFoundTitle": "အတည်ပြုတောင်းဆိုမှုကို မတွေ့ရှိပါ",
+    "notFoundDescription": "ဤအသုံးပြုသူအတွက် အမှန်တကယ် verification data ကို လက်ရှိ မရရှိနိုင်သေးပါ။",
+    "noContactInformation": "ဆက်သွယ်ရန် အချက်အလက် မရှိပါ။",
+    "updatedAt": "{{value}} တွင် နောက်ဆုံး မွမ်းမံထားသည်",
+    "flowTitle": "အတည်ပြုချက် လုပ်ငန်းစဉ်",
+    "openRequest": "တောင်းဆိုမှုကို ဖွင့်ပါ",
+    "openRequestMeta": "Admin က account details ကို စစ်ဆေးနေပါသည်။",
+    "sendInstructionStep": "ညွှန်ကြားချက် ပို့ပါ",
+    "instructionCompleted": "ညွှန်ကြားချက် အဆင့် ပြီးဆုံးပြီးပါပြီ။",
+    "sentAt": "{{value}} တွင် ပို့ခဲ့ပြီးပါပြီ",
+    "instructionPendingMeta": "ငွေလွှဲရန် နံပါတ်နှင့် လိုအပ်သော payment note ကို မျှဝေပေးပါ။",
+    "finalVerification": "နောက်ဆုံး အတည်ပြုချက်",
+    "verifiedOn": "{{value}} တွင် အတည်ပြုပြီးပါပြီ",
+    "finalVerificationMeta": "ပေးပို့ထားသော transfer ကို စစ်ဆေးပြီး အသုံးပြုသူကို အတည်ပြုပါ။",
+    "waitingForBackendStep": "နောက် backend verification step ကို စောင့်နေပါသည်။",
+    "sectionInstructionTitle": "အပိုင်း 1: ညွှန်ကြားချက်",
+    "sectionInstructionDescription": "Payment verification မလုပ်မီ အသုံးပြုသူလိုက်နာရမည့် transfer number နှင့် note ကို မျှဝေပေးပါ။",
+    "adminPhone": "Admin ဖုန်းနံပါတ်",
+    "instructionNote": "ညွှန်ကြားချက် note",
+    "copy": "ကူးယူရန်",
+    "copied": "ကူးယူပြီးပါပြီ",
+    "noDataAvailable": "ဒေတာ မရှိပါ။",
+    "adminPhoneForTransfer": "Transfer အတွက် Admin ဖုန်းနံပါတ်",
+    "sendInstruction": "ညွှန်ကြားချက် ပို့ပါ",
+    "sending": "ပို့နေပါသည်...",
+    "sectionVerificationTitle": "အပိုင်း 2: အတည်ပြုချက်",
+    "sectionVerificationDescription": "နောက်ဆုံး admin note ကို ချန်ထားပြီး ပေးပို့ထားသော KBZPay transfer ကို အတည်ပြုပါ။",
+    "finalAdminNote": "နောက်ဆုံး Admin note",
+    "verify": "အတည်ပြုပါ",
+    "working": "လုပ်ဆောင်နေပါသည်...",
+    "readOnly": "လက်ရှိ backend stage တွင် ဤ record ကို read-only အဖြစ်သာ ကြည့်မည်ဖြစ်ပါသည်။",
+    "notAvailable": "မရရှိပါ"
   },
   "navigation": {
     "dashboard": "မျက်နှာပြင်",

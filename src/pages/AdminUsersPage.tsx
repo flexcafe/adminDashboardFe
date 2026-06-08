@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CreateAdminUserModal } from "@/features/adminUsers/CreateAdminUserModal";
 import { AdminUsersTable } from "@/features/adminUsers/AdminUsersTable";
 import {
@@ -43,6 +44,7 @@ function PlusIcon() {
 }
 
 export function AdminUsersPage() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,12 +75,12 @@ export function AdminUsersPage() {
       setRoles(rolesData);
     } catch (error) {
       setPageError(
-        error instanceof Error ? error.message : "Failed to load admin users."
+        error instanceof Error ? error.message : t("adminUsersPage.loadError")
       );
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadData();
@@ -108,11 +110,11 @@ export function AdminUsersPage() {
       setModalSubmitError(null);
       await createAdminUser(payload);
       setIsCreateModalOpen(false);
-      showToast("Admin user created.");
+      showToast(t("adminUsersPage.createdToast"));
       await loadData();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Failed to create admin user.";
+        error instanceof Error ? error.message : t("adminUsersPage.createError");
       setPageError(message);
       setModalSubmitError(message);
     } finally {
@@ -125,13 +127,13 @@ export function AdminUsersPage() {
       setBusyUserId(userId);
       setPageError(null);
       await changeAdminUserRole(userId, { adminRoleId: roleId });
-      showToast("Admin user role updated.");
+      showToast(t("adminUsersPage.roleUpdatedToast"));
       await loadData();
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to update admin user role."
+          : t("adminUsersPage.roleUpdateError")
       );
     } finally {
       setBusyUserId(null);
@@ -140,7 +142,7 @@ export function AdminUsersPage() {
 
   const handleDemote = async (user: AdminUser) => {
     const confirmed = window.confirm(
-      `Demote ${user.nickname} to client? This removes admin role access.`
+      t("adminUsersPage.demoteConfirm", { name: user.nickname })
     );
     if (!confirmed) return;
 
@@ -148,13 +150,13 @@ export function AdminUsersPage() {
       setBusyUserId(user.id);
       setPageError(null);
       await demoteAdminUser(user.id);
-      showToast("Admin user demoted to client.");
+      showToast(t("adminUsersPage.demotedToast"));
       await loadData();
     } catch (error) {
       setPageError(
         error instanceof Error
           ? error.message
-          : "Failed to demote admin user."
+          : t("adminUsersPage.demoteError")
       );
     } finally {
       setBusyUserId(null);
@@ -165,11 +167,9 @@ export function AdminUsersPage() {
     <section className="page adminUsersPage">
       <div className="pageHeader">
         <div>
-          <p className="pageEyebrow">Admin users</p>
-          <h1 className="pageTitle">Admin User Management</h1>
-          <p className="pageDescription">
-            Manage admin accounts, assign roles, and demote users back to client access.
-          </p>
+          <p className="pageEyebrow">{t("adminUsersPage.eyebrow")}</p>
+          <h1 className="pageTitle">{t("adminUsersPage.title")}</h1>
+          <p className="pageDescription">{t("adminUsersPage.description")}</p>
         </div>
         <div className="pageHeaderActions">
           <button
@@ -180,7 +180,7 @@ export function AdminUsersPage() {
             }}
             disabled={isLoading || isSaving || !!busyUserId}
           >
-            {isLoading ? "Refreshing..." : "Refresh"}
+            {isLoading ? t("adminUsersPage.refreshing") : t("common.refresh")}
           </button>
           <button
             type="button"
@@ -192,7 +192,7 @@ export function AdminUsersPage() {
             disabled={isSaving}
           >
             <PlusIcon />
-            <span>Create Admin User</span>
+            <span>{t("adminUsersPage.create")}</span>
           </button>
         </div>
       </div>
@@ -203,9 +203,9 @@ export function AdminUsersPage() {
             <div className="rewardsSummaryIcon rewardsSummaryIconSky">
               <UsersIcon />
             </div>
-            <div className="metricLabel">Total Admin Users</div>
+            <div className="metricLabel">{t("adminUsersPage.totalAdminUsers")}</div>
             <div className="metricValue">{totalAdmins}</div>
-            <div className="metricMeta">All admin accounts returned by the API</div>
+            <div className="metricMeta">{t("adminUsersPage.totalAdminUsersMeta")}</div>
           </div>
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-3">
@@ -213,9 +213,9 @@ export function AdminUsersPage() {
             <div className="rewardsSummaryIcon rewardsSummaryIconIndigo">
               <ShieldIcon />
             </div>
-            <div className="metricLabel">Active Roles</div>
+            <div className="metricLabel">{t("adminUsersPage.activeRoles")}</div>
             <div className="metricValue">{activeRoles}</div>
-            <div className="metricMeta">Role options available for assignment</div>
+            <div className="metricMeta">{t("adminUsersPage.activeRolesMeta")}</div>
           </div>
         </div>
       </div>
@@ -225,16 +225,14 @@ export function AdminUsersPage() {
       <section className="card w-full" style={{ marginTop: "24px" }}>
         <div className="sliderSectionHead sliderSectionHeadSplit">
           <div>
-            <h2 className="sectionTitle">Admin Users</h2>
-            <p className="sectionDescription">
-              Review nicknames, contact details, role assignments, and demotions in one place.
-            </p>
+            <h2 className="sectionTitle">{t("adminUsersPage.listTitle")}</h2>
+            <p className="sectionDescription">{t("adminUsersPage.listDescription")}</p>
           </div>
           <div className="verificationSearchField sliderSearchField">
             <input
               type="search"
               className="authInput verificationSearchInput"
-              placeholder="Search by nickname, phone, email, or role"
+              placeholder={t("adminUsersPage.searchPlaceholder")}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />

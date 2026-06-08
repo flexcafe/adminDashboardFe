@@ -4,6 +4,7 @@ import {
   type ChangeEvent,
   type InputHTMLAttributes,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 type SearchInputProps = {
   onClear?: () => void;
@@ -56,6 +57,7 @@ export function SearchInput({
   containerClassName = "",
   ...props
 }: SearchInputProps) {
+  const { t } = useTranslation();
   const [internalValue, setInternalValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const isControlled = controlledValue !== undefined;
@@ -133,7 +135,7 @@ export function SearchInput({
             "transition-colors duration-150",
             "focus:outline-none focus:ring-2 focus:ring-blue-900/30",
           ].join(" ")}
-          aria-label="Clear search"
+          aria-label={t("common.clearSearch")}
           tabIndex={-1}
         >
           <CloseIcon />

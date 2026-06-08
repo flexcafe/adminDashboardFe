@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   listAdminRoles,
   type AdminRole,
@@ -39,6 +40,7 @@ export function CreateAdminUserModal({
   onClose,
   onSubmit,
 }: CreateAdminUserModalProps) {
+  const { t } = useTranslation();
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function CreateAdminUserModal({
         if (!isMounted) return;
         setRoles([]);
         setRolesError(
-          error instanceof Error ? error.message : "Failed to load roles."
+          error instanceof Error ? error.message : t("adminUsersPage.rolesLoadError")
         );
       } finally {
         if (isMounted) {
@@ -80,7 +82,7 @@ export function CreateAdminUserModal({
     return () => {
       isMounted = false;
     };
-  }, [isOpen]);
+  }, [isOpen, t]);
 
   const resetState = () => {
     setFormState(INITIAL_STATE);
@@ -95,17 +97,17 @@ export function CreateAdminUserModal({
   const validate = () => {
     const nextErrors: FormErrors = {};
 
-    if (!formState.nickname.trim()) nextErrors.nickname = "Nickname is required.";
+    if (!formState.nickname.trim()) nextErrors.nickname = t("adminUsersPage.nicknameRequired");
     if (!formState.phone.trim()) {
-      nextErrors.phone = "Phone is required.";
+      nextErrors.phone = t("adminUsersPage.phoneRequired");
     }
     if (!formState.email.trim()) {
-      nextErrors.email = "Email is required.";
+      nextErrors.email = t("adminUsersPage.emailRequired");
     } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
-      nextErrors.email = "Enter a valid email address.";
+      nextErrors.email = t("adminUsersPage.invalidEmail");
     }
-    if (!formState.password.trim()) nextErrors.password = "Password is required.";
-    if (!formState.adminRoleId) nextErrors.adminRoleId = "Role is required.";
+    if (!formState.password.trim()) nextErrors.password = t("adminUsersPage.passwordRequired");
+    if (!formState.adminRoleId) nextErrors.adminRoleId = t("adminUsersPage.roleRequired");
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -151,16 +153,14 @@ export function CreateAdminUserModal({
           >
             <div className="sliderModalHeader">
               <div>
-                <p className="pageEyebrow">Admin users</p>
+                <p className="pageEyebrow">{t("adminUsersPage.eyebrow")}</p>
                 <h2 id="create-admin-user-modal-title" className="sectionTitle">
-                  Create Admin User
+                  {t("adminUsersPage.createModalTitle")}
                 </h2>
-                <p className="sectionDescription">
-                  Add a new admin account and assign its initial role.
-                </p>
+                <p className="sectionDescription">{t("adminUsersPage.createModalDescription")}</p>
               </div>
               <button type="button" className="sliderModalClose" onClick={handleClose}>
-                Close
+                {t("common.close")}
               </button>
             </div>
 
@@ -170,7 +170,7 @@ export function CreateAdminUserModal({
 
               <div className="grid grid-cols-1 gap-4">
                 <label className="sliderFormField">
-                  <span className="authLabel">Nickname</span>
+                  <span className="authLabel">{t("adminUsersPage.nicknameLabel")}</span>
                   <input
                     className="authInput"
                     type="text"
@@ -179,13 +179,13 @@ export function CreateAdminUserModal({
                       setFormState((prev) => ({ ...prev, nickname: event.target.value }));
                       setErrors((prev) => ({ ...prev, nickname: undefined }));
                     }}
-                    placeholder="Staff Manager"
+                    placeholder={t("adminUsersPage.nicknamePlaceholder")}
                   />
                   {errors.nickname ? <span className="authError">{errors.nickname}</span> : null}
                 </label>
 
                 <label className="sliderFormField">
-                  <span className="authLabel">Phone</span>
+                  <span className="authLabel">{t("common.phone")}</span>
                   <input
                     className="authInput"
                     type="tel"
@@ -194,13 +194,13 @@ export function CreateAdminUserModal({
                       setFormState((prev) => ({ ...prev, phone: event.target.value }));
                       setErrors((prev) => ({ ...prev, phone: undefined }));
                     }}
-                    placeholder="+959987654321"
+                    placeholder={t("adminUsersPage.phonePlaceholder")}
                   />
                   {errors.phone ? <span className="authError">{errors.phone}</span> : null}
                 </label>
 
                 <label className="sliderFormField">
-                  <span className="authLabel">Email</span>
+                  <span className="authLabel">{t("common.email")}</span>
                   <input
                     className="authInput"
                     type="email"
@@ -215,7 +215,7 @@ export function CreateAdminUserModal({
                 </label>
 
                 <label className="sliderFormField">
-                  <span className="authLabel">Password</span>
+                  <span className="authLabel">{t("adminUsersPage.passwordLabel")}</span>
                   <input
                     className="authInput"
                     type="password"
@@ -224,13 +224,13 @@ export function CreateAdminUserModal({
                       setFormState((prev) => ({ ...prev, password: event.target.value }));
                       setErrors((prev) => ({ ...prev, password: undefined }));
                     }}
-                    placeholder="Enter temporary password"
+                    placeholder={t("adminUsersPage.passwordPlaceholder")}
                   />
                   {errors.password ? <span className="authError">{errors.password}</span> : null}
                 </label>
 
                 <label className="sliderFormField">
-                  <span className="authLabel">Role</span>
+                  <span className="authLabel">{t("adminUsersPage.roleLabel")}</span>
                   <select
                     className="authInput"
                     value={formState.adminRoleId}
@@ -242,10 +242,10 @@ export function CreateAdminUserModal({
                   >
                     <option value="">
                       {isLoadingRoles
-                        ? "Loading roles..."
+                        ? t("adminUsersPage.loadingRoles")
                         : availableRoles.length === 0
-                          ? "No active roles available"
-                          : "Select a role"}
+                          ? t("adminUsersPage.noRoles")
+                          : t("adminUsersPage.selectRole")}
                     </option>
                     {availableRoles.map((role) => (
                       <option key={role.id} value={role.id}>
@@ -264,14 +264,14 @@ export function CreateAdminUserModal({
                   onClick={handleClose}
                   disabled={isSaving}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="verificationActionButton"
                   disabled={isSaving}
                 >
-                  {isSaving ? "Creating..." : "Create Admin User"}
+                  {isSaving ? t("adminUsersPage.creating") : t("adminUsersPage.create")}
                 </button>
               </div>
             </form>
