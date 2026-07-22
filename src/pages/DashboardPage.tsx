@@ -12,7 +12,9 @@ export function DashboardPage() {
     moneyCheckRequests,
     verifiedUsers,
     isLoading: isVerificationLoading,
+    loadingByQueue,
     error: verificationError,
+    errorsByQueue,
     refreshRequests,
   } = useVerificationWorkflow();
   const [activeTab, setActiveTab] = useState<VerificationListTab>("requested");
@@ -32,7 +34,9 @@ export function DashboardPage() {
         moneyCheckRequests={moneyCheckRequests}
         verifiedUsers={verifiedUsers}
         isLoading={isVerificationLoading}
+        loadingByQueue={loadingByQueue}
         error={verificationError}
+        errorsByQueue={errorsByQueue}
         onRefresh={() => {
           void refreshRequests();
         }}

@@ -4,7 +4,8 @@ import { UserVerificationDetail } from "@/components/kbzVerification/UserVerific
 import { useVerificationWorkflow } from "@/features/kbzVerification/VerificationWorkflowContext";
 
 const DEFAULT_ADMIN_PHONE = "";
-const DEFAULT_INSTRUCTION_NOTE = "";
+const DEFAULT_INSTRUCTION_NOTE =
+  "Transfer exactly 100 MMK and include your nickname in the note.";
 const DEFAULT_VERIFICATION_NOTE = "";
 
 export function UserVerificationDetailPage() {
@@ -14,6 +15,8 @@ export function UserVerificationDetailPage() {
     getRecordByUserId,
     sendInstruction,
     verifyRequest,
+    isLoading,
+    isInitialLoading,
   } = useVerificationWorkflow();
 
   const record = getRecordByUserId(userId);
@@ -102,6 +105,7 @@ export function UserVerificationDetailPage() {
   return (
     <UserVerificationDetail
       record={record}
+      isLoading={isInitialLoading || (isLoading && !record)}
       adminPhoneForTransfer={adminPhoneForTransfer}
       instructionNote={instructionNote}
       finalAdminNote={finalAdminNote}

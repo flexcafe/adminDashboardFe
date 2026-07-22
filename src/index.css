@@ -469,6 +469,14 @@ button, input, select, textarea { font: inherit; }
   line-height: 1.5;
 }
 
+.sidebarVersion {
+  margin-top: 10px;
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 [data-theme="dark"] .sidebarInfoText {
   color: rgba(203, 213, 225, 0.78);
 }
@@ -2585,6 +2593,58 @@ button, input, select, textarea { font: inherit; }
   box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.14);
 }
 
+.authPasswordField {
+  position: relative;
+  display: grid;
+}
+
+.authPasswordInput {
+  padding-right: 44px;
+}
+
+.authPasswordToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #7c8aa0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.authPasswordToggle:hover,
+.authPasswordToggle:focus-visible {
+  color: #f6efe1;
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.authPasswordToggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.authCardSimple .authPasswordToggle {
+  color: rgba(214, 205, 188, 0.85);
+}
+
+[data-theme="dark"] .authPasswordToggle {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .authPasswordToggle:hover,
+[data-theme="dark"] .authPasswordToggle:focus-visible {
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.12);
+}
+
 [data-theme="dark"] .authInput {
   border-color: #334155;
   background: #111827;
@@ -4457,6 +4517,96 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   border-color: #fdba74;
 }
 
+button.verificationSummaryCard {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+}
+
+button.verificationSummaryCard.isActive {
+  box-shadow: 0 0 0 2px rgba(26, 28, 30, 0.18), var(--shadow-md);
+}
+
+.verificationFlowGuide {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.verificationFlowGuideHeader {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.verificationAmountChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #f0c36d;
+  background: #fff8e8;
+  color: #8a6b16;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.verificationFlowSteps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.verificationFlowStep {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.verificationFlowStep.active {
+  border-color: #d4b14d;
+  background: #fffaf0;
+}
+
+.verificationFlowStepNumber {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.verificationFlowStep.active .verificationFlowStepNumber {
+  background: #1a1c1e;
+  color: #fff;
+}
+
+.verificationFlowStepTitle {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.verificationFlowStepText {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .verificationPanel {
   padding: 0;
   overflow: hidden;
@@ -4556,7 +4706,17 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   padding: 16px 18px 12px;
   background: #ffffff;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.verificationTabHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 520px;
 }
 
 .verificationSearchField {
@@ -4636,18 +4796,93 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .verificationUserCell {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .verificationUserName {
   font-weight: 700;
 }
 
+.verificationUserMeta {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.verificationTxnId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.verificationRowActionable td {
+  background: rgba(255, 247, 237, 0.35);
+}
+
 .verificationEmptyState {
   padding: 28px 12px;
   text-align: center;
   color: var(--muted);
+}
+
+.verificationLoadingState {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.verificationDetailLoading {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.verificationLoadingBanner {
+  margin: 0 18px 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.verificationTableWrap.isLoading {
+  position: relative;
+}
+
+.verificationMetricLoading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.verificationLoadingSpinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid #dbe4ee;
+  border-top-color: #1a1c1e;
+  animation: verificationSpin 0.8s linear infinite;
+}
+
+@keyframes verificationSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-theme="dark"] .verificationLoadingBanner {
+  background: #162231;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .verificationLoadingSpinner {
+  border-color: #475569;
+  border-top-color: #f4d98b;
 }
 
 .verificationStatusBadge,
@@ -4679,9 +4914,9 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .verificationStatusBadge.moneyCheck,
 .verificationHeroBadge.moneyCheck {
-  background: #fff7ed;
-  border-color: #fdba74;
-  color: #c2410c;
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .verificationStatusBadge.verified,
@@ -4736,6 +4971,105 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 .verificationDetailHeader {
   align-items: flex-start;
+}
+
+.verificationNextActionBanner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.verificationNextActionBanner.actionable {
+  border-color: #f0c36d;
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.verificationNextActionLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.verificationNextActionTitle {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.verificationNextActionMeta {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.verificationIdentityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.verificationSectionActive {
+  box-shadow: 0 0 0 1px rgba(212, 177, 77, 0.35), var(--shadow-sm);
+}
+
+.verificationSectionMuted {
+  opacity: 0.92;
+}
+
+.verificationStagePill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #f0c36d;
+  background: #fff8e8;
+  color: #8a6b16;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.verificationStagePill.success {
+  border-color: #86efac;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.verificationHelperText {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.verificationChecklist {
+  margin: 0 0 14px;
+  padding: 12px 12px 12px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.verificationChecklist li + li {
+  margin-top: 4px;
+}
+
+.verificationSuccessMessage {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .verificationBackLink {
@@ -5058,9 +5392,62 @@ textarea.authInput { min-height: 110px; resize: vertical; }
 
 [data-theme="dark"] .verificationStatusBadge.moneyCheck,
 [data-theme="dark"] .verificationHeroBadge.moneyCheck {
-  background: rgba(249, 115, 22, 0.16);
-  border-color: rgba(251, 146, 60, 0.32);
-  color: #fdba74;
+  background: rgba(59, 130, 246, 0.16);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .verificationFlowGuide,
+[data-theme="dark"] .verificationNextActionBanner {
+  background: #1e1e2f;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .verificationNextActionBanner.actionable {
+  background: linear-gradient(180deg, rgba(212, 177, 77, 0.12), #1e1e2f);
+  border-color: #d4b14d;
+}
+
+[data-theme="dark"] .verificationFlowStep {
+  background: #162231;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .verificationFlowStep.active {
+  background: rgba(212, 177, 77, 0.12);
+  border-color: #d4b14d;
+}
+
+[data-theme="dark"] .verificationAmountChip,
+[data-theme="dark"] .verificationStagePill {
+  background: rgba(212, 177, 77, 0.16);
+  border-color: #d4b14d;
+  color: #f4d98b;
+}
+
+[data-theme="dark"] .verificationStagePill.success {
+  background: rgba(40, 167, 69, 0.18);
+  border-color: #28a745;
+  color: #86efac;
+}
+
+[data-theme="dark"] .verificationChecklist {
+  background: #162231;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .verificationRowActionable td {
+  background: rgba(212, 177, 77, 0.08);
+}
+
+[data-theme="dark"] .verificationSuccessMessage {
+  background: rgba(40, 167, 69, 0.16);
+  border-color: #28a745;
+  color: #86efac;
+}
+
+[data-theme="dark"] .verificationSearchRow {
+  background: transparent;
 }
 
 [data-theme="dark"] .verificationStatusBadge.verified,
@@ -5894,6 +6281,16 @@ textarea.authInput { min-height: 110px; resize: vertical; }
   }
   .verificationDetailLayout {
     grid-template-columns: 1fr;
+  }
+  .verificationFlowSteps,
+  .verificationIdentityGrid {
+    grid-template-columns: 1fr;
+  }
+  .verificationSearchRow,
+  .verificationNextActionBanner,
+  .verificationFlowGuideHeader {
+    flex-direction: column;
+    align-items: stretch;
   }
   .notificationsSummaryGrid {
     grid-template-columns: 1fr;

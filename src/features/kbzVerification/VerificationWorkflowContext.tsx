@@ -12,6 +12,7 @@ import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import type {
   VerificationInstructionPayload,
+  VerificationListTab,
   VerificationRecord,
   VerificationResolutionPayload,
 } from "./types";
@@ -22,13 +23,33 @@ type ApiResponse<T> = {
   data?: T;
 };
 
+export type VerificationQueueLoading = Record<VerificationListTab, boolean>;
+export type VerificationQueueErrors = Record<VerificationListTab, string | null>;
+
+const EMPTY_QUEUE_LOADING: VerificationQueueLoading = {
+  registered: false,
+  requested: false,
+  moneyCheck: false,
+  verified: false,
+};
+
+const EMPTY_QUEUE_ERRORS: VerificationQueueErrors = {
+  registered: null,
+  requested: null,
+  moneyCheck: null,
+  verified: null,
+};
+
 type VerificationWorkflowContextValue = {
   registeredAccounts: VerificationRecord[];
   verificationRequested: VerificationRecord[];
   moneyCheckRequests: VerificationRecord[];
   verifiedUsers: VerificationRecord[];
   isLoading: boolean;
+  isInitialLoading: boolean;
+  loadingByQueue: VerificationQueueLoading;
   error: string | null;
+  errorsByQueue: VerificationQueueErrors;
   refreshRequests: () => Promise<void>;
   getRecordByUserId: (userId: string) => VerificationRecord | null;
   sendInstruction: (
@@ -107,21 +128,31 @@ const normalizeVerificationRecord = (
     },
   };
 
+  const accountName = toText(item.accountName) || toText(item.kbzAccountName);
+  const kbzPayPhoneNumber =
+    toText(item.kbzPayPhoneNumber) || toText(item.kbzPayPhone);
+  const nickname =
+    toText(item.nickname) ||
+    toText(item.userName) ||
+    toText(item.name) ||
+    toText(item.username);
+
   return {
     id: toText(item.id) || userId,
     userId,
-    userName:
-      toText(item.accountName) ||
-      toText(item.nickname) ||
-      toText(item.userName) ||
-      toText(item.name) ||
-      toText(item.username),
+    userName: nickname || accountName,
     userPhoneOrEmail:
-      toText(item.kbzPayPhoneNumber) ||
-      toText(item.kbzPayPhone) ||
+      kbzPayPhoneNumber ||
       toText(item.phone) ||
       toText(item.email) ||
       toText(item.contact),
+    accountName: accountName || undefined,
+    kbzPayPhoneNumber: kbzPayPhoneNumber || undefined,
+    kbzTransactionId:
+      toText(item.kbzTransactionId) ||
+      toText(item.transactionId) ||
+      toText(item.kbz_transaction_id) ||
+      undefined,
     createdAt:
       toText(item.createdAt) ||
       toText(item.verifyRequestedAt) ||
@@ -138,7 +169,9 @@ const normalizeVerificationRecord = (
       toText(item.adminPhoneForTransfer) || toText(item.transferPhone),
     instructionNote: toText(item.adminNote) || toText(item.instructionNote),
     instructionSentAt:
-      toText(item.instructionSentAt) || toText(item.sentInstructionAt),
+      toText(item.adminInstructionSentAt) ||
+      toText(item.instructionSentAt) ||
+      toText(item.sentInstructionAt),
     finalAdminNote: toText(item.finalAdminNote) || toText(item.verifyNote),
     lastActionAt:
       toText(item.updatedAt) ||
@@ -165,73 +198,99 @@ export function VerificationWorkflowProvider({
     VerificationRecord[]
   >([]);
   const [verifiedUsers, setVerifiedUsers] = useState<VerificationRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingByQueue, setLoadingByQueue] =
+    useState<VerificationQueueLoading>(EMPTY_QUEUE_LOADING);
+  const [errorsByQueue, setErrorsByQueue] =
+    useState<VerificationQueueErrors>(EMPTY_QUEUE_ERRORS);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  const isLoading = useMemo(
+    () => Object.values(loadingByQueue).some(Boolean),
+    [loadingByQueue]
+  );
+  const isInitialLoading = isLoading && !hasLoadedOnce;
+  const error = useMemo(() => {
+    const messages = Object.values(errorsByQueue).filter(Boolean);
+    if (messages.length === 0) return null;
+    if (messages.length === 1) return messages[0];
+    return messages.join(" ");
+  }, [errorsByQueue]);
+
+  const setQueueLoading = useCallback(
+    (queue: VerificationListTab, value: boolean) => {
+      setLoadingByQueue((prev) =>
+        prev[queue] === value ? prev : { ...prev, [queue]: value }
+      );
+    },
+    []
+  );
+
+  const loadQueue = useCallback(
+    async (
+      queue: VerificationListTab,
+      endpoint: string,
+      status: VerificationRecord["status"],
+      setRecords: (records: VerificationRecord[]) => void,
+      failureMessage: string
+    ) => {
+      setQueueLoading(queue, true);
+      try {
+        const response = await httpClient.get<ApiResponse<unknown>>(endpoint);
+        setRecords(
+          toRecordArray(response?.data)
+            .map((item) => normalizeVerificationRecord(item, status))
+            .filter((item): item is VerificationRecord => !!item)
+        );
+        setErrorsByQueue((prev) =>
+          prev[queue] === null ? prev : { ...prev, [queue]: null }
+        );
+      } catch (loadError) {
+        setRecords([]);
+        setErrorsByQueue((prev) => ({
+          ...prev,
+          [queue]:
+            loadError instanceof Error ? loadError.message : failureMessage,
+        }));
+      } finally {
+        setQueueLoading(queue, false);
+      }
+    },
+    [httpClient, setQueueLoading]
+  );
 
   const refreshRequests = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const [
-        registeredResponse,
-        requestedResponse,
-        moneyCheckResponse,
-        verifiedResponse,
-      ] = await Promise.all([
-        httpClient.get<ApiResponse<unknown>>(
-          API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS
-        ),
-        httpClient.get<ApiResponse<unknown>>(
-          API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED
-        ),
-        httpClient.get<ApiResponse<unknown>>(
-          API_ENDPOINTS.AUTH.KBZPAY_MONEY_CHECK
-        ),
-        httpClient.get<ApiResponse<unknown>>(
-          API_ENDPOINTS.AUTH.KBZPAY_VERIFIED_USERS
-        ),
-      ]);
-
-      setRegisteredAccounts(
-        toRecordArray(registeredResponse?.data)
-          .map((item) => normalizeVerificationRecord(item, "REGISTERED"))
-          .filter((item): item is VerificationRecord => !!item)
-      );
-
-      setVerificationRequested(
-        toRecordArray(requestedResponse?.data)
-          .map((item) =>
-            normalizeVerificationRecord(item, "VERIFICATION_REQUESTED")
-          )
-          .filter((item): item is VerificationRecord => !!item)
-      );
-
-      setMoneyCheckRequests(
-        toRecordArray(moneyCheckResponse?.data)
-          .map((item) => normalizeVerificationRecord(item, "MONEY_CHECK"))
-          .filter((item): item is VerificationRecord => !!item)
-      );
-
-      setVerifiedUsers(
-        toRecordArray(verifiedResponse?.data)
-          .map((item) => normalizeVerificationRecord(item, "VERIFIED"))
-          .filter((item): item is VerificationRecord => !!item)
-      );
-    } catch (loadError) {
-      setRegisteredAccounts([]);
-      setVerificationRequested([]);
-      setMoneyCheckRequests([]);
-      setVerifiedUsers([]);
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load KBZPay verification requests."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [httpClient]);
+    await Promise.all([
+      loadQueue(
+        "registered",
+        API_ENDPOINTS.AUTH.KBZPAY_REGISTERED_ACCOUNTS,
+        "REGISTERED",
+        setRegisteredAccounts,
+        "Failed to load registered KBZPay accounts."
+      ),
+      loadQueue(
+        "requested",
+        API_ENDPOINTS.AUTH.KBZPAY_VERIFICATION_REQUESTED,
+        "VERIFICATION_REQUESTED",
+        setVerificationRequested,
+        "Failed to load KBZPay verification requests."
+      ),
+      loadQueue(
+        "moneyCheck",
+        API_ENDPOINTS.AUTH.KBZPAY_MONEY_CHECK,
+        "MONEY_CHECK",
+        setMoneyCheckRequests,
+        "Failed to load KBZPay money-check queue."
+      ),
+      loadQueue(
+        "verified",
+        API_ENDPOINTS.AUTH.KBZPAY_VERIFIED_USERS,
+        "VERIFIED",
+        setVerifiedUsers,
+        "Failed to load verified KBZPay users."
+      ),
+    ]);
+    setHasLoadedOnce(true);
+  }, [loadQueue]);
 
   useEffect(() => {
     void refreshRequests();
@@ -258,7 +317,9 @@ export function VerificationWorkflowProvider({
         API_ENDPOINTS.AUTH.KBZPAY_SEND_INSTRUCTION(userId),
         {
           adminPhoneForTransfer: payload.adminPhoneForTransfer.trim(),
-          adminNote: payload.adminNote.trim(),
+          ...(payload.adminNote.trim()
+            ? { adminNote: payload.adminNote.trim() }
+            : {}),
         }
       );
 
@@ -290,7 +351,10 @@ export function VerificationWorkflowProvider({
       moneyCheckRequests,
       verifiedUsers,
       isLoading,
+      isInitialLoading,
+      loadingByQueue,
       error,
+      errorsByQueue,
       refreshRequests,
       getRecordByUserId,
       sendInstruction,
@@ -298,8 +362,11 @@ export function VerificationWorkflowProvider({
     }),
     [
       error,
+      errorsByQueue,
       getRecordByUserId,
+      isInitialLoading,
       isLoading,
+      loadingByQueue,
       moneyCheckRequests,
       refreshRequests,
       registeredAccounts,

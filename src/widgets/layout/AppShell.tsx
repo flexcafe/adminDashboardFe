@@ -13,6 +13,9 @@ import { AI_ASSISTANT_POPUP_ALLOWED_ROUTES } from "@/features/aiAssistant/aiAssi
 import flexUsedLogo from "@/assets/flex-used-logo.png";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { AIAssistantQuickChat } from "@/features/aiAssistant/AIAssistantQuickChat";
+import packageJson from "../../../package.json";
+
+const APP_VERSION = packageJson.version;
 
 function DashboardIcon() {
   return (
@@ -419,6 +422,7 @@ export function AppShell() {
         <div className="sidebarInfoCard">
           <div className="sidebarInfoTitle">{t("shell.operationsHub")}</div>
           <div className="sidebarInfoText">{t("shell.operationsHubText")}</div>
+          <div className="sidebarVersion">{t("shell.appVersion", { version: APP_VERSION })}</div>
         </div>
       </aside>
 

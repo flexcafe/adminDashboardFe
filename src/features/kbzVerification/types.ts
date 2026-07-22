@@ -15,6 +15,9 @@ export type VerificationRecord = {
   userId: string;
   userName: string;
   userPhoneOrEmail: string;
+  accountName?: string;
+  kbzPayPhoneNumber?: string;
+  kbzTransactionId?: string;
   createdAt: string;
   status: VerificationStatus;
   statusLabel: string;
