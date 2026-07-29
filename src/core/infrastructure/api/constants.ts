@@ -111,6 +111,19 @@ export const API_ENDPOINTS = {
       `/api/v1/admin/dashboard/fraud-reports/${reportId}/dismiss`,
   },
 
+  DASHBOARD_CONTENT_MODERATION: {
+    CONTENT_REPORTS:
+      "/api/v1/admin/dashboard/moderation/content-reports",
+    ACTION_REPORT: (reportId: string) =>
+      `/api/v1/admin/dashboard/moderation/content-reports/${reportId}/action`,
+    DISMISS_REPORT: (reportId: string) =>
+      `/api/v1/admin/dashboard/moderation/content-reports/${reportId}/dismiss`,
+    FILTER_KEYWORDS:
+      "/api/v1/admin/dashboard/moderation/filter-keywords",
+    FILTER_KEYWORD_BY_ID: (keywordId: string) =>
+      `/api/v1/admin/dashboard/moderation/filter-keywords/${keywordId}`,
+  },
+
   DASHBOARD_SUGGESTIONS: {
     BASE: "/api/v1/admin/dashboard/suggestions",
     REWARD: (suggestionId: string) =>

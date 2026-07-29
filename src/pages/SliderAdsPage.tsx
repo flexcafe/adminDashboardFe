@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { SliderFormModal } from "@/features/sliderAds/SliderFormModal";
 import { SliderPreview } from "@/features/sliderAds/SliderPreview";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import {
   createSliderAd,
   deleteSliderAd,
@@ -355,7 +356,7 @@ export function SliderAdsPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={7}>
-                    <div className="verificationEmptyState">{t("sliderAdsPage.loading")}</div>
+                    <ApiLoadingState label={t("sliderAdsPage.loading")} compact />
                   </td>
                 </tr>
               ) : filteredSliderAds.length === 0 ? (

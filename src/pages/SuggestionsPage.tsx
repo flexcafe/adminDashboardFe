@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import { useSuggestions } from "@/features/suggestions/SuggestionsContext";
 import type { Suggestion } from "@/features/suggestions/suggestionsApi";
 
@@ -180,7 +181,7 @@ export function SuggestionsPage() {
         {/* Content */}
         <div className="card suggestionsPageCard">
           {isLoading ? (
-            <div className="suggestionsPageLoading">{t("suggestionsPage.loading")}</div>
+            <ApiLoadingState label={t("suggestionsPage.loading")} />
           ) : error ? (
             <div className="suggestionsPageError">
               <p>{error}</p>

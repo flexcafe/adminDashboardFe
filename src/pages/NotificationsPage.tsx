@@ -2,6 +2,7 @@ import { Bell, BellRing, MailCheck } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import {
   useAdminNotifications,
 } from "@/features/adminNotifications/AdminNotificationsContext";
@@ -12,6 +13,8 @@ const formatDateTime = (value: string, locale: string) => {
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString(locale);
 };
+
+const NOTIFICATIONS_PER_PAGE = 10;
 
 export function NotificationsPage() {
   const { i18n, t } = useTranslation();
@@ -27,6 +30,7 @@ export function NotificationsPage() {
     refreshNotifications,
   } = useAdminNotifications();
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isMarkAllConfirmOpen, setIsMarkAllConfirmOpen] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -74,6 +78,27 @@ export function NotificationsPage() {
     );
   }, [localizedNotifications, searchQuery]);
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE)
+  );
+  const highlightedIndex = highlightId
+    ? filteredNotifications.findIndex((item) => item.id === highlightId)
+    : -1;
+  const highlightedPage =
+    highlightedIndex >= 0
+      ? Math.floor(highlightedIndex / NOTIFICATIONS_PER_PAGE) + 1
+      : null;
+  const displayedPage = highlightedPage ?? Math.min(currentPage, totalPages);
+
+  const paginatedNotifications = useMemo(() => {
+    const startIndex = (displayedPage - 1) * NOTIFICATIONS_PER_PAGE;
+    return filteredNotifications.slice(
+      startIndex,
+      startIndex + NOTIFICATIONS_PER_PAGE
+    );
+  }, [displayedPage, filteredNotifications]);
+
   useEffect(() => {
     if (!highlightId) return;
     markNotificationsRead([highlightId]);
@@ -87,7 +112,7 @@ export function NotificationsPage() {
     el.classList.add("highlighted");
     const timer = setTimeout(() => el.classList.remove("highlighted"), 3000);
     return () => clearTimeout(timer);
-  }, [highlightId, filteredNotifications]);
+  }, [highlightId, paginatedNotifications]);
 
   const handleMarkAllAsRead = useCallback(async () => {
     setIsMarkingAll(true);
@@ -183,7 +208,10 @@ export function NotificationsPage() {
               className="authInput"
               placeholder={t("notificationsPage.searchPlaceholder")}
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>
@@ -191,14 +219,20 @@ export function NotificationsPage() {
         {error ? <p className="authError surfaceMessage">{error}</p> : null}
 
         <div className="notificationsPageList">
-          {filteredNotifications.length === 0 ? (
+          {isLoading ? (
+            <ApiLoadingState
+              label={t("notificationsPage.loading", {
+                defaultValue: "Loading notifications…",
+              })}
+            />
+          ) : filteredNotifications.length === 0 ? (
             <div className="notificationsPageEmpty">
               {searchQuery.trim()
                 ? t("notificationsPage.emptySearch")
                 : t("notificationsPage.emptyDefault")}
             </div>
           ) : (
-            filteredNotifications.map((item) => (
+            paginatedNotifications.map((item) => (
               <article
                 key={item.id}
                 ref={(el) => {
@@ -238,6 +272,38 @@ export function NotificationsPage() {
             ))
           )}
         </div>
+
+        {filteredNotifications.length > NOTIFICATIONS_PER_PAGE ? (
+          <div className="notificationsPagination">
+            <span className="notificationsPaginationSummary">
+              {t("notificationsPage.paginationSummary", {
+                defaultValue: "Page {{current}} of {{total}}",
+                current: displayedPage,
+                total: totalPages,
+              })}
+            </span>
+            <div className="notificationsPaginationActions">
+              <button
+                type="button"
+                className="verificationActionButton subtle"
+                onClick={() => setCurrentPage(Math.max(displayedPage - 1, 1))}
+                disabled={displayedPage === 1}
+              >
+                {t("notificationsPage.previousPage", { defaultValue: "Previous" })}
+              </button>
+              <button
+                type="button"
+                className="verificationActionButton"
+                onClick={() =>
+                  setCurrentPage(Math.min(displayedPage + 1, totalPages))
+                }
+                disabled={displayedPage === totalPages}
+              >
+                {t("notificationsPage.nextPage", { defaultValue: "Next" })}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {isMarkAllConfirmOpen ? (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import type { Category } from "./categoriesApi";
 
 function CategoryDetailsMedia({
@@ -80,7 +81,7 @@ export function CategoryDetails({
   if (isLoading) {
     return (
       <section className="card categoriesDetailsPanel">
-        <div className="categoriesEmptyState">{t("categoryDetails.loading")}</div>
+        <ApiLoadingState label={t("categoryDetails.loading")} compact />
       </section>
     );
   }

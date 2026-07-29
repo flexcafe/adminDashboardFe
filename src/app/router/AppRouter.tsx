@@ -81,6 +81,11 @@ const FraudReportsPage = lazy(() =>
     default: module.FraudReportsPage,
   }))
 );
+const ContentModerationPage = lazy(() =>
+  import("../../pages/ContentModerationPage").then((module) => ({
+    default: module.ContentModerationPage,
+  }))
+);
 const SuggestionsPage = lazy(() =>
   import("../../pages/SuggestionsPage").then((module) => ({
     default: module.SuggestionsPage,
@@ -230,6 +235,7 @@ export function AppRouter() {
               <Route path="/admin-users" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.adminUsers}><AdminUsersPage /></RequirePermission>} />
               <Route path="/admin-roles" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.adminRoles}><AdminRolesPage /></RequirePermission>} />
               <Route path="/fraud-reports" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.fraudReports}><FraudReportsPage /></RequirePermission>} />
+              <Route path="/content-moderation" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.contentModeration}><ContentModerationPage /></RequirePermission>} />
               <Route path="/facebook-follow" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.facebookFollow}><FacebookFollowPage /></RequirePermission>} />
               <Route path="/points" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.points}><PointsPage /></RequirePermission>} />
               <Route path="/notifications" element={<RequirePermission requiredPermissions={ADMIN_PAGE_PERMISSIONS.notifications}><NotificationsPage /></RequirePermission>} />

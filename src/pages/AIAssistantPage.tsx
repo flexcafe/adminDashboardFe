@@ -277,17 +277,18 @@ export function AIAssistantPage() {
     const trimmed = input.trim();
     if (!trimmed || !activeSession || isLoading) return;
 
+    const currentSnapshotContext = buildSnapshotContext(snapshot);
+
     setInput("");
     setPageError(null);
     setStatusMessage(null);
 
     try {
-      const nextSnapshot = (await loadSnapshot()) ?? snapshot;
       await submitAssistantMessage({
         content: trimmed,
-        dashboardContext: buildSnapshotContext(nextSnapshot),
+        dashboardContext: currentSnapshotContext,
         onActionComplete: refreshSnapshot,
-        refreshDashboardContext: async () => buildSnapshotContext((await loadSnapshot()) ?? nextSnapshot),
+        refreshDashboardContext: async () => buildSnapshotContext((await loadSnapshot()) ?? snapshot),
         sessionId: activeSession.id,
       });
     } catch (error) {

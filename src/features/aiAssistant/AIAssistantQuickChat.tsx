@@ -116,26 +116,53 @@ export function AIAssistantQuickChat({ currentPath }: { currentPath: string }) {
   const starterPrompts = useMemo(() => {
     if (currentPath.includes("fraud-reports")) {
       return [
-        "Summarize the current fraud reports.",
-        "Which record needs admin action first?",
-        "Explain this page status briefly.",
+        t("aiAssistantPage.quickPromptFraudSummary", {
+          defaultValue: "What are the highest-risk fraud reports?",
+        }),
+        t("aiAssistantPage.quickPromptFraudPriority", {
+          defaultValue: "Which fraud report needs review first?",
+        }),
+        t("aiAssistantPage.quickPromptFraudRisk", {
+          defaultValue: "Which accounts are most critical right now?",
+        }),
+        t("aiAssistantPage.quickPromptFraudNextStep", {
+          defaultValue: "What action should I take next on this page?",
+        }),
       ];
     }
 
     if (currentPath.includes("admin-chat")) {
       return [
-        "Summarize pending safe payment work.",
-        "What should I do next on this page?",
-        "Explain the current queues briefly.",
+        t("aiAssistantPage.quickPromptChatSummary", {
+          defaultValue: "Which safe-payment trade is most urgent?",
+        }),
+        t("aiAssistantPage.quickPromptChatPriority", {
+          defaultValue: "Which trade needs admin action first?",
+        }),
+        t("aiAssistantPage.quickPromptChatBlockers", {
+          defaultValue: "What is blocking the current trade queue?",
+        }),
+        t("aiAssistantPage.quickPromptChatNextStep", {
+          defaultValue: "What action should I take next on this page?",
+        }),
       ];
     }
 
     return [
-      "Summarize this admin page.",
-      "What should I review first?",
-      "Explain the key records briefly.",
+      t("aiAssistantPage.quickPromptSummary", {
+        defaultValue: "What is the most important issue on this page?",
+      }),
+      t("aiAssistantPage.quickPromptPriority", {
+        defaultValue: "Which record needs review first?",
+      }),
+      t("aiAssistantPage.quickPromptAttention", {
+        defaultValue: "Which items need urgent action now?",
+      }),
+      t("aiAssistantPage.quickPromptNextStep", {
+        defaultValue: "What action should I take next on this page?",
+      }),
     ];
-  }, [currentPath]);
+  }, [currentPath, t]);
 
   const startNewChat = () => {
     if (isLoading) return;
@@ -162,10 +189,9 @@ export function AIAssistantQuickChat({ currentPath }: { currentPath: string }) {
     shouldAutoScrollRef.current = true;
 
     try {
-      const nextSnapshotContext = await loadSnapshot();
       await submitAssistantMessage({
         content: trimmed,
-        dashboardContext: nextSnapshotContext || snapshotContext,
+        dashboardContext: snapshotContext,
         onActionComplete: refreshSnapshot,
         refreshDashboardContext: loadSnapshot,
         sessionId: activeSession?.id,

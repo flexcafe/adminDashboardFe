@@ -1,6 +1,5 @@
 import { memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useSuggestions } from "@/features/suggestions/SuggestionsContext";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -106,6 +105,15 @@ function FraudIcon() {
   );
 }
 
+function ModerationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3 4.5 6v5.5c0 4.6 3.2 7.8 7.5 9.5 4.3-1.7 7.5-4.9 7.5-9.5V6L12 3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
 function SliderIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -202,10 +210,8 @@ export function AppShell() {
     error: notificationsError,
     isRealtimeConnected,
     refreshNotifications,
-    markAllNotificationsRead,
     markNotificationsRead,
   } = useAdminNotifications();
-  const { pendingCount: suggestionsPendingCount } = useSuggestions();
   const navigate = useNavigate();
   const location = useLocation();
   const isAIAssistantRoute = location.pathname.startsWith("/ai-assistant");
@@ -345,18 +351,19 @@ export function AppShell() {
               meta={t("shell.fraudReportsMeta")}
             />
           ) : null}
+          {canAccess(ADMIN_PAGE_PERMISSIONS.contentModeration) ? (
+            <SidebarNavItem
+              to="/content-moderation"
+              icon={<ModerationIcon />}
+              title={t("shell.contentModerationTitle", { defaultValue: "Content Moderation" })}
+              meta={t("shell.contentModerationMeta", { defaultValue: "Review content reports and filters" })}
+            />
+          ) : null}
           {canAccess(ADMIN_PAGE_PERMISSIONS.suggestions) ? (
             <SidebarNavItem
               to="/suggestions"
               icon={<LightbulbIcon />}
-              title={(
-                <>
-                  {t("shell.suggestionsTitle")}
-                  {suggestionsPendingCount > 0 ? (
-                    <span className="navItemBadge">{suggestionsPendingCount}</span>
-                  ) : null}
-                </>
-              )}
+              title={t("shell.suggestionsTitle")}
               meta={t("shell.suggestionsMeta")}
             />
           ) : null}
@@ -530,7 +537,6 @@ export function AppShell() {
                       className="verificationActionButton subtle notificationsViewAllButton"
                       onClick={() => {
                         setIsNotificationsOpen(false);
-                        markAllNotificationsRead();
                         navigate("/notifications");
                       }}
                     >

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import type { AdminRole } from "@/features/adminRoles/adminRolesApi";
 import type { AdminUser } from "./adminUsersApi";
 
@@ -56,7 +57,7 @@ export function AdminUsersTable({
           {isLoading ? (
             <tr>
               <td colSpan={5}>
-                <div className="verificationEmptyState">{t("adminUsersPage.loading")}</div>
+                <ApiLoadingState label={t("adminUsersPage.loading")} compact />
               </td>
             </tr>
           ) : users.length === 0 ? (

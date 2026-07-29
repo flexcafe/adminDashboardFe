@@ -1,6 +1,7 @@
 import { Clock, Eye, MessageSquare, Package } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import { useAdminChat } from "@/features/adminChat/AdminChatContext";
 import type {
   AdminChatQueueTab,
@@ -399,7 +400,14 @@ export function AdminChatWorkspace() {
           </div>
 
           <div className="adminChatList">
-            {filteredItems.length === 0 ? (
+            {isLoading ? (
+              <ApiLoadingState
+                label={t("adminChatPage.loading", {
+                  defaultValue: "Loading safe-payment queues…",
+                })}
+                compact
+              />
+            ) : filteredItems.length === 0 ? (
               <div className="adminChatEmptyState">
                 {searchQuery.trim()
                   ? t("adminChatPage.emptySearch")

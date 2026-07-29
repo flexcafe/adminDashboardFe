@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import { AdminRoleFormModal } from "@/features/adminRoles/AdminRoleFormModal";
 import {
   createAdminRole,
@@ -317,9 +318,7 @@ export function AdminRolesPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={5}>
-                    <div className="verificationEmptyState">
-                      {t("adminRolesPage.loading")}
-                    </div>
+                    <ApiLoadingState label={t("adminRolesPage.loading")} compact />
                   </td>
                 </tr>
               ) : filteredRoles.length === 0 ? (

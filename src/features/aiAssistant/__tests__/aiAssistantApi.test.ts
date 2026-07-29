@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
 import {
   callAssistantCompletion,
@@ -23,6 +23,17 @@ const baseArgs = {
   memorySummary: "Facts:\n- None\nPreferences:\n- None",
   agentMode: false,
 };
+
+beforeEach(() => {
+  sessionStorage.setItem(
+    "wms_user",
+    JSON.stringify({ adminRoleName: "ROOT_ADMIN" })
+  );
+});
+
+afterEach(() => {
+  sessionStorage.removeItem("wms_user");
+});
 
 describe("callAssistantCompletion", () => {
   afterEach(() => {

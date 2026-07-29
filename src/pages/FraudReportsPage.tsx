@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Check, Copy } from "lucide-react";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import {
   banUser,
   confirmFraudReport,
@@ -368,9 +369,7 @@ export function FraudReportsPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={6}>
-                    <div className="verificationEmptyState">
-                      {t("fraudReportsPage.loading")}
-                    </div>
+                    <ApiLoadingState label={t("fraudReportsPage.loading")} compact />
                   </td>
                 </tr>
               ) : filteredReports.length === 0 ? (

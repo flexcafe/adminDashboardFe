@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import { CategoryDetails } from "@/features/categories/CategoryDetails";
 import { CategoryFormModal } from "@/features/categories/CategoryFormModal";
 import { CategoryTree } from "@/features/categories/CategoryTree";
@@ -678,6 +679,15 @@ export function CategoriesPage() {
 
       {pageError ? <p className="authError surfaceMessage">{pageError}</p> : null}
 
+      {isLoading && categories.length === 0 ? (
+        <div className="card">
+          <ApiLoadingState
+            label={t("categoriesPage.loading", {
+              defaultValue: "Loading categories…",
+            })}
+          />
+        </div>
+      ) : (
       <div className="categoriesLayout">
         <CategoryTree
           categories={categories}
@@ -738,6 +748,7 @@ export function CategoriesPage() {
           }}
         />
       </div>
+      )}
 
       <p className="rewardsLastUpdated">
         {t("categoriesPage.lastUpdated", { time: lastUpdated })}

@@ -42,6 +42,10 @@ describe("AIAssistantPage smoke", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.setItem(
+      "wms_user",
+      JSON.stringify({ adminRoleName: "ROOT_ADMIN" })
+    );
     httpGet.mockResolvedValue({ data: [] });
     httpPost.mockResolvedValue({ success: true });
     httpPut.mockResolvedValue({ success: true });
@@ -51,6 +55,7 @@ describe("AIAssistantPage smoke", () => {
   });
 
   afterEach(() => {
+    sessionStorage.removeItem("wms_user");
     vi.restoreAllMocks();
   });
 
@@ -173,7 +178,9 @@ describe("AIAssistantPage smoke", () => {
         { adminNote: "Approved by AI" }
       );
     });
-    expect(await screen.findByText("Action completed successfully.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("The withdrawal request is now approved.")
+    ).toBeInTheDocument();
     expect(screen.queryByText("Confirm action")).not.toBeInTheDocument();
   });
 

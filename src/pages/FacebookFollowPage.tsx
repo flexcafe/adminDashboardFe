@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FadeSlideSwap } from "@/components/motion/FadeSlideSwap";
+import { ApiLoadingState } from "@/components/ApiLoadingState";
 import container from "@/core/infrastructure/di/container";
 import { HttpClient } from "@/core/infrastructure/api/HttpClient";
 import { API_ENDPOINTS } from "@/core/infrastructure/api/constants";
@@ -406,7 +407,7 @@ export function FacebookFollowPage() {
                 {isLoading ? (
                   <tr>
                     <td colSpan={7}>
-                      <div className="verificationEmptyState">{t("facebookFollowPage.loading")}</div>
+                      <ApiLoadingState label={t("facebookFollowPage.loading")} compact />
                     </td>
                   </tr>
                 ) : filteredSubmissions.length === 0 ? (
