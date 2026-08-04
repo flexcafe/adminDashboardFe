@@ -2569,7 +2569,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 .adminRolesPermissionItem.checked {
-  background: var(--primary-ghost);
+  background: var(--verification-accent-soft);
+  box-shadow: inset 3px 0 0 var(--verification-accent);
   transform: translateX(3px);
 }
 
@@ -2595,8 +2596,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 .adminRolesPermissionItem.checked .adminRolesPermissionCheckboxVisual {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--verification-accent);
+  border-color: var(--verification-accent);
   color: #fff;
   transform: scale(1.04);
 }
